@@ -1,8 +1,10 @@
-// This is the example from https://github.com/Adanos020/egui_dock/blob/main/examples/simple.rs
+// This is the example from https://github.com/Adanos020/egui_dock/blob/main/examples/hello.rs
 // Modified for the purposes of Iron Coder https://github.com/shulltronics/iron-coder
 
 use eframe::{egui, NativeOptions};
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
+use eframe::egui::{Pos2, Rect, Sense, Ui, Vec2};
+use emath::{self};
 
 fn main() -> eframe::Result<()> {
     let options = NativeOptions::default();
@@ -13,49 +15,115 @@ fn main() -> eframe::Result<()> {
     )
 }
 
-struct TabViewer {}
+struct MyContext {
+    canvas_zoom: f32,
+    canvas_offset: Vec2,
+}
 
-impl egui_dock::TabViewer for TabViewer {
+impl egui_dock::TabViewer for MyContext {
     type Tab = String;
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
-        (&*tab).into()
+        tab.as_str().into()
     }
 
-    fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
-        ui.label(format!("Content of {tab}"));
+    fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
+        match tab.as_str() {
+            "Canvas" => self.draw_canvas(ui),
+            _ => {
+                ui.label(tab.as_str());
+            }
+        }
+    }
+
+    fn closeable(&mut self, tab: &mut String) -> bool {
+        if tab == "Canvas" {
+            false
+        } else {
+            true
+        }
+    }
+}
+
+impl MyContext {
+    fn draw_canvas(&mut self, ui: &mut Ui) {
+        let response = ui.allocate_response(ui.available_size(), Sense::drag());
+
+        if response.dragged() {
+            self.canvas_offset += response.drag_delta();
+        }
+
+        if response.hovered() {
+            let scroll_delta = ui.ctx().input(|i| i.smooth_scroll_delta.y);
+            let zoom_factor = 1.01;
+
+            if scroll_delta > 0.0 {
+                self.canvas_zoom *= zoom_factor;
+            } else if scroll_delta < 0.0 {
+                self.canvas_zoom /= zoom_factor;
+            }
+            
+        }
+
+        let rect = response.rect;
+
+        let to_screen = emath::RectTransform::from_to(
+            Rect::from_min_size(Pos2::ZERO, rect.size() / self.canvas_zoom),
+            rect.translate(self.canvas_offset + (rect.size() / 2.0)),
+        );
+
+        let painter = ui.painter();
+        let color = egui::Color32::GRAY;
+        for i in -10..=10 {
+            let i_f = i as f32 * 1.0;
+            let start = to_screen * Pos2::new(i_f, -10.0);
+            let end = to_screen * Pos2::new(i_f, 10.0);
+            painter.line_segment([start, end], (1.0, color));
+
+            let start = to_screen * Pos2::new(-10.0, i_f);
+            let end = to_screen * Pos2::new(10.0, i_f);
+            painter.line_segment([start, end], (1.0, color));
+        }
     }
 }
 
 struct MyApp {
     tree: DockState<String>,
     display_settings: bool,
+    context: MyContext,
 }
 
 impl Default for MyApp {
     fn default() -> Self {
-        let mut tree = DockState::new(vec!["tab1".to_owned(), "tab2".to_owned()]);
+        let mut tree = DockState::new(vec!["Canvas".to_owned(), "code_file.rs".to_owned()]);
 
         // You can modify the tree before constructing the dock
         let [a, b] =
             tree.main_surface_mut()
-                .split_left(NodeIndex::root(), 0.3, vec!["tab3".to_owned()]);
+                .split_left(NodeIndex::root(), 0.3, vec!["File Explorer".to_owned()]);
         let [_, _] = tree
             .main_surface_mut()
-            .split_below(a, 0.7, vec!["tab4".to_owned()]);
+            .split_below(a, 0.7, vec!["Terminal".to_owned()]);
         let [_, _] = tree
             .main_surface_mut()
-            .split_below(b, 0.5, vec!["tab5".to_owned()]);
+            .split_below(b, 0.5, vec!["Board Info".to_owned()]);
+
+        let context = MyContext {
+            canvas_zoom: 10.0,
+            canvas_offset: Vec2::ZERO,
+        };
 
         Self {
             tree,
             display_settings: false,
+            context,
+
         }
     }
 }
 
 impl MyApp {
-    pub fn display_menu(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    pub fn display_menu(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
             display_settings,
             ..
@@ -100,6 +168,7 @@ impl eframe::App for MyApp {
 
         DockArea::new(&mut self.tree)
             .style(Style::from_egui(ctx.style().as_ref()))
-            .show(ctx, &mut TabViewer {});
+            .show_leaf_collapse_buttons(false)
+            .show(ctx, &mut self.context);
     }
 }

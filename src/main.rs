@@ -6,6 +6,8 @@ use egui_dock::{DockArea, DockState, NodeIndex, Style};
 use eframe::egui::{Pos2, Rect, Sense, Ui, Vec2};
 use emath::{self};
 
+use std::collections::HashMap;
+
 fn main() -> eframe::Result<()> {
     let options = NativeOptions::default();
     eframe::run_native(
@@ -15,38 +17,28 @@ fn main() -> eframe::Result<()> {
     )
 }
 
-struct MyContext {
+trait BaseTab {
+    fn draw(&mut self, ui: &mut egui::Ui) {
+        ui.label("Default");
+    }
+}
+
+struct CanvasTab {
     canvas_zoom: f32,
     canvas_offset: Vec2,
 }
 
-impl egui_dock::TabViewer for MyContext {
-    type Tab = String;
-
-    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
-        tab.as_str().into()
-    }
-
-    fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
-        match tab.as_str() {
-            "Canvas" => self.draw_canvas(ui),
-            _ => {
-                ui.label(tab.as_str());
-            }
-        }
-    }
-
-    fn closeable(&mut self, tab: &mut String) -> bool {
-        if tab == "Canvas" {
-            false
-        } else {
-            true
+impl CanvasTab {
+    fn new(zoom: f32, offset: Vec2) -> Self {
+        Self {
+            canvas_zoom: zoom,
+            canvas_offset: offset,
         }
     }
 }
 
-impl MyContext {
-    fn draw_canvas(&mut self, ui: &mut Ui) {
+impl BaseTab for CanvasTab {
+    fn draw(&mut self, ui: &mut egui::Ui) {
         let response = ui.allocate_response(ui.available_size(), Sense::drag());
 
         if response.dragged() {
@@ -87,6 +79,85 @@ impl MyContext {
     }
 }
 
+struct FileTab {
+    filename: String,
+}
+
+impl FileTab {
+    fn new(filename: String) -> Self {
+        FileTab { filename }
+    }
+}
+
+impl BaseTab for FileTab {
+    fn draw(&mut self, ui: &mut egui::Ui) {
+        ui.label(format!("HI I AM {}", self.filename));
+    }
+}
+
+struct SettingsTab;
+
+impl SettingsTab {
+    fn new() -> Self {
+        SettingsTab { }
+    }
+}
+
+impl BaseTab for SettingsTab {
+    fn draw(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Settings");
+        ui.label("Random setting 1");
+        let mut s1_value = 50.0;
+        ui.add(egui::Slider::new(&mut s1_value, 0.0..=100.0).text("Slider 1"));
+        if ui.button("Save settings").clicked() {
+            println!("Settings saved!");
+        }
+    }
+}
+
+struct MyContext {
+    tabs: HashMap<String, Box<dyn BaseTab>>, // these are tabs like Settings, Canvas, etc that can be reopened
+}
+
+impl MyContext {
+    fn new() -> Self {
+        let mut tabs: HashMap<String, Box<dyn BaseTab>> = HashMap::new();
+
+        tabs.insert("Canvas".to_string(), Box::new(CanvasTab::new(1.0, Vec2::new(0.0, 0.0))));
+        tabs.insert("Settings".to_string(), Box::new(SettingsTab::new()));
+
+        let filename = "main.rs".to_string();
+        tabs.insert(filename.clone(), Box::new(FileTab::new(filename.clone())));
+
+
+        Self {
+            tabs,
+        }
+    }
+}
+
+impl egui_dock::TabViewer for MyContext {
+    type Tab = String;
+
+    fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
+        tab.as_str().into()
+    }
+
+    fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
+        if let Some(tab) = self.tabs.get_mut(tab) {
+            tab.draw(ui);
+        }
+    }
+
+    fn closeable(&mut self, _tab: &mut String) -> bool {
+        if _tab == "Canvas" {
+            false
+        } else {
+            true
+        }
+    }
+}
+
 struct MyApp {
     tree: DockState<String>,
     display_settings: bool,
@@ -95,7 +166,7 @@ struct MyApp {
 
 impl Default for MyApp {
     fn default() -> Self {
-        let mut tree = DockState::new(vec!["Canvas".to_owned(), "code_file.rs".to_owned()]);
+        let mut tree = DockState::new(vec!["Canvas".to_owned(), "main.rs".to_owned(), "Settings".to_owned()]);
 
         // You can modify the tree before constructing the dock
         let [a, b] =
@@ -108,10 +179,7 @@ impl Default for MyApp {
             .main_surface_mut()
             .split_below(b, 0.5, vec!["Board Info".to_owned()]);
 
-        let context = MyContext {
-            canvas_zoom: 10.0,
-            canvas_offset: Vec2::ZERO,
-        };
+        let context = MyContext::new();
 
         Self {
             tree,

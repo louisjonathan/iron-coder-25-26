@@ -6,8 +6,6 @@
 	- keybindings (evan p)
 	- color schemes (jonathan l)
 
-#### Work log 
-Jon L: 		2hr 	planning
-Jonathan B: 	2hr 	planning
-Evan P:		2hr 	planning
+### Works Cited
 
+[Color Palettes](https://github.com/Experience-Monks/nice-color-palettes/tree/master)

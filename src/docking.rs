@@ -8,6 +8,8 @@ use emath::{self};
 
 use std::collections::HashMap;
 
+use crate::colorschemes;
+
 static OPENABLE_TABS: &'static [&'static str] = &[
     "Settings",
     "Canvas",
@@ -230,6 +232,12 @@ impl MyApp {
                 ui.menu_button("File", |ui| {
                     if ui.button("Settings").clicked() {
                         ui.close_menu();
+                    }
+                    if ui.button("Set colorscheme").clicked() {
+                        colorschemes::set_color_scheme(
+                            ctx,
+                            "resources/colorschemes/example_colorscheme.toml",
+                        );
                     }
                 });
                 ui.menu_button("View", |ui| {

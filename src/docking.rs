@@ -227,11 +227,6 @@ impl MyApp {
     pub fn display_menu(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("Settings").clicked() {
-                        ui.close_menu();
-                    }
-                });
                 ui.menu_button("View", |ui| {
                     for tab_name in OPENABLE_TABS {
                         let is_open = self.context.tabs.contains_key(*tab_name);

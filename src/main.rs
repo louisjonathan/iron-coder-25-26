@@ -2,13 +2,22 @@
 // Modified for the purposes of Iron Coder https://github.com/shulltronics/iron-coder
 
 use eframe::{egui, NativeOptions};
-use egui_dock::{DockArea, DockState, NodeIndex, Style};
+use egui_dock::{DockArea, DockState, NodeIndex, Style, Surface, SurfaceIndex};
 use eframe::egui::{Pos2, Rect, Sense, Ui, Vec2};
 use emath::{self};
 
 use std::collections::HashMap;
 
+static OPENABLE_TABS: &'static [&'static str] = &[
+    "Settings",
+    "Canvas",
+    "File Explorer",
+    "Terminal",
+    "Board Info",
+];
+
 fn main() -> eframe::Result<()> {
+
     let options = NativeOptions::default();
     eframe::run_native(
         "My egui App",
@@ -29,10 +38,10 @@ struct CanvasTab {
 }
 
 impl CanvasTab {
-    fn new(zoom: f32, offset: Vec2) -> Self {
+    fn new() -> Self {
         Self {
-            canvas_zoom: zoom,
-            canvas_offset: offset,
+            canvas_zoom: 1.0,
+            canvas_offset: Vec2::new(0.0, 0.0),
         }
     }
 }
@@ -95,8 +104,34 @@ impl BaseTab for FileTab {
     }
 }
 
-struct SettingsTab;
+struct FileExplorerTab;
+impl BaseTab for FileExplorerTab {
+}
+impl FileExplorerTab {
+    fn new() -> Self {
+        FileExplorerTab { }
+    }
+}
 
+struct TerminalTab;
+impl BaseTab for TerminalTab {
+}
+impl TerminalTab {
+    fn new() -> Self {
+        TerminalTab { }
+    }
+}
+
+struct BoardInfoTab;
+impl BaseTab for BoardInfoTab {
+}
+impl BoardInfoTab {
+    fn new() -> Self {
+        BoardInfoTab { }
+    }
+}
+
+struct SettingsTab;
 impl SettingsTab {
     fn new() -> Self {
         SettingsTab { }
@@ -116,19 +151,20 @@ impl BaseTab for SettingsTab {
 }
 
 struct MyContext {
-    tabs: HashMap<String, Box<dyn BaseTab>>, // these are tabs like Settings, Canvas, etc that can be reopened
+    tabs: HashMap<String, Box<dyn BaseTab>>,
 }
 
 impl MyContext {
     fn new() -> Self {
         let mut tabs: HashMap<String, Box<dyn BaseTab>> = HashMap::new();
 
-        tabs.insert("Canvas".to_string(), Box::new(CanvasTab::new(1.0, Vec2::new(0.0, 0.0))));
+        tabs.insert("Canvas".to_string(), Box::new(CanvasTab::new()));
         tabs.insert("Settings".to_string(), Box::new(SettingsTab::new()));
+        tabs.insert("File Explorer".to_string(), Box::new(FileExplorerTab::new()));
+        tabs.insert("Terminal".to_string(), Box::new(TerminalTab::new()));
 
         let filename = "main.rs".to_string();
         tabs.insert(filename.clone(), Box::new(FileTab::new(filename.clone())));
-
 
         Self {
             tabs,
@@ -149,6 +185,11 @@ impl egui_dock::TabViewer for MyContext {
         }
     }
 
+    fn on_close(&mut self, _tab: &mut Self::Tab) -> bool {
+        self.tabs.remove(_tab);
+        true
+    }
+
     fn closeable(&mut self, _tab: &mut String) -> bool {
         if _tab == "Canvas" {
             false
@@ -160,7 +201,6 @@ impl egui_dock::TabViewer for MyContext {
 
 struct MyApp {
     tree: DockState<String>,
-    display_settings: bool,
     context: MyContext,
 }
 
@@ -168,75 +208,69 @@ impl Default for MyApp {
     fn default() -> Self {
         let mut tree = DockState::new(vec!["Canvas".to_owned(), "main.rs".to_owned(), "Settings".to_owned()]);
 
-        // You can modify the tree before constructing the dock
         let [a, b] =
             tree.main_surface_mut()
-                .split_left(NodeIndex::root(), 0.3, vec!["File Explorer".to_owned()]);
+            .split_left(NodeIndex::root(), 0.3, vec!["File Explorer".to_owned()]);
         let [_, _] = tree
             .main_surface_mut()
             .split_below(a, 0.7, vec!["Terminal".to_owned()]);
-        let [_, _] = tree
-            .main_surface_mut()
-            .split_below(b, 0.5, vec!["Board Info".to_owned()]);
 
         let context = MyContext::new();
 
         Self {
             tree,
-            display_settings: false,
             context,
-
         }
     }
 }
 
 impl MyApp {
     pub fn display_menu(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self {
-            display_settings,
-            ..
-        } = self;
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Settings").clicked() {
-                        *display_settings = true;
                         ui.close_menu();
+                    }
+                });
+                ui.menu_button("View", |ui| {
+                    for tab_name in OPENABLE_TABS {
+                        let is_open = self.context.tabs.contains_key(*tab_name);
+                        if ui.add(egui::SelectableLabel::new(is_open, *tab_name))
+                            .clicked() {
+                                if !is_open {
+                                    self.add_tab(tab_name.to_string());
+                                }
+                        }
                     }
                 });
             });
         });
     }
 
-    pub fn display_settings_window(&mut self, ctx: &egui::Context) {
-        let Self {
-            display_settings,
-            ..
-        } = self;
-
-        if *display_settings {
-            let window_response = egui::Window::new("Settings")
-            .open(display_settings)
-            .collapsible(false)
-            .resizable(false)
-            .movable(true)
-            .show(ctx, |ui| {
-                ui.heading("Random setting 1");
-            });
-            window_response.unwrap().response.layer_id.order = egui::Order::Foreground;
+    pub fn add_tab(&mut self, tab_name: String) {
+        match tab_name.as_str() {
+            "Settings" => {
+                self.context.tabs.insert(tab_name.clone(), Box::new(SettingsTab));
+            }
+            "Canvas" => {
+                self.context.tabs.insert(tab_name.clone(), Box::new(SettingsTab));
+            }
+            _ => {}
         }
+        self.tree.push_to_focused_leaf(tab_name);
     }
 }
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.display_menu(ctx, _frame);
 
-        self.display_settings_window(ctx);
+        self.display_menu(ctx, _frame);
 
         DockArea::new(&mut self.tree)
             .style(Style::from_egui(ctx.style().as_ref()))
             .show_leaf_collapse_buttons(false)
+            .show_leaf_close_all_buttons(false)
             .show(ctx, &mut self.context);
     }
 }

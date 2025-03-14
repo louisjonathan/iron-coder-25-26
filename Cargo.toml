@@ -1,3 +1,8 @@
+[profile.release]
+debug = true
+incremental = true
+opt-level = 1
+
 [package]
 name = "egui_dock_testing"
 version = "0.1.0"
@@ -8,3 +13,4 @@ eframe = "0.31"
 egui = "0.31"
 egui_dock = "0.16"
 emath = "0.31"
+tracy-client = "0.18.0"

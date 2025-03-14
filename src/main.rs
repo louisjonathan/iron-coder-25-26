@@ -2,7 +2,7 @@
 // Modified for the purposes of Iron Coder https://github.com/shulltronics/iron-coder
 
 use eframe::{egui, NativeOptions};
-use egui_dock::{DockArea, DockState, NodeIndex, Style, Surface, SurfaceIndex};
+use egui_dock::{DockArea, DockState, NodeIndex, Style};
 use eframe::egui::{Pos2, Rect, Sense, Ui, Vec2};
 use emath::{self};
 
@@ -254,7 +254,16 @@ impl MyApp {
                 self.context.tabs.insert(tab_name.clone(), Box::new(SettingsTab));
             }
             "Canvas" => {
-                self.context.tabs.insert(tab_name.clone(), Box::new(SettingsTab));
+                self.context.tabs.insert(tab_name.clone(), Box::new(CanvasTab::new()));
+            }
+            "Terminal" => {
+                self.context.tabs.insert(tab_name.clone(), Box::new(TerminalTab));
+            }
+            "File Explorer" => {
+                self.context.tabs.insert(tab_name.clone(), Box::new(FileExplorerTab));
+            }
+            "Board Info" => {
+                self.context.tabs.insert(tab_name.clone(), Box::new(BoardInfoTab));
             }
             _ => {}
         }

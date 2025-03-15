@@ -241,10 +241,19 @@ impl MyApp {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
-                    if ui.button("Set Colorscheme").clicked() {
+                    if ui.button("Settings").clicked() {
+                        ui.close_menu();
+                    }
+                    if ui.button("Set example colorscheme").clicked() {
                         colorschemes::set_color_scheme(
                             ctx,
                             "resources/colorschemes/example_colorscheme.toml",
+                        );
+                    }
+                    if ui.button("Set random colorscheme").clicked() {
+                        colorschemes::set_color_scheme(
+                            ctx,
+                            &colorschemes::get_random_color_scheme(),
                         );
                     }
                 });

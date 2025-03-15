@@ -1,9 +1,9 @@
 // keyboard shortcut support
 
+use eframe::egui::Key;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
-use serde::{Deserialize};
-use eframe::egui::Key;
 
 #[derive(Deserialize)]
 pub struct Keybinding {
@@ -23,8 +23,10 @@ pub struct Keybindings {
 
 impl Keybindings {
     pub fn new() -> Self {
-        let file_content = fs::read_to_string("keybindings.json").expect("Unable to read file");
-        let bindings: Vec<Keybinding> = serde_json::from_str(&file_content).expect("JSON was not well-formatted");
+        let file_content =
+            fs::read_to_string("resources/keybindings.json").expect("Unable to read file");
+        let bindings: Vec<Keybinding> =
+            serde_json::from_str(&file_content).expect("JSON was not well-formatted");
         let mut map = HashMap::new();
         for binding in bindings {
             if let Some(key) = binding.to_key() {

@@ -1,0 +1,17 @@
+[
+    {
+        "id": "open_settings",
+        "key": "S",
+        "description": "Open settings."
+    },
+    {
+        "id": "test_a",
+        "key": "A",
+        "description": "Print test message."
+    },
+    {
+        "id": "test_b",
+        "key": "B",
+        "description": "Print test message."
+    }
+]

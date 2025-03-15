@@ -8,7 +8,7 @@ Get a working proof of concept for the following:
 - Keybinding Support (Evan P)
 	- Create a modular keybindings system that reads egui inputs and does actions based on the hotkey configuration. Parses a .json file for hotkey editing and addition.
 - Color Scheme (Jonathan L)
-	- Modify egui styling using color schemes.
+	- Modify egui styling using color schemes by parsing .toml files. Designed in a manner that allows for expansion in the future.
 
 ## Known Bugs
 - Tabs opened using the "View" menu appear on the focused window split. Ideally, each tab would have a default location that it would dock to (for example, File Explorer on the left, Terminal at the bottom).

@@ -6,9 +6,14 @@ use eframe::{egui, NativeOptions};
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 use emath::{self};
 
+use crate::colorschemes;
 use std::collections::HashMap;
 
-use crate::colorschemes;
+use eframe::egui::Key;
+use serde::{Deserialize, Serialize};
+
+use crate::keybinding::{Keybinding, Keybindings};
+use std::str::FromStr;
 
 static OPENABLE_TABS: &'static [&'static str] = &[
     "Settings",
@@ -200,6 +205,7 @@ impl egui_dock::TabViewer for MyContext {
 struct MyApp {
     tree: DockState<String>,
     context: MyContext,
+    keybindings: Keybindings,
 }
 
 impl Default for MyApp {
@@ -220,8 +226,13 @@ impl Default for MyApp {
             .split_below(a, 0.7, vec!["Terminal".to_owned()]);
 
         let context = MyContext::new();
+        let keybindings = Keybindings::new();
 
-        Self { tree, context }
+        Self {
+            tree,
+            context,
+            keybindings,
+        }
     }
 }
 
@@ -293,6 +304,21 @@ impl MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.display_menu(ctx, _frame);
+
+        if self.keybindings.is_pressed(ctx, "open_settings") {
+            // (only if settings is closed)
+            if !self.context.tabs.contains_key("Settings") {
+                self.add_tab("Settings".to_string());
+            }
+        }
+
+        if self.keybindings.is_pressed(ctx, "test_a") {
+            println!("Test A!");
+        }
+
+        if self.keybindings.is_pressed(ctx, "test_b") {
+            println!("Test B!");
+        }
 
         DockArea::new(&mut self.tree)
             .style(Style::from_egui(ctx.style().as_ref()))

@@ -244,10 +244,16 @@ impl MyApp {
                     if ui.button("Settings").clicked() {
                         ui.close_menu();
                     }
-                    if ui.button("Set colorscheme").clicked() {
+                    if ui.button("Set example colorscheme").clicked() {
                         colorschemes::set_color_scheme(
                             ctx,
                             "resources/colorschemes/example_colorscheme.toml",
+                        );
+                    }
+                    if ui.button("Set random colorscheme").clicked() {
+                        colorschemes::set_color_scheme(
+                            ctx,
+                            &colorschemes::get_random_color_scheme(),
                         );
                     }
                 });

@@ -1,5 +1,6 @@
-use egui::Color32;
+use egui::{ahash::random_state, Color32, Stroke};
 // https://github.com/Experience-Monks/nice-color-palettes/tree/master
+use rand::Rng;
 use std::collections::HashMap;
 use toml;
 /**
@@ -15,7 +16,11 @@ use toml;
  * 	0 : error
  *  1 : success
  * */
-
+pub fn get_random_color_scheme() -> String {
+    let num: u8 = rand::rng().random();
+    let path: String = "resources/colorschemes/".to_owned() + &(num % 100).to_string() + ".toml";
+    return path;
+}
 pub fn set_color_scheme(context: &egui::Context, path: &str) -> i32 {
     let colorscheme: HashMap<String, Color32> = parse_color_scheme(path);
     let mut new_style = (*context.style()).clone();
@@ -31,7 +36,7 @@ pub fn set_color_scheme(context: &egui::Context, path: &str) -> i32 {
     new_style.visuals.error_fg_color = colorscheme["error_fg_color"];
 
     context.set_style(new_style);
-    return 0;
+    return 1;
 }
 
 /**

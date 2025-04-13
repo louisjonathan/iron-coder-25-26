@@ -3,17 +3,31 @@
 
 use eframe::egui::{Pos2, Rect, Sense, Ui, Vec2};
 use eframe::{egui, NativeOptions};
-use egui_dock::{DockArea, DockState, NodeIndex, Style};
+use egui::Area;
+use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 use emath::{self};
 
-use crate::colorschemes;
+use crate::board;
+use crate::project::Project;
+
+pub mod colorschemes;
 use std::collections::HashMap;
 
 use eframe::egui::Key;
 use serde::{Deserialize, Serialize};
 
-use crate::keybinding::{Keybinding, Keybindings};
+pub mod keybinding;
+use crate::app::keybinding::Keybindings;
+
+pub mod icons;
+
 use std::str::FromStr;
+
+use std::rc::Rc;
+use std::cell::RefCell;
+use crate::board::Board;
+
+use std::path::Path;
 
 static OPENABLE_TABS: &'static [&'static str] = &[
     "Settings",
@@ -22,15 +36,6 @@ static OPENABLE_TABS: &'static [&'static str] = &[
     "Terminal",
     "Board Info",
 ];
-
-pub fn main() -> eframe::Result<()> {
-    let options = NativeOptions::default();
-    eframe::run_native(
-        "My egui App",
-        options,
-        Box::new(|_cc| Ok(Box::<MyApp>::default())),
-    )
-}
 
 trait BaseTab {
     fn draw(&mut self, ui: &mut egui::Ui) {
@@ -41,6 +46,7 @@ trait BaseTab {
 struct CanvasTab {
     canvas_zoom: f32,
     canvas_offset: Vec2,
+	pub boards: Rc<RefCell<Vec<Board>>>,
 }
 
 impl CanvasTab {
@@ -48,6 +54,7 @@ impl CanvasTab {
         Self {
             canvas_zoom: 1.0,
             canvas_offset: Vec2::new(0.0, 0.0),
+			boards: Rc::new(RefCell::new(Vec::new())),
         }
     }
 }
@@ -152,13 +159,22 @@ impl BaseTab for SettingsTab {
     }
 }
 
-struct MyContext {
-    tabs: HashMap<String, Box<dyn BaseTab>>,
+pub struct IronCoderApp {
+    tree: DockState<String>,
+    keybindings: Keybindings,
+	tabs: HashMap<String, Box<dyn BaseTab>>,
+
+    project: Project,
+	boards: Rc<RefCell<Vec<Board>>>,
 }
 
-impl MyContext {
-    fn new() -> Self {
-        let mut tabs: HashMap<String, Box<dyn BaseTab>> = HashMap::new();
+impl Default for IronCoderApp {
+    fn default() -> Self {
+
+		let boards_dir = Path::new("./iron-coder/boards");
+        let boards: Rc<RefCell<Vec<board::Board>>> = Rc::new(RefCell::new(board::get_boards(boards_dir)));
+		
+		let mut tabs: HashMap<String, Box<dyn BaseTab>> = HashMap::new();
 
         tabs.insert("Canvas".to_string(), Box::new(CanvasTab::new()));
         tabs.insert("Settings".to_string(), Box::new(SettingsTab::new()));
@@ -171,11 +187,35 @@ impl MyContext {
         let filename = "main.rs".to_string();
         tabs.insert(filename.clone(), Box::new(FileTab::new(filename.clone())));
 
-        Self { tabs }
+        let mut tree = DockState::new(vec![
+            "Canvas".to_owned(),
+            "main.rs".to_owned(),
+            "Settings".to_owned(),
+        ]);
+
+        let [a, b] = tree.main_surface_mut().split_left(
+            NodeIndex::root(),
+            0.3,
+            vec!["File Explorer".to_owned()],
+        );
+        let [_, _] = tree
+            .main_surface_mut()
+            .split_below(a, 0.7, vec!["Terminal".to_owned()]);
+
+        let keybindings = Keybindings::new();
+
+        Self {
+            tree,
+            keybindings,
+			tabs,
+
+            project: Project::default(),
+            boards: boards,
+        }
     }
 }
 
-impl egui_dock::TabViewer for MyContext {
+impl egui_dock::TabViewer for IronCoderApp {
     type Tab = String;
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
@@ -202,41 +242,7 @@ impl egui_dock::TabViewer for MyContext {
     }
 }
 
-struct MyApp {
-    tree: DockState<String>,
-    context: MyContext,
-    keybindings: Keybindings,
-}
-
-impl Default for MyApp {
-    fn default() -> Self {
-        let mut tree = DockState::new(vec![
-            "Canvas".to_owned(),
-            "main.rs".to_owned(),
-            "Settings".to_owned(),
-        ]);
-
-        let [a, b] = tree.main_surface_mut().split_left(
-            NodeIndex::root(),
-            0.3,
-            vec!["File Explorer".to_owned()],
-        );
-        let [_, _] = tree
-            .main_surface_mut()
-            .split_below(a, 0.7, vec!["Terminal".to_owned()]);
-
-        let context = MyContext::new();
-        let keybindings = Keybindings::new();
-
-        Self {
-            tree,
-            context,
-            keybindings,
-        }
-    }
-}
-
-impl MyApp {
+impl IronCoderApp {
     pub fn display_menu(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
@@ -250,7 +256,7 @@ impl MyApp {
                 });
                 ui.menu_button("View", |ui| {
                     for tab_name in OPENABLE_TABS {
-                        let is_open = self.context.tabs.contains_key(*tab_name);
+                        let is_open = self.tabs.contains_key(*tab_name);
                         if ui
                             .add(egui::SelectableLabel::new(is_open, *tab_name))
                             .clicked()
@@ -268,29 +274,19 @@ impl MyApp {
     pub fn add_tab(&mut self, tab_name: String) {
         match tab_name.as_str() {
             "Settings" => {
-                self.context
-                    .tabs
-                    .insert(tab_name.clone(), Box::new(SettingsTab));
+                self.tabs.insert(tab_name.clone(), Box::new(SettingsTab));
             }
             "Canvas" => {
-                self.context
-                    .tabs
-                    .insert(tab_name.clone(), Box::new(CanvasTab::new()));
+                self.tabs.insert(tab_name.clone(), Box::new(CanvasTab::new()));
             }
             "Terminal" => {
-                self.context
-                    .tabs
-                    .insert(tab_name.clone(), Box::new(TerminalTab));
+                self.tabs.insert(tab_name.clone(), Box::new(TerminalTab));
             }
             "File Explorer" => {
-                self.context
-                    .tabs
-                    .insert(tab_name.clone(), Box::new(FileExplorerTab));
+                self.tabs.insert(tab_name.clone(), Box::new(FileExplorerTab));
             }
             "Board Info" => {
-                self.context
-                    .tabs
-                    .insert(tab_name.clone(), Box::new(BoardInfoTab));
+                self.tabs.insert(tab_name.clone(), Box::new(BoardInfoTab));
             }
             _ => {}
         }
@@ -298,13 +294,13 @@ impl MyApp {
     }
 }
 
-impl eframe::App for MyApp {
+impl eframe::App for IronCoderApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.display_menu(ctx, _frame);
 
         if self.keybindings.is_pressed(ctx, "open_settings") {
             // (only if settings is closed)
-            if !self.context.tabs.contains_key("Settings") {
+            if !self.tabs.contains_key("Settings") {
                 self.add_tab("Settings".to_string());
             }
         }
@@ -317,10 +313,13 @@ impl eframe::App for MyApp {
             println!("Test B!");
         }
 
-        DockArea::new(&mut self.tree)
-            .style(Style::from_egui(ctx.style().as_ref()))
-            .show_leaf_collapse_buttons(false)
-            .show_leaf_close_all_buttons(false)
-            .show(ctx, &mut self.context);
+		let dock_area = DockArea::new(&mut self.tree);
+		
+		dock_area
+			.style(Style::from_egui(ctx.style().as_ref()))
+			.show_leaf_collapse_buttons(false)
+			.show_leaf_close_all_buttons(false);
+
+		dock_area.show(ctx, self);
     }
 }

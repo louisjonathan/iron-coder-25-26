@@ -1,6 +1,9 @@
 // This is the example from https://github.com/Adanos020/egui_dock/blob/main/examples/hello.rs
 // Modified for the purposes of Iron Coder https://github.com/shulltronics/iron-coder
 
+pub mod colorschemes;
+pub mod keybinding;
+
 use eframe::egui::{Pos2, Rect, Sense, Ui, Vec2};
 use eframe::{egui, NativeOptions};
 use egui::Area;
@@ -10,14 +13,12 @@ use emath::{self};
 use crate::board;
 use crate::project::Project;
 
-pub mod colorschemes;
 use std::collections::HashMap;
 
 use eframe::egui::Key;
 use serde::{Deserialize, Serialize};
 
-pub mod keybinding;
-use crate::app::keybinding::Keybindings;
+use crate::app::keybinding::{Keybinding, Keybindings};
 
 pub mod icons;
 
@@ -41,6 +42,7 @@ trait BaseTab {
     fn draw(&mut self, ui: &mut egui::Ui) {
         ui.label("Default");
     }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 }
 
 struct CanvasTab {
@@ -98,6 +100,10 @@ impl BaseTab for CanvasTab {
             painter.line_segment([start, end], (1.0, color));
         }
     }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 }
 
 struct FileTab {
@@ -114,10 +120,18 @@ impl BaseTab for FileTab {
     fn draw(&mut self, ui: &mut egui::Ui) {
         ui.label(format!("HI I AM {}", self.filename));
     }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 }
 
 struct FileExplorerTab;
-impl BaseTab for FileExplorerTab {}
+impl BaseTab for FileExplorerTab {
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}
 impl FileExplorerTab {
     fn new() -> Self {
         FileExplorerTab {}
@@ -125,7 +139,11 @@ impl FileExplorerTab {
 }
 
 struct TerminalTab;
-impl BaseTab for TerminalTab {}
+impl BaseTab for TerminalTab {
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}
 impl TerminalTab {
     fn new() -> Self {
         TerminalTab {}
@@ -133,17 +151,27 @@ impl TerminalTab {
 }
 
 struct BoardInfoTab;
-impl BaseTab for BoardInfoTab {}
+impl BaseTab for BoardInfoTab {
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}
 impl BoardInfoTab {
     fn new() -> Self {
         BoardInfoTab {}
     }
 }
 
-struct SettingsTab;
+struct SettingsTab {
+    should_random_colorscheme: bool,
+    should_example_colorscheme: bool,
+}
 impl SettingsTab {
     fn new() -> Self {
-        SettingsTab {}
+        SettingsTab {
+            should_random_colorscheme: false,
+            should_example_colorscheme: false,
+        }
     }
 }
 
@@ -153,28 +181,28 @@ impl BaseTab for SettingsTab {
         ui.label("Random setting 1");
         let mut s1_value = 50.0;
         ui.add(egui::Slider::new(&mut s1_value, 0.0..=100.0).text("Slider 1"));
+        if ui.button("Set example colorscheme").clicked() {
+            self.should_example_colorscheme = true;
+        }
+        if ui.button("Set random colorscheme").clicked() {
+            self.should_random_colorscheme = true;
+        }
         if ui.button("Save settings").clicked() {
             println!("Settings saved!");
         }
     }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 }
 
-pub struct IronCoderApp {
-    tree: DockState<String>,
-    keybindings: Keybindings,
-	tabs: HashMap<String, Box<dyn BaseTab>>,
-
-    project: Project,
-	boards: Rc<RefCell<Vec<Board>>>,
+struct WindowContext {
+    tabs: HashMap<String, Box<dyn BaseTab>>,
 }
 
-impl Default for IronCoderApp {
-    fn default() -> Self {
-
-		let boards_dir = Path::new("./iron-coder/boards");
-        let boards: Rc<RefCell<Vec<board::Board>>> = Rc::new(RefCell::new(board::get_boards(boards_dir)));
-		
-		let mut tabs: HashMap<String, Box<dyn BaseTab>> = HashMap::new();
+impl WindowContext {
+    fn new() -> Self {
+        let mut tabs: HashMap<String, Box<dyn BaseTab>> = HashMap::new();
 
         tabs.insert("Canvas".to_string(), Box::new(CanvasTab::new()));
         tabs.insert("Settings".to_string(), Box::new(SettingsTab::new()));
@@ -187,35 +215,11 @@ impl Default for IronCoderApp {
         let filename = "main.rs".to_string();
         tabs.insert(filename.clone(), Box::new(FileTab::new(filename.clone())));
 
-        let mut tree = DockState::new(vec![
-            "Canvas".to_owned(),
-            "main.rs".to_owned(),
-            "Settings".to_owned(),
-        ]);
-
-        let [a, b] = tree.main_surface_mut().split_left(
-            NodeIndex::root(),
-            0.3,
-            vec!["File Explorer".to_owned()],
-        );
-        let [_, _] = tree
-            .main_surface_mut()
-            .split_below(a, 0.7, vec!["Terminal".to_owned()]);
-
-        let keybindings = Keybindings::new();
-
-        Self {
-            tree,
-            keybindings,
-			tabs,
-
-            project: Project::default(),
-            boards: boards,
-        }
+        Self { tabs }
     }
 }
 
-impl egui_dock::TabViewer for IronCoderApp {
+impl egui_dock::TabViewer for WindowContext {
     type Tab = String;
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
@@ -242,21 +246,53 @@ impl egui_dock::TabViewer for IronCoderApp {
     }
 }
 
-impl IronCoderApp {
+struct MainWindow {
+    tree: DockState<String>,
+    context: WindowContext,
+    keybindings: Keybindings,
+}
+
+impl Default for MainWindow {
+    fn default() -> Self {
+        let mut tree = DockState::new(vec![
+            "Canvas".to_owned(),
+            "Editor".to_owned(),
+            "Settings".to_owned(),
+        ]);
+
+        let [a, b] = tree.main_surface_mut().split_left(
+            NodeIndex::root(),
+            0.3,
+            vec!["File Explorer".to_owned()],
+        );
+
+        let [_, _] = tree
+            .main_surface_mut()
+            .split_below(a, 0.7, vec!["Terminal".to_owned()]);
+
+        let context = WindowContext::new();
+        let keybindings = Keybindings::new();
+
+        Self {
+            tree,
+            context,
+            keybindings,
+        }
+    }
+}
+
+impl MainWindow {
     pub fn display_menu(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
-                    if ui.button("Set Colorscheme").clicked() {
-                        colorschemes::set_color_scheme(
-                            ctx,
-                            "resources/colorschemes/example_colorscheme.toml",
-                        );
+                    if ui.button("Settings").clicked() {
+                        ui.close_menu();
                     }
                 });
                 ui.menu_button("View", |ui| {
                     for tab_name in OPENABLE_TABS {
-                        let is_open = self.tabs.contains_key(*tab_name);
+                        let is_open = self.context.tabs.contains_key(*tab_name);
                         if ui
                             .add(egui::SelectableLabel::new(is_open, *tab_name))
                             .clicked()
@@ -274,19 +310,29 @@ impl IronCoderApp {
     pub fn add_tab(&mut self, tab_name: String) {
         match tab_name.as_str() {
             "Settings" => {
-                self.tabs.insert(tab_name.clone(), Box::new(SettingsTab));
+                self.context
+                    .tabs
+                    .insert(tab_name.clone(), Box::new(SettingsTab::new()));
             }
             "Canvas" => {
-                self.tabs.insert(tab_name.clone(), Box::new(CanvasTab::new()));
+                self.context
+                    .tabs
+                    .insert(tab_name.clone(), Box::new(CanvasTab::new()));
             }
             "Terminal" => {
-                self.tabs.insert(tab_name.clone(), Box::new(TerminalTab));
+                self.context
+                    .tabs
+                    .insert(tab_name.clone(), Box::new(TerminalTab));
             }
             "File Explorer" => {
-                self.tabs.insert(tab_name.clone(), Box::new(FileExplorerTab));
+                self.context
+                    .tabs
+                    .insert(tab_name.clone(), Box::new(FileExplorerTab));
             }
             "Board Info" => {
-                self.tabs.insert(tab_name.clone(), Box::new(BoardInfoTab));
+                self.context
+                    .tabs
+                    .insert(tab_name.clone(), Box::new(BoardInfoTab));
             }
             _ => {}
         }
@@ -294,14 +340,37 @@ impl IronCoderApp {
     }
 }
 
-impl eframe::App for IronCoderApp {
+impl eframe::App for MainWindow {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.display_menu(ctx, _frame);
 
         if self.keybindings.is_pressed(ctx, "open_settings") {
             // (only if settings is closed)
-            if !self.tabs.contains_key("Settings") {
+            if !self.context.tabs.contains_key("Settings") {
                 self.add_tab("Settings".to_string());
+            }
+        }
+
+        if self.context.tabs.contains_key("Settings") {
+            //make sure settings tab gets current context
+            //need help with this line
+            let settings_tab = self
+                .context
+                .tabs
+                .get_mut("Settings")
+                .unwrap()
+                .as_any_mut()
+                .downcast_mut::<SettingsTab>()
+                .unwrap();
+            if settings_tab.should_random_colorscheme == true {
+                colorschemes::set_color_scheme(&ctx, &colorschemes::get_random_color_scheme());
+                settings_tab.should_random_colorscheme = false;
+            } else if settings_tab.should_example_colorscheme == true {
+                colorschemes::set_color_scheme(
+                    &ctx,
+                    "resources/colorschemes/example_colorscheme.toml",
+                );
+                settings_tab.should_example_colorscheme = false;
             }
         }
 
@@ -313,13 +382,10 @@ impl eframe::App for IronCoderApp {
             println!("Test B!");
         }
 
-		let dock_area = DockArea::new(&mut self.tree);
-		
-		dock_area
-			.style(Style::from_egui(ctx.style().as_ref()))
-			.show_leaf_collapse_buttons(false)
-			.show_leaf_close_all_buttons(false);
-
-		dock_area.show(ctx, self);
+        DockArea::new(&mut self.tree)
+            .style(Style::from_egui(ctx.style().as_ref()))
+            .show_leaf_collapse_buttons(false)
+            .show_leaf_close_all_buttons(false)
+            .show(ctx, &mut self.context);
     }
 }

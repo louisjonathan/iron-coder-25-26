@@ -1,17 +1,20 @@
 //! Title: Iron Coder Project Module - Module
 //! Description: This module contains the Project struct and its associated functionality.
 
-use log::{info, warn, debug};
+use log::{debug, info, warn};
 
 // use std::error::Error;
-use std::io::BufRead;
-use std::io;
 use std::fs;
+use std::io;
+use std::io::BufRead;
 use std::path::{Path, PathBuf};
 
+#[cfg(target_arch = "wasm32")]
+use rfd::AsyncFileDialog;
+#[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::board::Board;
 // use crate::app::code_editor::CodeEditor;
@@ -103,11 +106,14 @@ impl Project {
                 } else {
                     self.system.main_board = Some(board.clone());
                 }
-            },
+            }
             false => {
                 // don't duplicate a board
                 if self.system.peripheral_boards.contains(&board) {
-                    info!("project <{}> already contains board <{:?}>", self.name, board);
+                    info!(
+                        "project <{}> already contains board <{:?}>",
+                        self.name, board
+                    );
                     self.terminal_buffer += "project already contains that board\n";
                     return;
                 } else {
@@ -151,15 +157,11 @@ impl Project {
             Err(e) => {
                 warn!("error reading project file: {:?}", e);
                 return Err(ProjectIOError::FilesystemError);
-            },
+            }
         };
         let p: Project = match toml::from_str(&toml_str) {
-            Ok(p) => {
-                p
-            },
-            Err(_e) => {
-                return Err(ProjectIOError::LoadToTomlError)
-            }
+            Ok(p) => p,
+            Err(_e) => return Err(ProjectIOError::LoadToTomlError),
         };
         // Now load in certain fields without overwriting others:
         // self.code_editor.close_all_tabs();
@@ -183,6 +185,7 @@ impl Project {
     }
 
     /// Prompt the user to select project directory to open
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn open(&mut self) -> Result {
         if let Some(project_directory) = FileDialog::new().pick_folder() {
             self.load_from(&project_directory)
@@ -191,9 +194,24 @@ impl Project {
             Err(ProjectIOError::FilePickerAborted)
         }
     }
+    #[cfg(target_arch = "wasm32")]
+    pub fn open(&mut self) -> Result {
+        // if let future = async {
+        //     let project_directory = rfd::AsyncFileDialog::new().pick_folder().await;
+        //     project_directory.load_from(&project_directory).await;
+        // } {
+        // } else {
+        //     info!("project open aborted");
+        //     Err(ProjectIOError::FilePickerAborted)
+        // }
+        ///TODO: Support opening project using zip file
+        info!("not yet supported!!");
+        Err(ProjectIOError::FilePickerAborted)
+    }
 
     /// Open a file dialog to select a project folder, and then call the save method
     /// TODO - make file dialog have default directory
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn save_as(&mut self, create_containing_folder: bool) -> io::Result<()> {
         if let Some(mut project_folder) = FileDialog::new().pick_folder() {
             // if indicated, create a new folder for the project (with same name as project)
@@ -204,8 +222,10 @@ impl Project {
             // check if there is an existing .ironcoder.toml file that we might overwrite
             for entry in std::fs::read_dir(&project_folder).unwrap() {
                 if entry.unwrap().file_name().to_str().unwrap() == PROJECT_FILE_NAME {
-                    warn!("you might be overwriting an existing Iron Coder project! \
-                           Are you sure you wish to continue?");
+                    warn!(
+                        "you might be overwriting an existing Iron Coder project! \
+                           Are you sure you wish to continue?"
+                    );
                     self.terminal_buffer += "beware of overwriting and existing project file!\n";
                     return Ok(());
                 }
@@ -223,9 +243,20 @@ impl Project {
             //     }
             // }
         } else {
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, "project save aborted!"));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "project save aborted!",
+            ));
         }
         self.save()
+    }
+    #[cfg(target_arch = "wasm32")]
+    pub fn save_as(&mut self, create_containing_folder: bool) -> io::Result<()> {
+        info!("not yet supported!!");
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "not yet supported!!!",
+        ));
     }
 
     // TODO - have this save all project files, maybe, except the target directory -- FIXED (note: currently only saves all open tabs)
@@ -236,12 +267,15 @@ impl Project {
         } else {
             let project_folder = self.location.clone().unwrap();
             let project_file = project_folder.join(PROJECT_FILE_NAME);
-            info!("saving project file to {}", project_file.display().to_string());
+            info!(
+                "saving project file to {}",
+                project_file.display().to_string()
+            );
 
             match toml::to_string(self) {
                 Ok(contents) => {
                     fs::write(project_file, contents)?;
-                },
+                }
                 Err(e) => {
                     warn!("couldn't save project to toml file!! {:?}", e);
                 }
@@ -340,26 +374,26 @@ impl Project {
     //         } else {
     //             return Err(ProjectIOError::NoProjectTemplate);
     //         }
-            // iterate through BSP paths and add the crates to the project
-            // TODO: This needs to be changed, likely an issue with
-            // updating the crates in the main toml file. Figure out why!
-            /*
-            for b in self.system.get_all_boards() {
-                if let Some(local_bsp) = b.bsp_path {
-                    let cmd = duct::cmd!(
-                        "cargo",
-                        "-Z",
-                        "unstable-options",
-                        "-C",
-                        self.location.clone().unwrap(),
-                        "add",
-                        "--path",
-                        local_bsp,
-                    );
-                    cmds.push(cmd);
-                }
-            }
-            */
+    // iterate through BSP paths and add the crates to the project
+    // TODO: This needs to be changed, likely an issue with
+    // updating the crates in the main toml file. Figure out why!
+    /*
+    for b in self.system.get_all_boards() {
+        if let Some(local_bsp) = b.bsp_path {
+            let cmd = duct::cmd!(
+                "cargo",
+                "-Z",
+                "unstable-options",
+                "-C",
+                self.location.clone().unwrap(),
+                "add",
+                "--path",
+                local_bsp,
+            );
+            cmds.push(cmd);
+        }
+    }
+    */
     //         self.run_background_commands(&cmds, ctx);
     //     } else {
     //         return Err(ProjectIOError::NoMainBoard);
@@ -387,5 +421,4 @@ impl Project {
     //     }
     //     Ok("".to_string())
     // }
-
 }

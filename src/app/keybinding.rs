@@ -22,11 +22,25 @@ pub struct Keybindings {
 }
 
 impl Keybindings {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new() -> Self {
         let file_content =
             fs::read_to_string("resources/keybindings.json").expect("Unable to read file");
         let bindings: Vec<Keybinding> =
             serde_json::from_str(&file_content).expect("JSON was not well-formatted");
+        let mut map = HashMap::new();
+        for binding in bindings {
+            if let Some(key) = binding.to_key() {
+                map.insert(binding.id, key);
+            }
+        }
+        Keybindings { bindings: map }
+    }
+    #[cfg(target_arch = "wasm32")]
+    pub fn new() -> Self {
+        let file_content = include_str!("../../resources/keybindings.json");
+        let bindings: Vec<Keybinding> =
+            serde_json::from_str(&file_content).expect("JSON was not well- formatted");
         let mut map = HashMap::new();
         for binding in bindings {
             if let Some(key) = binding.to_key() {

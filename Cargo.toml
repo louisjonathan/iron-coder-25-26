@@ -26,6 +26,7 @@ egui_extras = { version = "0.31.1", features = ["image", "all_loaders"] }
 image = { version = "0.24.7", features = ["jpeg", "png", "gif"] }
 # syntect = "5.0.0"
 rfd = "0.15.3"
+rand = "0.8.5"
 # fs_extra = "1.3.0"
 # duct = "0.13.6"
 enum-iterator = "2.1.0"

@@ -1,8 +1,17 @@
+pub mod colorschemes;
+pub mod keybinding;
+pub mod icons;
+
 // This is the example from https://github.com/Adanos020/egui_dock/blob/main/examples/hello.rs
 // Modified for the purposes of Iron Coder https://github.com/shulltronics/iron-coder
 
-pub mod colorschemes;
-pub mod keybinding;
+use std::str::FromStr;
+
+use std::rc::Rc;
+use std::cell::RefCell;
+use crate::board::Board;
+
+use std::path::Path;
 
 use eframe::egui::{Pos2, Rect, Sense, Ui, Vec2};
 use eframe::{egui, NativeOptions};
@@ -20,15 +29,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::keybinding::{Keybinding, Keybindings};
 
-pub mod icons;
-
-use std::str::FromStr;
-
-use std::rc::Rc;
-use std::cell::RefCell;
-use crate::board::Board;
-
-use std::path::Path;
 
 static OPENABLE_TABS: &'static [&'static str] = &[
     "Settings",
@@ -48,7 +48,6 @@ trait BaseTab {
 struct CanvasTab {
     canvas_zoom: f32,
     canvas_offset: Vec2,
-	pub boards: Rc<RefCell<Vec<Board>>>,
 }
 
 impl CanvasTab {
@@ -56,11 +55,9 @@ impl CanvasTab {
         Self {
             canvas_zoom: 1.0,
             canvas_offset: Vec2::new(0.0, 0.0),
-			boards: Rc::new(RefCell::new(Vec::new())),
         }
     }
 }
-
 impl BaseTab for CanvasTab {
     fn draw(&mut self, ui: &mut egui::Ui) {
         let response = ui.allocate_response(ui.available_size(), Sense::drag());
@@ -246,10 +243,11 @@ impl egui_dock::TabViewer for WindowContext {
     }
 }
 
-struct MainWindow {
+pub struct MainWindow {
     tree: DockState<String>,
     context: WindowContext,
     keybindings: Keybindings,
+    colorschemes: colorschemes::colorschemes,
 }
 
 impl Default for MainWindow {
@@ -272,16 +270,30 @@ impl Default for MainWindow {
 
         let context = WindowContext::new();
         let keybindings = Keybindings::new();
-
+        let colorschemes = colorschemes::colorschemes::default();
         Self {
             tree,
             context,
             keybindings,
+            colorschemes,
         }
     }
 }
 
 impl MainWindow {
+    // /// Called once before the first frame.
+    // pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    //     // This is also where you can customize the look and feel of egui using
+    //     // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
+
+    //     // Load previous app state (if any).
+    //     // Note that you must enable the `persistence` feature for this to work.
+    //     if let Some(storage) = cc.storage {
+    //         return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+    //     }
+
+    //     Default::default()
+    // }
     pub fn display_menu(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
@@ -344,12 +356,12 @@ impl eframe::App for MainWindow {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.display_menu(ctx, _frame);
 
-        if self.keybindings.is_pressed(ctx, "open_settings") {
-            // (only if settings is closed)
-            if !self.context.tabs.contains_key("Settings") {
-                self.add_tab("Settings".to_string());
-            }
-        }
+        // if self.keybindings.is_pressed(ctx, "open_settings") {
+        //     // (only if settings is closed)
+        //     if !self.context.tabs.contains_key("Settings") {
+        //         self.add_tab("Settings".to_string());
+        //     }
+        // }
 
         if self.context.tabs.contains_key("Settings") {
             //make sure settings tab gets current context
@@ -363,24 +375,22 @@ impl eframe::App for MainWindow {
                 .downcast_mut::<SettingsTab>()
                 .unwrap();
             if settings_tab.should_random_colorscheme == true {
-                colorschemes::set_color_scheme(&ctx, &colorschemes::get_random_color_scheme());
+                self.colorschemes
+                    .set_color_scheme(&ctx, &colorschemes::colorschemes::get_random_color_scheme());
                 settings_tab.should_random_colorscheme = false;
             } else if settings_tab.should_example_colorscheme == true {
-                colorschemes::set_color_scheme(
-                    &ctx,
-                    "resources/colorschemes/example_colorscheme.toml",
-                );
+                self.colorschemes.set_color_scheme(&ctx, &100);
                 settings_tab.should_example_colorscheme = false;
             }
         }
 
-        if self.keybindings.is_pressed(ctx, "test_a") {
-            println!("Test A!");
-        }
+        // if self.keybindings.is_pressed(ctx, "test_a") {
+        //     println!("Test A!");
+        // }
 
-        if self.keybindings.is_pressed(ctx, "test_b") {
-            println!("Test B!");
-        }
+        // if self.keybindings.is_pressed(ctx, "test_b") {
+        //     println!("Test B!");
+        // }
 
         DockArea::new(&mut self.tree)
             .style(Style::from_egui(ctx.style().as_ref()))
@@ -389,3 +399,113 @@ impl eframe::App for MainWindow {
             .show(ctx, &mut self.context);
     }
 }
+
+// /// We derive Deserialize/Serialize so we can persist app state on shutdown.
+// #[derive(serde::Deserialize, serde::Serialize)]
+// #[serde(default)] // if we add new fields, give them default values when deserializing old state
+// pub struct TemplateApp {
+//     // Example stuff:
+//     label: String,
+
+//     #[serde(skip)] // This how you opt-out of serialization of a field
+//     value: f32,
+// }
+
+// impl Default for TemplateApp {
+//     fn default() -> Self {
+//         Self {
+//             // Example stuff:
+//             label: "Hello World!".to_owned(),
+//             value: 2.7,
+//         }
+//     }
+// }
+
+// impl TemplateApp {
+//     /// Called once before the first frame.
+//     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+//         // This is also where you can customize the look and feel of egui using
+//         // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
+
+//         // Load previous app state (if any).
+//         // Note that you must enable the `persistence` feature for this to work.
+//         if let Some(storage) = cc.storage {
+//             return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
+//         }
+
+//         Default::default()
+//     }
+// }
+
+// impl eframe::App for TemplateApp {
+//     /// Called by the frame work to save state before shutdown.
+//     fn save(&mut self, storage: &mut dyn eframe::Storage) {
+//         eframe::set_value(storage, eframe::APP_KEY, self);
+//     }
+
+//     /// Called each time the UI needs repainting, which may be many times per second.
+//     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+//         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
+//         // For inspiration and more examples, go to https://emilk.github.io/egui
+
+//         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+//             // The top panel is often a good place for a menu bar:
+
+//             egui::menu::bar(ui, |ui| {
+//                 // NOTE: no File->Quit on web pages!
+//                 let is_web = cfg!(target_arch = "wasm32");
+//                 if !is_web {
+//                     ui.menu_button("File", |ui| {
+//                         if ui.button("Quit").clicked() {
+//                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+//                         }
+//                     });
+//                     ui.add_space(16.0);
+//                 }
+
+//                 egui::widgets::global_theme_preference_buttons(ui);
+//             });
+//         });
+
+//         egui::CentralPanel::default().show(ctx, |ui| {
+//             // The central panel the region left after adding TopPanel's and SidePanel's
+//             ui.heading("eframe template");
+
+//             ui.horizontal(|ui| {
+//                 ui.label("Write something: ");
+//                 ui.text_edit_singleline(&mut self.label);
+//             });
+
+//             ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
+//             if ui.button("Increment").clicked() {
+//                 self.value += 1.0;
+//             }
+
+//             ui.separator();
+
+//             ui.add(egui::github_link_file!(
+//                 "https://github.com/emilk/eframe_template/blob/main/",
+//                 "Source code."
+//             ));
+
+//             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+//                 powered_by_egui_and_eframe(ui);
+//                 egui::warn_if_debug_build(ui);
+//             });
+//         });
+//     }
+// }
+
+// fn powered_by_egui_and_eframe(ui: &mut egui::Ui) {
+//     ui.horizontal(|ui| {
+//         ui.spacing_mut().item_spacing.x = 0.0;
+//         ui.label("Powered by ");
+//         ui.hyperlink_to("egui", "https://github.com/emilk/egui");
+//         ui.label(" and ");
+//         ui.hyperlink_to(
+//             "eframe",
+//             "https://github.com/emilk/egui/tree/master/crates/eframe",
+//         );
+//         ui.label(".");
+//     });
+// }

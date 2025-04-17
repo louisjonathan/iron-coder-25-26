@@ -37,7 +37,7 @@ pub enum ProjectViewType {
 
 // this block contains the display related
 // methods for showing the Project in egui.
-impl Project {
+// impl Project {
 
     // Recursively display the project directory.
     // <dir> is the starting location, <level> is the recursion depth
@@ -74,31 +74,31 @@ impl Project {
     // }
 
     // show the terminal pane
-    pub fn display_terminal(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) {
-        let send_string = "";
+    // pub fn display_terminal(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) {
+    //     let send_string = "";
 
-        // If there is an open channel, see if we can get some data from it
-        if let Some(rx) = &self.receiver {
-            while let Ok(s) = rx.try_recv() {
-                self.terminal_buffer += s.as_str();
-            }
-        }
+    //     // If there is an open channel, see if we can get some data from it
+    //     if let Some(rx) = &self.receiver {
+    //         while let Ok(s) = rx.try_recv() {
+    //             self.terminal_buffer += s.as_str();
+    //         }
+    //     }
 
-        egui::CollapsingHeader::new("Terminal").show(ui, |ui| {
-            egui::ScrollArea::both()
-            .auto_shrink([false; 2])
-            .stick_to_bottom(true)
-            .show(ui, |ui| {
-                ui.add(
-                    egui::TextEdit::multiline(&mut self.terminal_buffer)
-                    .code_editor()
-                    .interactive(false)
-                    .desired_width(f32::INFINITY)
-                    .frame(false)
-                )
-            });
-        });
-    }
+    //     egui::CollapsingHeader::new("Terminal").show(ui, |ui| {
+    //         egui::ScrollArea::both()
+    //         .auto_shrink([false; 2])
+    //         .stick_to_bottom(true)
+    //         .show(ui, |ui| {
+    //             ui.add(
+    //                 egui::TextEdit::multiline(&mut self.terminal_buffer)
+    //                 .code_editor()
+    //                 .interactive(false)
+    //                 .desired_width(f32::INFINITY)
+    //                 .frame(false)
+    //             )
+    //         });
+    //     });
+    // }
 
     // show the project tree in a Ui
     // fn display_project_tree(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
@@ -711,7 +711,7 @@ impl Project {
     //     return ret;
     // }
 
-}
+// }
 
 
 

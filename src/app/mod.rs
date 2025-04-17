@@ -17,6 +17,8 @@ use eframe::egui::{Pos2, Rect, Sense, Ui, Vec2};
 use eframe::{egui, NativeOptions};
 use egui::Area;
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
+
+
 use emath::{self};
 
 use crate::board;
@@ -29,6 +31,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::app::keybinding::{Keybinding, Keybindings};
 
+use egui_extras::RetainedImage;
+
 
 static OPENABLE_TABS: &'static [&'static str] = &[
     "Settings",
@@ -39,7 +43,7 @@ static OPENABLE_TABS: &'static [&'static str] = &[
 ];
 
 trait BaseTab {
-    fn draw(&mut self, ui: &mut egui::Ui) {
+    fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
         ui.label("Default");
     }
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
@@ -58,49 +62,211 @@ impl CanvasTab {
         }
     }
 }
+
 impl BaseTab for CanvasTab {
-    fn draw(&mut self, ui: &mut egui::Ui) {
-        let response = ui.allocate_response(ui.available_size(), Sense::drag());
+    fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
+        for board in state.project.system.get_all_boards().iter_mut() {
 
-        if response.dragged() {
-            self.canvas_offset += response.drag_delta();
-        }
+            let scale_id = egui::Id::new("system_editor_scale_factor");
+            // set the editor scale factor in memory:
+            // let scale = ctx.data_mut(|data| {
+            //     data.get_temp_mut_or(scale_id, 5.0).clone()
+            // });
 
-        if response.hovered() {
-            let scroll_delta = ui.ctx().input(|i| i.smooth_scroll_delta.y);
-            let zoom_factor = 1.01;
+            // Get the response of the board/pin Ui
+            let board_id = egui::Id::new(board.get_name());
 
-            if scroll_delta > 0.0 {
-                self.canvas_zoom *= zoom_factor;
-            } else if scroll_delta < 0.0 {
-                self.canvas_zoom /= zoom_factor;
+            if let Some(svg_board_info) = board.clone().svg_board_info {
+                let retained_image = RetainedImage::from_color_image(
+                    "pic",
+                    svg_board_info.image,
+                );
+                
+                let texture_id = retained_image.texture_id(ui.ctx());
+                let available_size = ui.available_size();
+                let image_size = retained_image.size_vec2();
+                let scale = (available_size.x / image_size.x).min(available_size.y / image_size.y);
+                let scaled_size = image_size * scale;
+
+                ui.painter().image(
+                    texture_id,
+                    egui::Rect::from_min_size(ui.min_rect().min, scaled_size),
+                    egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                    egui::Color32::WHITE,
+                );
             }
-        }
-
-        let rect = response.rect;
-
-        let to_screen = emath::RectTransform::from_to(
-            Rect::from_min_size(Pos2::ZERO, rect.size() / self.canvas_zoom),
-            rect.translate(self.canvas_offset + (rect.size() / 2.0)),
-        );
-
-        let painter = ui.painter();
-        let color = egui::Color32::GRAY;
-        for i in -10..=10 {
-            let i_f = i as f32 * 1.0;
-            let start = to_screen * Pos2::new(i_f, -10.0);
-            let end = to_screen * Pos2::new(i_f, 10.0);
-            painter.line_segment([start, end], (1.0, color));
-
-            let start = to_screen * Pos2::new(-10.0, i_f);
-            let end = to_screen * Pos2::new(10.0, i_f);
-            painter.line_segment([start, end], (1.0, color));
         }
     }
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
+
+
+        //     let response = egui::Area::new(board_id).show(ctx, |ui| {
+
+        //         let mut pin_clicked: Option<String> = None;
+
+        //         if let Some(svg_board_info) = board.clone().svg_board_info {
+        //             let retained_image = RetainedImage::from_color_image(
+        //                 "pic",
+        //                 svg_board_info.image,
+        //             );
+
+        //             let display_size = svg_board_info.physical_size * scale;
+
+        //             let image_rect = retained_image.show_max_size(ui, display_size).rect;
+
+        //             // iterate through the pin_nodes of the board, and check if their rects (properly scaled and translated)
+        //             // contain the pointer. If so, actually draw the stuff there.
+        //             for (pin_name, mut pin_rect) in board.clone().svg_board_info.unwrap().pin_rects {
+        //                 // scale the rects the same amount that the board image was scaled
+        //                 pin_rect.min.x *= scale;
+        //                 pin_rect.min.y *= scale;
+        //                 pin_rect.max.x *= scale;
+        //                 pin_rect.max.y *= scale;
+        //                 // translate the rects so they are in absolute coordinates
+        //                 pin_rect = pin_rect.translate(image_rect.left_top().to_vec2());
+        //                 pin_locations.insert((board.clone(), pin_name.clone()), pin_rect.center());
+
+        //                 // render the pin overlay, and check for clicks/hovers
+        //                 let r = ui.allocate_rect(pin_rect, egui::Sense::click());
+        //                 if r.clicked() {
+        //                     pin_clicked = Some(pin_name.clone());
+        //                 }
+        //                 if r.hovered() {
+        //                     ui.painter().circle_filled(r.rect.center(), r.rect.height()/2.0, egui::Color32::GREEN);
+        //                 }
+        //                 r.clone().on_hover_text(String::from(board.get_name()) + ":" + &pin_name);
+        //                 r.clone().context_menu(|ui| {
+        //                     ui.label("a pin-level menu option");
+        //                 });
+
+        //                 // Check if a connection is in progress by checking the "connection_in_progress" Id from the ctx memory.
+        //                 // This is set to true if the user selects "add connection" from the parent container's context menu.
+        //                 let id = egui::Id::new("connection_in_progress");
+        //                 let mut connection_in_progress = ctx.data_mut(|data| {
+        //                     data.get_temp_mut_or(id, false).clone()
+        //                 });
+
+        //                 if connection_in_progress {
+        //                     ctx.output_mut(|o| {
+        //                         o.cursor_icon = egui::CursorIcon::PointingHand;
+        //                     });
+        //                 }
+                        
+        //                 if connection_in_progress && r.clicked() {
+        //                     // check conditions for starting/ending a connection
+        //                     match self.system.in_progress_connection_start {
+        //                         None => {
+        //                             info!("inserting connection position data");
+        //                             ctx.data_mut(|data| {
+        //                                 data.insert_temp(egui::Id::new("connection_start_pos"), r.rect.center());
+        //                             });
+        //                             self.system.in_progress_connection_start = Some((board.clone(), pin_name.clone()));
+        //                         },
+        //                         Some((ref start_board, ref start_pin)) => {
+        //                             // add the connection to the system struct
+        //                             let c = super::system::Connection {
+        //                                 name: format!("connection_{}", self.system.connections.len()),
+        //                                 start_board: start_board.clone(),
+        //                                 start_pin: start_pin.clone(),
+        //                                 end_board: board.clone(),
+        //                                 end_pin: pin_name.clone(),
+        //                                 interface_mapping: board::pinout::InterfaceMapping::default(),
+        //                             };
+        //                             self.system.connections.push(c);
+        //                             // clear the in_progress_connection fields
+        //                             self.system.in_progress_connection_start = None;
+        //                             self.system.in_progress_connection_end = None;
+        //                             // and end the connection.
+        //                             connection_in_progress = false;
+        //                             ctx.data_mut(|data| {
+        //                                 data.insert_temp(id, connection_in_progress);
+        //                                 data.remove::<egui::Pos2>(egui::Id::new("connection_start_pos"));
+        //                             });
+        //                         },
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //         // return value from this scope
+        //         pin_clicked
+        //     });
+
+        //     // extract response from board (i.e. the egui Area), and from pin
+        //     let board_response = response.response;
+        //     let pin_response = response.inner;
+
+        //     // Actions for board-level stuff
+        //     board_response.context_menu(|ui| {
+        //         ui.menu_button("pinout info", |ui| {
+        //             for po in board.get_pinout().iter() {
+        //                 let label = format!("{:?}", po);
+        //                 if ui.button(label).clicked() {
+        //                     info!("No action coded for this yet.");
+        //                 }
+        //             }
+        //         });
+        //         ui.menu_button("rust-analyser stuff", |ui| {
+        //             for s in board.ra_values.iter() {
+        //                 if ui.label(format!("{:?}", s.label)).clicked() {
+        //                     info!("{:?}", s);
+        //                 }
+        //             }
+        //         });
+        //         if ui.button("remove board from system").clicked() {
+        //             self.system.remove_board(board.clone()).unwrap_or_else(|_| {
+        //                 warn!("error removing board from system.");
+        //             });
+        //         }
+        //     });
+
+        //     // Actions for pin-level stuff
+        //     if let Some(pin) = pin_response {
+        //         info!("pin {} clicked!", pin);
+        //     }
+
+        // }
+
+
+
+        // let response = ui.allocate_response(ui.available_size(), Sense::drag());
+
+        // if response.dragged() {
+        //     self.canvas_offset += response.drag_delta();
+        // }
+
+        // if response.hovered() {
+        //     let scroll_delta = ui.ctx().input(|i| i.smooth_scroll_delta.y);
+        //     let zoom_factor = 1.01;
+
+        //     if scroll_delta > 0.0 {
+        //         self.canvas_zoom *= zoom_factor;
+        //     } else if scroll_delta < 0.0 {
+        //         self.canvas_zoom /= zoom_factor;
+        //     }
+        // }
+
+        // let rect = response.rect;
+
+        // let to_screen = emath::RectTransform::from_to(
+        //     Rect::from_min_size(Pos2::ZERO, rect.size() / self.canvas_zoom),
+        //     rect.translate(self.canvas_offset + (rect.size() / 2.0)),
+        // );
+
+        // let painter = ui.painter();
+        // let color = egui::Color32::GRAY;
+        // for i in -10..=10 {
+        //     let i_f = i as f32 * 1.0;
+        //     let start = to_screen * Pos2::new(i_f, -10.0);
+        //     let end = to_screen * Pos2::new(i_f, 10.0);
+        //     painter.line_segment([start, end], (1.0, color));
+
+        //     let start = to_screen * Pos2::new(-10.0, i_f);
+        //     let end = to_screen * Pos2::new(10.0, i_f);
+        //     painter.line_segment([start, end], (1.0, color));
+        // }
 }
 
 struct FileTab {
@@ -114,7 +280,7 @@ impl FileTab {
 }
 
 impl BaseTab for FileTab {
-    fn draw(&mut self, ui: &mut egui::Ui) {
+    fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
         ui.label(format!("HI I AM {}", self.filename));
     }
 
@@ -173,7 +339,7 @@ impl SettingsTab {
 }
 
 impl BaseTab for SettingsTab {
-    fn draw(&mut self, ui: &mut egui::Ui) {
+    fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
         ui.heading("Settings");
         ui.label("Random setting 1");
         let mut s1_value = 50.0;
@@ -193,30 +359,12 @@ impl BaseTab for SettingsTab {
     }
 }
 
-struct WindowContext {
-    tabs: HashMap<String, Box<dyn BaseTab>>,
+struct WindowContext<'a> {
+    tabs: &'a mut HashMap<String, Box<dyn BaseTab>>,
+    state: &'a mut SharedState,
 }
 
-impl WindowContext {
-    fn new() -> Self {
-        let mut tabs: HashMap<String, Box<dyn BaseTab>> = HashMap::new();
-
-        tabs.insert("Canvas".to_string(), Box::new(CanvasTab::new()));
-        tabs.insert("Settings".to_string(), Box::new(SettingsTab::new()));
-        tabs.insert(
-            "File Explorer".to_string(),
-            Box::new(FileExplorerTab::new()),
-        );
-        tabs.insert("Terminal".to_string(), Box::new(TerminalTab::new()));
-
-        let filename = "main.rs".to_string();
-        tabs.insert(filename.clone(), Box::new(FileTab::new(filename.clone())));
-
-        Self { tabs }
-    }
-}
-
-impl egui_dock::TabViewer for WindowContext {
+impl<'a> egui_dock::TabViewer for WindowContext<'a> {
     type Tab = String;
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
@@ -225,7 +373,7 @@ impl egui_dock::TabViewer for WindowContext {
 
     fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
         if let Some(tab) = self.tabs.get_mut(tab) {
-            tab.draw(ui);
+            tab.draw(ui, self.state);
         }
     }
 
@@ -243,11 +391,36 @@ impl egui_dock::TabViewer for WindowContext {
     }
 }
 
-pub struct MainWindow {
-    tree: DockState<String>,
-    context: WindowContext,
+struct SharedState {
     keybindings: Keybindings,
     colorschemes: colorschemes::colorschemes,
+    project: Project,
+    boards: Vec<board::Board>,
+}
+
+impl SharedState {
+    fn default() -> Self {
+        let boards_dir = Path::new("./iron-coder-boards");
+        let boards: Vec<board::Board> = board::get_boards(boards_dir);
+
+        let mut project = Project::default();
+        project.add_board(boards[0].clone());
+        
+        Self {
+            keybindings: Keybindings::new(),
+            colorschemes: colorschemes::colorschemes::default(),
+            project: project,
+            boards: boards,
+        }
+    }
+}
+
+
+
+pub struct MainWindow {
+    tree: DockState<String>,
+    tabs: HashMap<String, Box<dyn BaseTab>>,
+    state: SharedState,
 }
 
 impl Default for MainWindow {
@@ -268,14 +441,23 @@ impl Default for MainWindow {
             .main_surface_mut()
             .split_below(a, 0.7, vec!["Terminal".to_owned()]);
 
-        let context = WindowContext::new();
-        let keybindings = Keybindings::new();
-        let colorschemes = colorschemes::colorschemes::default();
+        let mut tabs: HashMap<String, Box<dyn BaseTab>> = HashMap::new();
+
+        tabs.insert("Canvas".to_string(), Box::new(CanvasTab::new()));
+        tabs.insert("Settings".to_string(), Box::new(SettingsTab::new()));
+        tabs.insert(
+            "File Explorer".to_string(),
+            Box::new(FileExplorerTab::new()),
+        );
+        tabs.insert("Terminal".to_string(), Box::new(TerminalTab::new()));
+
+        let filename = "main.rs".to_string();
+        tabs.insert(filename.clone(), Box::new(FileTab::new(filename.clone())));
+
         Self {
-            tree,
-            context,
-            keybindings,
-            colorschemes,
+            tree: tree,
+            tabs: tabs,
+            state: SharedState::default()
         }
     }
 }
@@ -304,7 +486,7 @@ impl MainWindow {
                 });
                 ui.menu_button("View", |ui| {
                     for tab_name in OPENABLE_TABS {
-                        let is_open = self.context.tabs.contains_key(*tab_name);
+                        let is_open = self.tabs.contains_key(*tab_name);
                         if ui
                             .add(egui::SelectableLabel::new(is_open, *tab_name))
                             .clicked()
@@ -322,28 +504,23 @@ impl MainWindow {
     pub fn add_tab(&mut self, tab_name: String) {
         match tab_name.as_str() {
             "Settings" => {
-                self.context
-                    .tabs
+                self.tabs
                     .insert(tab_name.clone(), Box::new(SettingsTab::new()));
             }
             "Canvas" => {
-                self.context
-                    .tabs
+                self.tabs
                     .insert(tab_name.clone(), Box::new(CanvasTab::new()));
             }
             "Terminal" => {
-                self.context
-                    .tabs
+                self.tabs
                     .insert(tab_name.clone(), Box::new(TerminalTab));
             }
             "File Explorer" => {
-                self.context
-                    .tabs
+                self.tabs
                     .insert(tab_name.clone(), Box::new(FileExplorerTab));
             }
             "Board Info" => {
-                self.context
-                    .tabs
+                self.tabs
                     .insert(tab_name.clone(), Box::new(BoardInfoTab));
             }
             _ => {}
@@ -363,11 +540,10 @@ impl eframe::App for MainWindow {
         //     }
         // }
 
-        if self.context.tabs.contains_key("Settings") {
+        if self.tabs.contains_key("Settings") {
             //make sure settings tab gets current context
             //need help with this line
             let settings_tab = self
-                .context
                 .tabs
                 .get_mut("Settings")
                 .unwrap()
@@ -375,11 +551,11 @@ impl eframe::App for MainWindow {
                 .downcast_mut::<SettingsTab>()
                 .unwrap();
             if settings_tab.should_random_colorscheme == true {
-                self.colorschemes
+                self.state.colorschemes
                     .set_color_scheme(&ctx, &colorschemes::colorschemes::get_random_color_scheme());
                 settings_tab.should_random_colorscheme = false;
             } else if settings_tab.should_example_colorscheme == true {
-                self.colorschemes.set_color_scheme(&ctx, &100);
+                self.state.colorschemes.set_color_scheme(&ctx, &100);
                 settings_tab.should_example_colorscheme = false;
             }
         }
@@ -392,11 +568,16 @@ impl eframe::App for MainWindow {
         //     println!("Test B!");
         // }
 
+        let mut context = WindowContext {
+            tabs: &mut self.tabs,
+            state: &mut self.state,
+        };
+
         DockArea::new(&mut self.tree)
             .style(Style::from_egui(ctx.style().as_ref()))
             .show_leaf_collapse_buttons(false)
             .show_leaf_close_all_buttons(false)
-            .show(ctx, &mut self.context);
+            .show(ctx, &mut context);
     }
 }
 

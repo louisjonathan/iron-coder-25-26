@@ -570,18 +570,8 @@ impl TerminalTab {
 
 impl BaseTab for TerminalTab {
     fn draw(&mut self, ui: &mut egui::Ui, _state: &mut SharedState) {
-        egui::ScrollArea::vertical()
-            .auto_shrink([false; 2])
-            .show(ui, |ui| {
-                ui.add(
-                    egui::TextEdit::multiline(&mut self.terminal_output)
-                        .font(egui::TextStyle::Monospace)
-                        .desired_rows(15)
-                        .lock_focus(true)
-                        .interactive(false)
-                        .desired_width(ui.available_width()),
-                );
-            });
+
+        let terminal_rect = ui.max_rect();
 
         ui.horizontal(|ui| {
             let response = ui.add(
@@ -615,6 +605,19 @@ impl BaseTab for TerminalTab {
                 }
             }
         });
+        
+        egui::ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                ui.add(
+                    egui::TextEdit::multiline(&mut self.terminal_output)
+                        .font(egui::TextStyle::Monospace)
+                        .desired_rows(15)
+                        .lock_focus(true)
+                        .interactive(false)
+                        .desired_width(ui.available_width()),
+                );
+            });
     }
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {

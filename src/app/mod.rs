@@ -12,7 +12,7 @@ use crate::board::Board;
 
 use std::path::Path;
 
-use eframe::egui::{Pos2, Rect, Sense, Ui, Vec2};
+use eframe::egui::{Pos2, Rect, Sense, Ui, Vec2, Response};
 
 #[cfg(target_arch = "wasm32")]
 use eframe::egui;
@@ -79,6 +79,81 @@ impl CanvasTab {
             canvas_offset: Vec2::new(0.0, 0.0),
         }
     }
+
+    fn draw_connection(ui: &mut egui::Ui, src_pos: egui::Pos2, dst_pos: egui::Pos2, color: egui::Color32) -> Response {
+
+        let mut response = ui.allocate_rect(egui::Rect::from_points(&[src_pos, dst_pos]), egui::Sense::click());
+        // these are public fields, but not exposed in egui documentation!
+        // response.hovered = false;
+        // response.clicked = false;
+    
+        let mut connection_stroke = egui::Stroke { width: 2.0, color };
+    
+        let mid_x = src_pos.x + (dst_pos.x - src_pos.x) / 2.0;
+        // let mid_y = src_pos.y + (dst_pos.y - src_pos.y) / 2.0;
+        // let mid_pos1 = egui::Pos2::new(mid_x, src_pos.y);
+        // let mid_pos2 = egui::Pos2::new(mid_x, dst_pos.y);
+    
+        let control_scale = ((dst_pos.x - src_pos.x) / 2.0).max(30.0);
+        let src_control = src_pos + egui::Vec2::X * control_scale;
+        let dst_control = dst_pos - egui::Vec2::X * control_scale;
+    
+        let mut line = egui::epaint::CubicBezierShape::from_points_stroke(
+            [src_pos, src_control, dst_control, dst_pos],
+            false,
+            egui::Color32::TRANSPARENT,
+            connection_stroke,
+        );
+        // let mut line = egui::epaint::PathShape::line(
+        //     Vec::from([src_pos, mid_pos1, mid_pos2, dst_pos]),
+        //     connection_stroke,
+        // );
+    
+        // construct the painter *before* changing the response rectangle. In fact, expand the rect a bit
+        // to avoid clipping the curve. This is done so that the layer order can be changed.
+        let mut painter = ui.painter_at(response.rect.expand(10.0));
+        let mut layer_id = painter.layer_id();
+        layer_id.order = egui::Order::Middle;
+        painter.set_layer_id(layer_id);
+    
+        if let Some(cursor_pos) = ui.ctx().pointer_interact_pos() {
+            // the TOL here determines the spacing of the segments that this line is broken into
+            // it was determined experimentally, and used in conjunction with THRESH helps to detect
+            // if we are hovering over the line.
+            const TOL: f32 = 0.01;
+            const THRESH: f32 = 12.0;
+            line.for_each_flattened_with_t(TOL, &mut |pos, _| {
+                if pos.distance(cursor_pos) < THRESH {
+                    // response.hovered = true;
+                    // using any_click allows clicks, context menu, etc to be handled.
+                    if ui.ctx().input(|i| i.pointer.any_click()) == true {
+                        // response.clicked = true;
+                    }
+                    response.rect = egui::Rect::from_center_size(cursor_pos, egui::Vec2::new(THRESH, THRESH));
+                }
+            });
+        }
+    
+        if response.hovered() {
+            connection_stroke.color = connection_stroke.color.gamma_multiply(0.5);
+            line = egui::epaint::CubicBezierShape::from_points_stroke(
+                [src_pos, src_control, dst_control, dst_pos],
+                false,
+                egui::Color32::TRANSPARENT,
+                connection_stroke,
+            );
+            // line = egui::epaint::PathShape::line(
+            //     Vec::from([src_pos, mid_pos1, mid_pos2, dst_pos]),
+            //     connection_stroke,
+            // );
+        }
+    
+        // painter.add(bezier);
+        painter.add(line);
+    
+        response
+    
+    }
 }
 
 impl BaseTab for CanvasTab {
@@ -108,7 +183,7 @@ impl BaseTab for CanvasTab {
                 let rect = response.rect;
                 let to_screen = emath::RectTransform::from_to(
                     Rect::from_min_size(Pos2::ZERO, rect.size() / self.canvas_zoom),
-                    rect.translate(self.canvas_offset + (rect.size() / 2.0)),
+                    rect.translate(self.canvas_offset),
                 );
 
                 let mouse_canvas_before = to_screen.inverse().transform_pos(mouse_screen);
@@ -117,7 +192,7 @@ impl BaseTab for CanvasTab {
 
                 let new_to_screen = emath::RectTransform::from_to(
                     Rect::from_min_size(Pos2::ZERO, rect.size() / self.canvas_zoom),
-                    rect.translate(self.canvas_offset + (rect.size() / 2.0)),
+                    rect.translate(self.canvas_offset),
                 );
 
                 let mouse_screen_after = new_to_screen.transform_pos(mouse_canvas_before);
@@ -129,7 +204,7 @@ impl BaseTab for CanvasTab {
         let rect: Rect = response.rect;
         let to_screen = emath::RectTransform::from_to(
             Rect::from_min_size(Pos2::ZERO, rect.size() / self.canvas_zoom),
-            rect.translate(self.canvas_offset + (rect.size() / 2.0)),
+            rect.translate(self.canvas_offset),
         );
 
         let mut pin_locations: HashMap<(board::Board, String), egui::Pos2> = HashMap::new();
@@ -241,6 +316,42 @@ impl BaseTab for CanvasTab {
                 }
             }
         }
+
+        let mut connection_to_remove: Option<Connection> = None;
+        for connection in state.project.system.connections.iter_mut() {
+            // get the start and end pin locations. If they're not in the map (which they should be...), just skip
+            let start_loc: egui::Pos2 = match pin_locations.get(&(connection.start_board.clone(), connection.start_pin.clone())) {
+                Some(sl) => *sl,
+                None => continue,
+            };
+            let end_loc: egui::Pos2 = match pin_locations.get(&(connection.end_board.clone(), connection.end_pin.clone())) {
+                Some(el) => *el,
+                None => continue,
+            };
+            // draw the connection and perform interactions.
+            let c = match connection.interface_mapping.interface.iface_type {
+                board::pinout::InterfaceType::I2C => egui::Color32::RED,
+                board::pinout::InterfaceType::UART => egui::Color32::BLUE,
+                board::pinout::InterfaceType::SPI => egui::Color32::YELLOW,
+                board::pinout::InterfaceType::NONE => egui::Color32::GREEN,
+                _ => egui::Color32::WHITE,
+            };
+            let resp = CanvasTab::draw_connection(ui, start_loc, end_loc, c);
+            // Connection-level right click menu
+            resp.context_menu(|ui| {
+                ui.label("connection name:");
+                ui.text_edit_singleline(&mut connection.name);
+                ui.separator();
+                ui.label("connection type:");
+                for iface_type in enum_iterator::all::<board::pinout::InterfaceType>() {
+                    ui.selectable_value(&mut connection.interface_mapping.interface.iface_type, iface_type, format!("{:?}", iface_type));
+                }
+                ui.separator();
+                if ui.button("delete connection").clicked() {
+                    connection_to_remove = Some(connection.clone());
+                }
+            });
+        }
     }
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
@@ -260,7 +371,7 @@ impl FileTab {
 
 impl BaseTab for FileTab {
     fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
-        ui.label(format!("HI I AM {}", self.filename));
+        
     }
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
@@ -566,7 +677,7 @@ impl<'a> egui_dock::TabViewer for WindowContext<'a> {
     }
 
     fn closeable(&mut self, _tab: &mut String) -> bool {
-        if _tab == "Canvas" {
+        if _tab == "Canvas" || _tab == "File Explorer" {
             false
         } else {
             true

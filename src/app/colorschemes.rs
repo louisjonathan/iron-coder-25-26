@@ -1,4 +1,4 @@
-use egui::{ahash::random_state, Color32, Stroke};
+use egui::{ahash::random_state, text_selection::visuals, Color32, Stroke};
 // https://github.com/Experience-Monks/nice-color-palettes/tree/master
 use rand::prelude::*;
 use std::collections::HashMap;
@@ -147,7 +147,7 @@ impl colorschemes {
      *  HashMap<String, Color32>
      * */
 
-    fn get_color_scheme(&mut self, idx: &u8) -> HashMap<String, Color32> {
+    pub fn get_color_scheme(&mut self, idx: &u8) -> HashMap<String, Color32> {
         let contents = self.configs[*idx as usize];
         let unparsed: HashMap<String, String> = toml::from_str(contents).unwrap();
         let mut parsed: HashMap<String, Color32> = Default::default();
@@ -161,10 +161,13 @@ impl colorschemes {
     }
     pub fn set_color_scheme(&mut self, context: &egui::Context, idx: &u8) -> i32 {
         let colorscheme: HashMap<String, Color32> = self.get_color_scheme(idx);
-        let mut new_style = (*context.style()).clone();
 
-        new_style.visuals.extreme_bg_color = colorscheme["extreme_bg_color"];
-        new_style.visuals.faint_bg_color = colorscheme["faint_bg_color"];
+        let mut new_style = (*context.style()).clone();
+        //new_style.visuals.widgets.style()
+        //set text override color (requires ui.visuals_mut().widgets.*.fg_stroke_color to be set for some reason)
+        new_style.visuals.override_text_color = Some(colorscheme["extreme_bg_color"]);
+        new_style.visuals.extreme_bg_color = colorscheme["faint_bg_color"];
+        new_style.visuals.faint_bg_color = colorscheme["extreme_bg_color"];
         new_style.visuals.code_bg_color = colorscheme["code_bg_color"];
         new_style.visuals.panel_fill = colorscheme["panel_fill"];
         new_style.visuals.window_fill = colorscheme["window_fill"];

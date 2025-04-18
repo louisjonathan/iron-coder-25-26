@@ -21,7 +21,7 @@ use eframe::egui;
 #[cfg(not(target_arch = "wasm32"))]
 use eframe::{egui, NativeOptions};
 
-use egui::Area;
+use egui::{Area, Color32};
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 
 use emath::{self};
@@ -548,6 +548,38 @@ impl MainWindow {
     // }
     pub fn display_menu(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            if self.tabs.contains_key("Settings") {
+                //make sure settings tab gets current context
+                //need help with this line
+                let settings_tab = self
+                    .tabs
+                    .get_mut("Settings")
+                    .unwrap()
+                    .as_any_mut()
+                    .downcast_mut::<SettingsTab>()
+                    .unwrap();
+                if settings_tab.should_random_colorscheme == true {
+                    let random_choice = &colorschemes::colorschemes::get_random_color_scheme();
+                    let colors = colorschemes::colorschemes::get_color_scheme(
+                        &mut self.state.colorschemes,
+                        random_choice,
+                    );
+                    self.state
+                        .colorschemes
+                        .set_color_scheme(&ctx, random_choice);
+
+                    ui.visuals_mut().widgets.noninteractive.fg_stroke.color =
+                        colors["extreme_bg_color"];
+                    ui.visuals_mut().widgets.active.fg_stroke.color = colors["extreme_bg_color"];
+                    ui.visuals_mut().widgets.hovered.fg_stroke.color = colors["extreme_bg_color"];
+                    ui.visuals_mut().widgets.open.fg_stroke.color = colors["extreme_bg_color"];
+
+                    settings_tab.should_random_colorscheme = false;
+                } else if settings_tab.should_example_colorscheme == true {
+                    self.state.colorschemes.set_color_scheme(&ctx, &100);
+                    settings_tab.should_example_colorscheme = false;
+                }
+            }
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Settings").clicked() {
@@ -613,26 +645,26 @@ impl eframe::App for MainWindow {
         //     }
         // }
 
-        if self.tabs.contains_key("Settings") {
-            //make sure settings tab gets current context
-            //need help with this line
-            let settings_tab = self
-                .tabs
-                .get_mut("Settings")
-                .unwrap()
-                .as_any_mut()
-                .downcast_mut::<SettingsTab>()
-                .unwrap();
-            if settings_tab.should_random_colorscheme == true {
-                self.state
-                    .colorschemes
-                    .set_color_scheme(&ctx, &colorschemes::colorschemes::get_random_color_scheme());
-                settings_tab.should_random_colorscheme = false;
-            } else if settings_tab.should_example_colorscheme == true {
-                self.state.colorschemes.set_color_scheme(&ctx, &100);
-                settings_tab.should_example_colorscheme = false;
-            }
-        }
+        // if self.tabs.contains_key("Settings") {
+        //     //make sure settings tab gets current context
+        //     //need help with this line
+        //     let settings_tab = self
+        //         .tabs
+        //         .get_mut("Settings")
+        //         .unwrap()
+        //         .as_any_mut()
+        //         .downcast_mut::<SettingsTab>()
+        //         .unwrap();
+        //     if settings_tab.should_random_colorscheme == true {
+        //         self.state
+        //             .colorschemes
+        //             .set_color_scheme(&ctx, &colorschemes::colorschemes::get_random_color_scheme());
+        //         settings_tab.should_random_colorscheme = false;
+        //     } else if settings_tab.should_example_colorscheme == true {
+        //         self.state.colorschemes.set_color_scheme(&ctx, &100);
+        //         settings_tab.should_example_colorscheme = false;
+        //     }
+        // }
 
         // if self.keybindings.is_pressed(ctx, "test_a") {
         //     println!("Test A!");

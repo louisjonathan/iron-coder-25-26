@@ -37,6 +37,19 @@ use crate::app::keybinding::{Keybinding, Keybindings};
 
 use egui_extras::RetainedImage;
 
+use std::process::{Command, Stdio, Child};
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+use std::fs;
+use std::path::PathBuf;
+
+use std::fs::File;
+use encoding_rs::WINDOWS_1252;
+use encoding_rs_io::DecodeReaderBytesBuilder;
+use strip_ansi_escapes;
+use std::io::{BufReader, Read, Write};
+
 use crate::project::system::Connection;
 
 static OPENABLE_TABS: &'static [&'static str] = &[
@@ -255,29 +268,181 @@ impl BaseTab for FileTab {
     }
 }
 
-struct FileExplorerTab;
-impl BaseTab for FileExplorerTab {
-    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-        self
-    }
+struct FileExplorerTab {
+    root_dir: PathBuf,
+    expanded_dirs: HashMap<PathBuf, Vec<PathBuf>>,
 }
+
 impl FileExplorerTab {
     fn new() -> Self {
-        FileExplorerTab {}
+        let root_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        Self {
+            root_dir,
+            expanded_dirs: HashMap::new(),
+        }
+    }
+
+    fn read_dir(dir: &PathBuf) -> Vec<PathBuf> {
+        fs::read_dir(dir)
+            .map(|entries| {
+                entries
+                    .filter_map(|entry| entry.ok())
+                    .map(|entry| entry.path())
+                    .collect()
+            })
+            .unwrap_or_else(|_| vec![])
+    }
+
+    fn toggle_dir(&mut self, dir: PathBuf) {
+        if self.expanded_dirs.contains_key(&dir) {
+            self.expanded_dirs.remove(&dir);
+        } else {
+            let contents = Self::read_dir(&dir);
+            self.expanded_dirs.insert(dir, contents);
+        }
     }
 }
 
-struct TerminalTab;
-impl BaseTab for TerminalTab {
+impl BaseTab for FileExplorerTab {
+    fn draw(&mut self, ui: &mut egui::Ui, _state: &mut SharedState) {
+
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            fn draw_directory(
+                ui: &mut egui::Ui,
+                dir: &PathBuf,
+                expanded_dirs: &HashMap<PathBuf, Vec<PathBuf>>,
+                toggle_dir: &mut dyn FnMut(PathBuf),
+                max_visible: usize,
+                visible_count: &mut usize,
+                depth: usize,
+            ) {
+                if *visible_count >= max_visible {
+                    return; // hack to avoid lag from having too many items open
+                }
+
+                let dir_name = dir.file_name().unwrap_or_default().to_string_lossy();
+                ui.horizontal(|ui| {
+                    ui.add_space(depth as f32 * 16.0);
+                    if ui.button(format!("{}", dir_name)).clicked() {
+                        toggle_dir(dir.clone());
+                    }
+                });
+
+                *visible_count += 1;
+
+                if let Some(contents) = expanded_dirs.get(dir) {
+                    for entry in contents {
+                        if *visible_count >= max_visible {
+                            break;
+                        }
+
+                        if entry.is_dir() {
+                            draw_directory(ui, entry, expanded_dirs, toggle_dir, max_visible, visible_count, depth + 1);
+                        } else {
+                            let file_name = entry.file_name().unwrap_or_default().to_string_lossy();
+                            ui.horizontal(|ui| {
+                                ui.add_space((depth + 1) as f32 * 16.0);
+                                ui.label(format!("{}", file_name));
+                            });
+                            *visible_count += 1;
+                        }
+                    }
+                }
+            }
+
+            let expanded_dirs = self.expanded_dirs.clone();
+            let root_dir = self.root_dir.clone();
+            let mut toggle_dir = {
+                let expanded_dirs = &mut self.expanded_dirs;
+                move |dir: PathBuf| {
+                    if expanded_dirs.contains_key(&dir) {
+                        expanded_dirs.remove(&dir);
+                    } else {
+                        let contents = Self::read_dir(&dir);
+                        expanded_dirs.insert(dir, contents);
+                    }
+                }
+            };
+
+            let max_visible = 500;
+            let mut visible_count = 0;
+            draw_directory(ui, &root_dir, &expanded_dirs, &mut toggle_dir, max_visible, &mut visible_count, 0);
+        });
+    }
+
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
 }
+
+struct TerminalTab {
+    terminal_output: String,
+    command_input: String,
+}
+
 impl TerminalTab {
     fn new() -> Self {
-        TerminalTab {}
+        TerminalTab {
+            terminal_output: String::new(),
+            command_input: String::new(),
+        }
     }
 }
+
+impl BaseTab for TerminalTab {
+    fn draw(&mut self, ui: &mut egui::Ui, _state: &mut SharedState) {
+        egui::ScrollArea::vertical()
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                ui.add(
+                    egui::TextEdit::multiline(&mut self.terminal_output)
+                        .font(egui::TextStyle::Monospace)
+                        .desired_rows(15)
+                        .lock_focus(true)
+                        .interactive(false)
+                        .desired_width(ui.available_width()),
+                );
+            });
+
+        ui.horizontal(|ui| {
+            let response = ui.add(
+                egui::TextEdit::singleline(&mut self.command_input)
+                    .desired_width(ui.available_width()),
+            );
+
+            if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                let command = self.command_input.trim();
+                if !command.is_empty() {
+                    match Command::new("powershell") // TODO fix this for other OSes just demo for now
+                        .arg("-c")
+                        .arg(command)
+                        .output()
+                    {
+                        Ok(output) => {
+                            let stdout = String::from_utf8_lossy(&output.stdout).trim_end().to_string();
+                            self.terminal_output.push_str(&format!(
+                                "> {}\n{}\n",
+                                command, stdout
+                            ));
+                        }
+                        Err(err) => {
+                            self.terminal_output.push_str(&format!(
+                                "> {}\n{}\n",
+                                command, err
+                            ));
+                        }
+                    }
+                    self.command_input.clear();
+                }
+            }
+        });
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}
+
 #[derive(Serialize, Deserialize, Default)]
 struct BoardInfoTab {
     chosen_board_idx: Option<usize>,
@@ -550,11 +715,12 @@ impl MainWindow {
                     .insert(tab_name.clone(), Box::new(CanvasTab::new()));
             }
             "Terminal" => {
-                self.tabs.insert(tab_name.clone(), Box::new(TerminalTab));
+                self.tabs
+                    .insert(tab_name.clone(), Box::new(TerminalTab::new()));
             }
             "File Explorer" => {
                 self.tabs
-                    .insert(tab_name.clone(), Box::new(FileExplorerTab));
+                    .insert(tab_name.clone(), Box::new(FileExplorerTab::new()));
             }
             "Board Info" => {
                 self.tabs.insert(
@@ -574,12 +740,10 @@ impl eframe::App for MainWindow {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.display_menu(ctx, _frame);
 
-        // if self.keybindings.is_pressed(ctx, "open_settings") {
-        //     // (only if settings is closed)
-        //     if !self.context.tabs.contains_key("Settings") {
-        //         self.add_tab("Settings".to_string());
-        //     }
-        // }
+        if self.state.keybindings.is_pressed(ctx, "close_tab") {
+            // close tab keybind for Jon... (once I figure out how to reliably find the current tab)
+            println!("Close tab bind pressed...");
+        }
 
         if self.tabs.contains_key("Settings") {
             //make sure settings tab gets current context

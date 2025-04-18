@@ -19,12 +19,14 @@ use serde::{Deserialize, Serialize};
 use crate::board::Board;
 // use crate::app::code_editor::CodeEditor;
 
+pub use system::Connection;
+
 pub mod display;
 use display::ProjectViewType;
 
 pub mod egui_helpers;
 
-mod system;
+pub mod system;
 
 use system::System;
 

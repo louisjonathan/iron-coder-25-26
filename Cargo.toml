@@ -47,7 +47,7 @@ log = "0.4.27"
 # # You only need serde if you want app persistence:
 egui_extras = { version = "0.31.1", features = ["image", "all_loaders"] }
 image = { version = "0.24.7", features = ["jpeg", "png", "gif"] }
-# syntect = "5.0.0"
+syntect = "5.0.0"
 rfd= "*"
 rand = "*"
 # fs_extra = "1.3.0"

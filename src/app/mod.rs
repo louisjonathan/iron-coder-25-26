@@ -19,7 +19,8 @@ use eframe::egui;
 #[cfg(not(target_arch = "wasm32"))]
 use eframe::{egui, NativeOptions};
 
-use egui::{Area, Color32};
+use egui::{Area, Color32, ScrollArea};
+use egui::text::LayoutJob;
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 
 use emath::{self};
@@ -43,12 +44,17 @@ use std::thread;
 
 use std::fs;
 use std::path::PathBuf;
+use std::io::{BufReader, Read, Write, Seek};
 
 use std::fs::File;
 use encoding_rs::WINDOWS_1252;
 use encoding_rs_io::DecodeReaderBytesBuilder;
 use strip_ansi_escapes;
-use std::io::{BufReader, Read, Write};
+
+use syntect::easy::HighlightLines;
+use syntect::parsing::SyntaxSet;
+use syntect::highlighting::{ThemeSet, FontStyle};
+use syntect::util::LinesWithEndings;
 
 use crate::project::system::Connection;
 
@@ -360,18 +366,80 @@ impl BaseTab for CanvasTab {
 }
 
 struct FileTab {
-    filename: String,
+    path: Option<PathBuf>,
+    code: String,
+    file: Option<fs::File>,
+    synced: bool,
 }
 
 impl FileTab {
-    fn new(filename: String) -> Self {
-        FileTab { filename }
+    fn default() -> Self {
+        Self {
+            code: String::new(),
+            path: None,
+            file: None,
+            synced: false,
+        }
+    }
+
+    fn load_from_file(&mut self, file_path: &Path) -> std::io::Result<()> {
+        self.code.clear();
+        self.path = Some(file_path.canonicalize()?);
+        self.file = Some(fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(file_path)?
+        );
+        if let Some(file) = &mut self.file {
+            file.read_to_string(&mut self.code)?;
+            self.synced = true;
+        }
+        Ok(())
+    }
+
+    pub fn save(&mut self) -> std::io::Result<()> {
+        if let Some(file) = &mut self.file {
+            file.rewind()?;
+            file.set_len(0)?;
+            file.write(self.code.as_bytes())?;
+            file.sync_all()?;
+            self.synced = true;
+        }
+        Ok(())
     }
 }
 
 impl BaseTab for FileTab {
     fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
-        
+
+        ScrollArea::both().auto_shrink([false; 2]).show(ui, |ui| {
+            let former_contents = self.code.clone();
+            let resp = ui.add(
+                egui::TextEdit::multiline(&mut self.code)
+                    .font(egui::TextStyle::Name("EditorFont".into()))
+                    .code_editor()
+                    .lock_focus(true)
+                    .desired_width(f32::INFINITY)
+                    .frame(false)
+            );
+            // check if the code has changed, so we can set the synced flag
+            if self.synced && self.code != former_contents {
+                self.synced = false;
+            }
+            // See if a code snippet was released over the editor.
+            // TODO -- if so, insert it on the proper line
+            ui.ctx().memory_mut(|mem| {
+                let id = egui::Id::new("released_code_snippet");
+                let data: Option<String> = mem.data.get_temp(id);
+                if let Some(value) = data {
+                    if resp.hovered() {
+                        info!("found a released code snippet!");
+                        mem.data.remove::<String>(id);
+                        self.code += &value;
+                    }
+                }
+            });
+        });
     }
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
@@ -677,7 +745,7 @@ impl<'a> egui_dock::TabViewer for WindowContext<'a> {
     }
 
     fn closeable(&mut self, _tab: &mut String) -> bool {
-        if _tab == "Canvas" || _tab == "File Explorer" {
+        if _tab == "Canvas" || _tab == "File Explorer"{
             false
         } else {
             true
@@ -743,6 +811,7 @@ impl Default for MainWindow {
             "Canvas".to_owned(),
             "Editor".to_owned(),
             "Settings".to_owned(),
+            "./src/main.rs".to_owned(),
         ]);
 
         let [a, b] = tree.main_surface_mut().split_left(
@@ -765,8 +834,10 @@ impl Default for MainWindow {
         );
         tabs.insert("Terminal".to_string(), Box::new(TerminalTab::new()));
 
-        let filename = "main.rs".to_string();
-        tabs.insert(filename.clone(), Box::new(FileTab::new(filename.clone())));
+        let mut filetab = FileTab::default();
+        let path = Path::new("./src/main.rs");
+        filetab.load_from_file(path);
+        tabs.insert(path.to_string_lossy().into_owned(), Box::new(filetab));
 
         Self {
             tree: tree,

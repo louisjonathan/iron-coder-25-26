@@ -1,15 +1,15 @@
 //! This module provides functionality for development boards
+#![allow(warnings)]
+use log::{debug, info, warn};
 
-use log::{warn, info, debug};
-
-use std::path::{Path, PathBuf};
-use std::fs;
-use std::vec::Vec;
-use std::fmt;
 use std::cmp;
+use std::fmt;
+use std::fs;
 use std::hash::{Hash, Hasher};
+use std::path::{Path, PathBuf};
+use std::vec::Vec;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use ra_ap_ide;
 
@@ -97,13 +97,25 @@ impl fmt::Debug for Board {
         write!(f, "Board {}\n", self.name)?;
         write!(f, "  is main board? {}\n", self.is_main_board)?;
         write!(f, "  num examples: {}\n", self.examples.len())?;
-        write!(f, "  num required crates: {}\n", self.required_crates.clone().unwrap_or_default().len())?;
-        write!(f, "  num related crates: {}\n", self.related_crates.clone().unwrap_or_default().len())?;
+        write!(
+            f,
+            "  num required crates: {}\n",
+            self.required_crates.clone().unwrap_or_default().len()
+        )?;
+        write!(
+            f,
+            "  num related crates: {}\n",
+            self.related_crates.clone().unwrap_or_default().len()
+        )?;
         write!(f, "  has svg info: {}\n", self.svg_board_info.is_some())?;
         write!(f, "  has template: {}\n", self.template_dir.is_some())?;
         write!(f, "  bsp crate name: {:?}\n", self.bsp)?;
         write!(f, "  has local bsp: {:?}\n", self.bsp_path)?;
-        write!(f, "  has some syntax loaded: {:?}\n", self.bsp_parse_info.is_some())?;
+        write!(
+            f,
+            "  has some syntax loaded: {:?}\n",
+            self.bsp_parse_info.is_some()
+        )?;
         Ok(())
     }
 }
@@ -126,16 +138,14 @@ impl Hash for Board {
 /// Basic implementation, including loading boards from the filesystem, and retrieving certain
 /// information about them.
 impl Board {
-
     /// Loads a board from its toml description
     fn load_from_toml(path: &Path) -> std::io::Result<Self> {
-        
         let toml_str = fs::read_to_string(path)?;
         let mut b: Board = match toml::from_str(&toml_str) {
             Ok(b) => b,
             Err(_) => {
                 return Err(std::io::Error::other("load from toml failed"));
-            },
+            }
         };
 
         // See if there is an image
@@ -143,18 +153,21 @@ impl Board {
             // BASED ON SVG WORK
             match SvgBoardInfo::from_path(&pic_path) {
                 Ok(svg_board_info) => {
-                    info!("successfully decoded SVG for board {}. Board has physical size: {:?}", b.get_name(), svg_board_info.physical_size);
+                    info!(
+                        "successfully decoded SVG for board {}. Board has physical size: {:?}",
+                        b.get_name(),
+                        svg_board_info.physical_size
+                    );
                     b.svg_board_info = Some(svg_board_info);
-                },
+                }
                 Err(e) => {
                     warn!("error with svg parsing! {:?}", e);
                     return Err(std::io::Error::other("unable to parse board SVG file."));
-                },
+                }
             };
         } else {
             warn!("no svg file for board {}", b.get_name());
             return Err(std::io::Error::other("no SVG file for board."));
-
         }
 
         // See if there are any examples
@@ -191,7 +204,6 @@ impl Board {
     pub fn get_template_dir(&self) -> Option<PathBuf> {
         return self.template_dir.clone();
     }
-
 }
 
 /// Iteratively gather the Boards from the filesystem.
@@ -201,16 +213,26 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
         // first tier of organization is by manufacturer
         for manufacturer in manufacturers {
             let manufacturer = manufacturer.expect("error with manufacturer directory");
-            if manufacturer.file_type().expect("error parsing file type").is_file() {
+            if manufacturer
+                .file_type()
+                .expect("error parsing file type")
+                .is_file()
+            {
                 continue;
             }
-            let boards = fs::read_dir(manufacturer.path()).expect("error iterating over files in manufacturer directory");
+            let boards = fs::read_dir(manufacturer.path())
+                .expect("error iterating over files in manufacturer directory");
             for board in boards {
                 let board = board.expect("error with Board directory");
-                if board.file_type().expect("error parsing file type within board dir").is_file() {
+                if board
+                    .file_type()
+                    .expect("error parsing file type within board dir")
+                    .is_file()
+                {
                     continue;
                 }
-                let files = fs::read_dir(board.path()).expect("error iterating over files in board directory");
+                let files = fs::read_dir(board.path())
+                    .expect("error iterating over files in board directory");
                 for file in files {
                     let file = file.expect("error reading file within board directory");
                     if file.path().extension().unwrap_or_default() == "toml" {
@@ -220,10 +242,22 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
                                 // look for a template directory
                                 let template_dir = parent.join("template");
                                 if let Ok(true) = template_dir.try_exists() {
-                                    debug!("found template dir for board <{}> at {:?}", board.name.clone(), file.path().parent().unwrap().canonicalize().unwrap().join("template"));
+                                    debug!(
+                                        "found template dir for board <{}> at {:?}",
+                                        board.name.clone(),
+                                        file.path()
+                                            .parent()
+                                            .unwrap()
+                                            .canonicalize()
+                                            .unwrap()
+                                            .join("template")
+                                    );
                                     board.template_dir = Some(template_dir);
                                 } else {
-                                    debug!("no template directory found for board <{}>", board.name.clone());
+                                    debug!(
+                                        "no template directory found for board <{}>",
+                                        board.name.clone()
+                                    );
                                 }
                                 // look for a local BSP, and do things related to it if needed
                                 let bsp_dir = parent.join("bsp");
@@ -235,16 +269,27 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
                                     // board.ra_values = analysis.file_structure(fid).unwrap();
                                     match board.load_bsp_info() {
                                         Ok(_) => (),
-                                        Err(e) => warn!("error parsing BSP for board {}: {:?}", board.get_name(), e),
+                                        Err(e) => warn!(
+                                            "error parsing BSP for board {}: {:?}",
+                                            board.get_name(),
+                                            e
+                                        ),
                                     };
                                 } else {
-                                    debug!("no bsp directory found for board <{}>", board.name.clone());
+                                    debug!(
+                                        "no bsp directory found for board <{}>",
+                                        board.name.clone()
+                                    );
                                 }
                                 r.push(board);
-                            },
+                            }
                             Err(e) => {
-                                warn!("error loading board from {}: {:?}", file.path().display().to_string(), e);
-                            },
+                                warn!(
+                                    "error loading board from {}: {:?}",
+                                    file.path().display().to_string(),
+                                    e
+                                );
+                            }
                         }
                     }
                 }

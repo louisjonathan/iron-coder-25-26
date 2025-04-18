@@ -4,16 +4,16 @@
 
 use log::{info, warn};
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
-use serde::{Deserialize, Serialize};
 
-use syn::Ident;
 use quote::quote;
+use syn::Ident;
 
-use crate::board::Board;
 use crate::board::pinout::InterfaceMapping;
+use crate::board::Board;
 
 pub type Result = core::result::Result<(), SystemError>;
 
@@ -26,7 +26,7 @@ pub enum SystemError {
 /// A Connection is a physical bus connecting two Boards (e.g. I2C, GPIO, SPI, etc).
 /// TODO - determine best way of representing a connection. Can it represent a bus connecting
 /// more than one board? i.e. one I2C main device talking to multiple peripherals, or a CAN
-/// network. 
+/// network.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Connection {
     /// The name of the connection. Iron Coder will search for this name
@@ -52,6 +52,7 @@ pub struct System {
     /// An optional board + pin for the current in-progress connecion.
     pub in_progress_connection_start: Option<(Board, String)>,
     pub in_progress_connection_end: Option<(Board, String)>,
+    // pub all_boards: Option<Vec<Board>>,
 }
 
 /// A datastructure that will hold all of the information we need to populate the System module.
@@ -66,7 +67,6 @@ struct TokenStreamAccumulator {
 }
 
 impl System {
-
     /// Return a vector of all the system boards. If there is no main board, this returns an
     /// empty vector.
     pub fn get_all_boards(&self) -> Vec<Board> {
@@ -98,10 +98,14 @@ impl System {
             if *mb == board {
                 self.main_board = None;
                 self.remove_connections_involving_board(board);
-                return Ok(())
+                return Ok(());
             }
         }
-        if let Some(idx) = self.peripheral_boards.iter().position(|elem| *elem == board) {
+        if let Some(idx) = self
+            .peripheral_boards
+            .iter()
+            .position(|elem| *elem == board)
+        {
             self.peripheral_boards.remove(idx);
             self.remove_connections_involving_board(board);
             return Ok(());
@@ -111,53 +115,63 @@ impl System {
 
     /// Iterate through the connection list, and remove connections that involve the provided board
     fn remove_connections_involving_board(&mut self, board: Board) {
-        self.connections = self.connections.iter().filter(|elem| {
-            !((**elem).start_board == board || (**elem).end_board == board)
-        }).cloned().collect();
+        self.connections = self
+            .connections
+            .iter()
+            .filter(|elem| !((**elem).start_board == board || (**elem).end_board == board))
+            .cloned()
+            .collect();
     }
 
     /// Generate a module based on the system. Lots to improve here. For now, this just saves
     /// the module to the project root (i.e. doesn't account for the existance of a Cargo project).
     pub fn generate_system_module(&mut self, save_to: &Path) -> Result {
-
         // Fold through the list of connections, and capture the required information
         let TokenStreamAccumulator {
             required_bsp_crates,
             ..
-        } = self.connections.iter().fold(TokenStreamAccumulator::default(), |mut acc, elem| {
+        } = self
+            .connections
+            .iter()
+            .fold(TokenStreamAccumulator::default(), |mut acc, elem| {
+                let Connection {
+                    start_board,
+                    end_board,
+                    ..
+                } = elem;
 
-            let Connection {
-                start_board,
-                end_board,
-                ..
-            } = elem;
-
-            // get starting board info
-            if let Some(start_board_bsp_info) = &start_board.bsp_parse_info {
-                info!("  found some bsp info");
-                if let Some(start_board_crate_ident) = &start_board_bsp_info.bsp_crate_identifier {
-                    info!("    found a crate ident");
-                    acc.required_bsp_crates.insert(start_board_crate_ident.clone());
+                // get starting board info
+                if let Some(start_board_bsp_info) = &start_board.bsp_parse_info {
+                    info!("  found some bsp info");
+                    if let Some(start_board_crate_ident) =
+                        &start_board_bsp_info.bsp_crate_identifier
+                    {
+                        info!("    found a crate ident");
+                        acc.required_bsp_crates
+                            .insert(start_board_crate_ident.clone());
+                    }
                 }
-            }
 
-            // get ending board info
-            if let Some(end_board_bsp_info) = &end_board.bsp_parse_info {
-                if let Some(end_board_crate_ident) = &end_board_bsp_info.bsp_crate_identifier {
-                    acc.required_bsp_crates.insert(end_board_crate_ident.clone());
+                // get ending board info
+                if let Some(end_board_bsp_info) = &end_board.bsp_parse_info {
+                    if let Some(end_board_crate_ident) = &end_board_bsp_info.bsp_crate_identifier {
+                        acc.required_bsp_crates
+                            .insert(end_board_crate_ident.clone());
+                    }
                 }
-            }
 
-            return acc;
-        });
+                return acc;
+            });
 
-        info!("after folding, num required crates is {}", required_bsp_crates.len());
+        info!(
+            "after folding, num required crates is {}",
+            required_bsp_crates.len()
+        );
 
         let r = required_bsp_crates.iter();
 
         /************* MODULE CODE HERE *************/
-        let output_tokens = quote!
-        {
+        let output_tokens = quote! {
             #(use #r;)*
 
             // todo - include needed imports
@@ -194,10 +208,7 @@ impl System {
                 warn!("error writing code to {:?}: {:?}", save_to.display(), e);
             }
         }
-        
+
         Ok(())
-
     }
-
-
 }

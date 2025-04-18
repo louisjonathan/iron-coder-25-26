@@ -1,3 +1,4 @@
+#![allow(warnings)]
 pub mod colorschemes;
 pub mod icons;
 pub mod keybinding;
@@ -24,6 +25,7 @@ use egui::Area;
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 
 use emath::{self};
+use log::info;
 
 use crate::board;
 use crate::project::Project;
@@ -308,17 +310,69 @@ impl TerminalTab {
         TerminalTab {}
     }
 }
-
-struct BoardInfoTab;
+#[derive(Serialize, Deserialize, Default)]
+struct BoardInfoTab {
+    chosen_board_idx: Option<usize>,
+}
 impl BaseTab for BoardInfoTab {
+    fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
+        ui.heading("Board Selection");
+        let mut board: Option<board::Board> = None;
+        let available_width = ui.available_width();
+        let mut num_cols = (available_width / 260.0) as usize;
+        if num_cols == 0 {
+            num_cols = 1;
+        }
+        egui::containers::scroll_area::ScrollArea::vertical().show(ui, |ui| {
+            if ui.button("Generate New Board").clicked() {
+                todo!();
+            }
+            ui.label("or select a board from the list below");
+            ui.columns(num_cols, |columns| {
+                for (i, b) in state.boards.clone().into_iter().enumerate() {
+                    let col = i % num_cols;
+                    // When a board is clicked, add it to the new project
+                    ///@TODO  BoardSelectorWidget
+                    if columns[col]
+                        .add(board::display::BoardSelectorWidget(b.clone()))
+                        .clicked()
+                    {
+                        board = Some(b.clone());
+                        self.chosen_board_idx = Some(i);
+                    }
+                }
+
+                let last_col = state.boards_used.len();
+            });
+        });
+    }
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
 }
 impl BoardInfoTab {
     fn new() -> Self {
-        BoardInfoTab {}
+        BoardInfoTab {
+            chosen_board_idx: None,
+        }
     }
+    // /// Populate the project board list via the app-wide 'known boards' list
+    // fn load_board_resources(&mut self) {
+    //     info!("updating project boards from known boards list.");
+    //     for b in state.project.system.get_all_boards_mut().iter_mut() {
+    //         // returns true if the current, project board is equal to the current known_board
+    //         let predicate = |known_board: &&Board| {
+    //             return known_board == b;
+    //         };
+    //         if let Some(known_board) = self.known_boards.iter().find(predicate) {
+    //             **b = known_board.clone();
+    //         } else {
+    //             warn!("Could not find the project board in the known boards list. Was the project manifest \
+    //                    generated with an older version of Iron Coder?")
+    //         }
+    //     }
+    // }
+    // /// Display the list of available boards in a window, and return one if it was clicked
 }
 
 struct SettingsTab {
@@ -392,26 +446,43 @@ struct SharedState {
     colorschemes: colorschemes::colorschemes,
     project: Project,
     boards: Vec<board::Board>,
+    boards_used: Vec<board::Board>,
 }
 
 impl SharedState {
+    #[cfg(not(target_arch = "wasm32"))]
     fn default() -> Self {
-        #[cfg(not(target_arch = "wasm32"))]
         let boards_dir = Path::new("./iron-coder-boards");
-        #[cfg(not(target_arch = "wasm32"))]
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
+
+        let mut project = Project::default();
+        project.add_board(boards[0].clone());
+        let boards_used = project.system.get_all_boards();
+        Self {
+            keybindings: Keybindings::new(),
+            colorschemes: colorschemes::colorschemes::default(),
+            project: project,
+            boards: boards,
+            boards_used,
+        }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn default() -> Self {
+        let boards: Vec<board::Board> = vec![board::Board::default()];
 
         #[cfg(target_arch = "wasm32")]
         let boards: Vec<board::Board> = vec![board::Board::default()];
 
         let mut project = Project::default();
         project.add_board(boards[0].clone());
-
+        let boards_used = project.system.get_all_boards();
         Self {
             keybindings: Keybindings::new(),
             colorschemes: colorschemes::colorschemes::default(),
             project: project,
             boards: boards,
+            boards_used,
         }
     }
 }
@@ -518,7 +589,12 @@ impl MainWindow {
                     .insert(tab_name.clone(), Box::new(FileExplorerTab));
             }
             "Board Info" => {
-                self.tabs.insert(tab_name.clone(), Box::new(BoardInfoTab));
+                self.tabs.insert(
+                    tab_name.clone(),
+                    Box::new(BoardInfoTab {
+                        chosen_board_idx: None,
+                    }),
+                );
             }
             _ => {}
         }

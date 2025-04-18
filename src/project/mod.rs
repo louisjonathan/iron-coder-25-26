@@ -1,6 +1,6 @@
 //! Title: Iron Coder Project Module - Module
 //! Description: This module contains the Project struct and its associated functionality.
-
+#![allow(warnings)]
 use log::{debug, info, warn};
 
 // use std::error::Error;

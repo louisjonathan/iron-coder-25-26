@@ -12,15 +12,15 @@ use crate::board::Board;
 
 use std::path::Path;
 
-use eframe::egui::{Pos2, Rect, Sense, Ui, Vec2, Response};
+use eframe::egui::{Pos2, Rect, Response, Sense, Ui, Vec2};
 
 #[cfg(target_arch = "wasm32")]
 use eframe::egui;
 #[cfg(not(target_arch = "wasm32"))]
 use eframe::{egui, NativeOptions};
 
-use egui::{Area, Color32, ScrollArea};
 use egui::text::LayoutJob;
+use egui::{Area, Color32, ScrollArea};
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 
 use emath::{self};
@@ -38,23 +38,23 @@ use crate::app::keybinding::{Keybinding, Keybindings};
 
 use egui_extras::RetainedImage;
 
-use std::process::{Command, Stdio, Child};
+use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 use std::fs;
+use std::io::{BufReader, Read, Seek, Write};
 use std::path::PathBuf;
-use std::io::{BufReader, Read, Write, Seek};
 
-use std::fs::File;
 use encoding_rs::WINDOWS_1252;
 use encoding_rs_io::DecodeReaderBytesBuilder;
+use std::fs::File;
 use strip_ansi_escapes;
 
-use syntect::easy::HighlightLines;
-use syntect::parsing::SyntaxSet;
-use syntect::highlighting::{ThemeSet, FontStyle};
-use syntect::util::LinesWithEndings;
+// use syntect::easy::HighlightLines;
+// use syntect::parsing::SyntaxSet;
+// use syntect::highlighting::{ThemeSet, FontStyle};
+// use syntect::util::LinesWithEndings;
 
 use crate::project::system::Connection;
 
@@ -86,24 +86,31 @@ impl CanvasTab {
         }
     }
 
-    fn draw_connection(ui: &mut egui::Ui, src_pos: egui::Pos2, dst_pos: egui::Pos2, color: egui::Color32) -> Response {
-
-        let mut response = ui.allocate_rect(egui::Rect::from_points(&[src_pos, dst_pos]), egui::Sense::click());
+    fn draw_connection(
+        ui: &mut egui::Ui,
+        src_pos: egui::Pos2,
+        dst_pos: egui::Pos2,
+        color: egui::Color32,
+    ) -> Response {
+        let mut response = ui.allocate_rect(
+            egui::Rect::from_points(&[src_pos, dst_pos]),
+            egui::Sense::click(),
+        );
         // these are public fields, but not exposed in egui documentation!
         // response.hovered = false;
         // response.clicked = false;
-    
+
         let mut connection_stroke = egui::Stroke { width: 2.0, color };
-    
+
         let mid_x = src_pos.x + (dst_pos.x - src_pos.x) / 2.0;
         // let mid_y = src_pos.y + (dst_pos.y - src_pos.y) / 2.0;
         // let mid_pos1 = egui::Pos2::new(mid_x, src_pos.y);
         // let mid_pos2 = egui::Pos2::new(mid_x, dst_pos.y);
-    
+
         let control_scale = ((dst_pos.x - src_pos.x) / 2.0).max(30.0);
         let src_control = src_pos + egui::Vec2::X * control_scale;
         let dst_control = dst_pos - egui::Vec2::X * control_scale;
-    
+
         let mut line = egui::epaint::CubicBezierShape::from_points_stroke(
             [src_pos, src_control, dst_control, dst_pos],
             false,
@@ -114,14 +121,14 @@ impl CanvasTab {
         //     Vec::from([src_pos, mid_pos1, mid_pos2, dst_pos]),
         //     connection_stroke,
         // );
-    
+
         // construct the painter *before* changing the response rectangle. In fact, expand the rect a bit
         // to avoid clipping the curve. This is done so that the layer order can be changed.
         let mut painter = ui.painter_at(response.rect.expand(10.0));
         let mut layer_id = painter.layer_id();
         layer_id.order = egui::Order::Middle;
         painter.set_layer_id(layer_id);
-    
+
         if let Some(cursor_pos) = ui.ctx().pointer_interact_pos() {
             // the TOL here determines the spacing of the segments that this line is broken into
             // it was determined experimentally, and used in conjunction with THRESH helps to detect
@@ -135,11 +142,12 @@ impl CanvasTab {
                     if ui.ctx().input(|i| i.pointer.any_click()) == true {
                         // response.clicked = true;
                     }
-                    response.rect = egui::Rect::from_center_size(cursor_pos, egui::Vec2::new(THRESH, THRESH));
+                    response.rect =
+                        egui::Rect::from_center_size(cursor_pos, egui::Vec2::new(THRESH, THRESH));
                 }
             });
         }
-    
+
         if response.hovered() {
             connection_stroke.color = connection_stroke.color.gamma_multiply(0.5);
             line = egui::epaint::CubicBezierShape::from_points_stroke(
@@ -153,18 +161,16 @@ impl CanvasTab {
             //     connection_stroke,
             // );
         }
-    
+
         // painter.add(bezier);
         painter.add(line);
-    
+
         response
-    
     }
 }
 
 impl BaseTab for CanvasTab {
     fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
-
         ui.set_clip_rect(ui.max_rect());
 
         let response = ui.allocate_response(ui.available_size(), Sense::drag());
@@ -216,7 +222,6 @@ impl BaseTab for CanvasTab {
         let mut pin_locations: HashMap<(board::Board, String), egui::Pos2> = HashMap::new();
 
         for board in state.project.system.get_all_boards().iter_mut() {
-
             let scale_id = egui::Id::new("system_editor_scale_factor");
 
             let scale = 5.0;
@@ -226,10 +231,7 @@ impl BaseTab for CanvasTab {
             let mut pin_clicked: Option<String> = None;
 
             if let Some(svg_board_info) = board.clone().svg_board_info {
-                let retained_image = RetainedImage::from_color_image(
-                    "pic",
-                    svg_board_info.image,
-                );
+                let retained_image = RetainedImage::from_color_image("pic", svg_board_info.image);
 
                 let texture_id = retained_image.texture_id(ui.ctx());
                 let display_size = svg_board_info.physical_size * scale;
@@ -257,16 +259,20 @@ impl BaseTab for CanvasTab {
 
                     let transformed_pin_rect = to_screen.transform_rect(pin_rect);
 
-                    if visible_rect.contains_rect(transformed_pin_rect)
-                    {
+                    if visible_rect.contains_rect(transformed_pin_rect) {
                         let r = ui.allocate_rect(transformed_pin_rect, egui::Sense::click());
                         if r.clicked() {
                             pin_clicked = Some(pin_name.clone());
                         }
                         if r.hovered() {
-                            ui.painter().circle_filled(r.rect.center(), r.rect.height()/2.0, egui::Color32::GREEN);
+                            ui.painter().circle_filled(
+                                r.rect.center(),
+                                r.rect.height() / 2.0,
+                                egui::Color32::GREEN,
+                            );
                         }
-                        r.clone().on_hover_text(String::from(board.get_name()) + ":" + &pin_name);
+                        r.clone()
+                            .on_hover_text(String::from(board.get_name()) + ":" + &pin_name);
                         r.clone().context_menu(|ui| {
                             ui.label("a pin-level menu option");
                         });
@@ -275,35 +281,43 @@ impl BaseTab for CanvasTab {
                         // Check if a connection is in progress by checking the "connection_in_progress" Id from the ctx memory.
                         // This is set to true if the user selects "add connection" from the parent container's context menu.
                         let id = egui::Id::new("connection_in_progress");
-                        let mut connection_in_progress = ui.ctx().data_mut(|data| {
-                            data.get_temp_mut_or(id, false).clone()
-                        });
+                        let mut connection_in_progress = ui
+                            .ctx()
+                            .data_mut(|data| data.get_temp_mut_or(id, false).clone());
 
                         if connection_in_progress {
                             ui.ctx().output_mut(|o| {
                                 o.cursor_icon = egui::CursorIcon::PointingHand;
                             });
                         }
-                        
+
                         if connection_in_progress && r.clicked() {
                             println!("PRESSED");
                             // check conditions for starting/ending a connection
                             match state.project.system.in_progress_connection_start {
                                 None => {
                                     ui.ctx().data_mut(|data| {
-                                        data.insert_temp(egui::Id::new("connection_start_pos"), r.rect.center());
+                                        data.insert_temp(
+                                            egui::Id::new("connection_start_pos"),
+                                            r.rect.center(),
+                                        );
                                     });
-                                    state.project.system.in_progress_connection_start = Some((board.clone(), pin_name.clone()));
-                                },
+                                    state.project.system.in_progress_connection_start =
+                                        Some((board.clone(), pin_name.clone()));
+                                }
                                 Some((ref start_board, ref start_pin)) => {
                                     // add the connection to the system struct
                                     let c = Connection {
-                                        name: format!("connection_{}", state.project.system.connections.len()),
+                                        name: format!(
+                                            "connection_{}",
+                                            state.project.system.connections.len()
+                                        ),
                                         start_board: start_board.clone(),
                                         start_pin: start_pin.clone(),
                                         end_board: board.clone(),
                                         end_pin: pin_name.clone(),
-                                        interface_mapping: board::pinout::InterfaceMapping::default(),
+                                        interface_mapping: board::pinout::InterfaceMapping::default(
+                                        ),
                                     };
                                     state.project.system.connections.push(c);
                                     // clear the in_progress_connection fields
@@ -313,9 +327,11 @@ impl BaseTab for CanvasTab {
                                     connection_in_progress = false;
                                     ui.ctx().data_mut(|data| {
                                         data.insert_temp(id, connection_in_progress);
-                                        data.remove::<egui::Pos2>(egui::Id::new("connection_start_pos"));
+                                        data.remove::<egui::Pos2>(egui::Id::new(
+                                            "connection_start_pos",
+                                        ));
                                     });
-                                },
+                                }
                             }
                         }
                     }
@@ -326,11 +342,15 @@ impl BaseTab for CanvasTab {
         let mut connection_to_remove: Option<Connection> = None;
         for connection in state.project.system.connections.iter_mut() {
             // get the start and end pin locations. If they're not in the map (which they should be...), just skip
-            let start_loc: egui::Pos2 = match pin_locations.get(&(connection.start_board.clone(), connection.start_pin.clone())) {
+            let start_loc: egui::Pos2 = match pin_locations
+                .get(&(connection.start_board.clone(), connection.start_pin.clone()))
+            {
                 Some(sl) => *sl,
                 None => continue,
             };
-            let end_loc: egui::Pos2 = match pin_locations.get(&(connection.end_board.clone(), connection.end_pin.clone())) {
+            let end_loc: egui::Pos2 = match pin_locations
+                .get(&(connection.end_board.clone(), connection.end_pin.clone()))
+            {
                 Some(el) => *el,
                 None => continue,
             };
@@ -350,7 +370,11 @@ impl BaseTab for CanvasTab {
                 ui.separator();
                 ui.label("connection type:");
                 for iface_type in enum_iterator::all::<board::pinout::InterfaceType>() {
-                    ui.selectable_value(&mut connection.interface_mapping.interface.iface_type, iface_type, format!("{:?}", iface_type));
+                    ui.selectable_value(
+                        &mut connection.interface_mapping.interface.iface_type,
+                        iface_type,
+                        format!("{:?}", iface_type),
+                    );
                 }
                 ui.separator();
                 if ui.button("delete connection").clicked() {
@@ -385,10 +409,11 @@ impl FileTab {
     fn load_from_file(&mut self, file_path: &Path) -> std::io::Result<()> {
         self.code.clear();
         self.path = Some(file_path.canonicalize()?);
-        self.file = Some(fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(file_path)?
+        self.file = Some(
+            fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(file_path)?,
         );
         if let Some(file) = &mut self.file {
             file.read_to_string(&mut self.code)?;
@@ -411,7 +436,6 @@ impl FileTab {
 
 impl BaseTab for FileTab {
     fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
-
         ScrollArea::both().auto_shrink([false; 2]).show(ui, |ui| {
             let former_contents = self.code.clone();
             let resp = ui.add(
@@ -420,7 +444,7 @@ impl BaseTab for FileTab {
                     .code_editor()
                     .lock_focus(true)
                     .desired_width(f32::INFINITY)
-                    .frame(false)
+                    .frame(false),
             );
             // check if the code has changed, so we can set the synced flag
             if self.synced && self.code != former_contents {
@@ -484,7 +508,6 @@ impl FileExplorerTab {
 
 impl BaseTab for FileExplorerTab {
     fn draw(&mut self, ui: &mut egui::Ui, _state: &mut SharedState) {
-
         egui::ScrollArea::vertical().show(ui, |ui| {
             fn draw_directory(
                 ui: &mut egui::Ui,
@@ -516,7 +539,15 @@ impl BaseTab for FileExplorerTab {
                         }
 
                         if entry.is_dir() {
-                            draw_directory(ui, entry, expanded_dirs, toggle_dir, max_visible, visible_count, depth + 1);
+                            draw_directory(
+                                ui,
+                                entry,
+                                expanded_dirs,
+                                toggle_dir,
+                                max_visible,
+                                visible_count,
+                                depth + 1,
+                            );
                         } else {
                             let file_name = entry.file_name().unwrap_or_default().to_string_lossy();
                             ui.horizontal(|ui| {
@@ -545,7 +576,15 @@ impl BaseTab for FileExplorerTab {
 
             let max_visible = 500;
             let mut visible_count = 0;
-            draw_directory(ui, &root_dir, &expanded_dirs, &mut toggle_dir, max_visible, &mut visible_count, 0);
+            draw_directory(
+                ui,
+                &root_dir,
+                &expanded_dirs,
+                &mut toggle_dir,
+                max_visible,
+                &mut visible_count,
+                0,
+            );
         });
     }
 
@@ -598,17 +637,15 @@ impl BaseTab for TerminalTab {
                         .output()
                     {
                         Ok(output) => {
-                            let stdout = String::from_utf8_lossy(&output.stdout).trim_end().to_string();
-                            self.terminal_output.push_str(&format!(
-                                "> {}\n{}\n",
-                                command, stdout
-                            ));
+                            let stdout = String::from_utf8_lossy(&output.stdout)
+                                .trim_end()
+                                .to_string();
+                            self.terminal_output
+                                .push_str(&format!("> {}\n{}\n", command, stdout));
                         }
                         Err(err) => {
-                            self.terminal_output.push_str(&format!(
-                                "> {}\n{}\n",
-                                command, err
-                            ));
+                            self.terminal_output
+                                .push_str(&format!("> {}\n{}\n", command, err));
                         }
                     }
                     self.command_input.clear();
@@ -745,7 +782,7 @@ impl<'a> egui_dock::TabViewer for WindowContext<'a> {
     }
 
     fn closeable(&mut self, _tab: &mut String) -> bool {
-        if _tab == "Canvas" || _tab == "File Explorer"{
+        if _tab == "Canvas" || _tab == "File Explorer" {
             false
         } else {
             true

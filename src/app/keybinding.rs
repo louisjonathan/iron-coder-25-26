@@ -9,6 +9,8 @@ use std::fs;
 pub struct Keybinding {
     id: String,
     key: String,
+    ctrl: bool,
+    alt: bool,
 }
 
 impl Keybinding {
@@ -18,7 +20,7 @@ impl Keybinding {
 }
 
 pub struct Keybindings {
-    bindings: HashMap<String, Key>,
+    bindings: HashMap<String, Keybinding>,
 }
 
 impl Keybindings {
@@ -30,29 +32,36 @@ impl Keybindings {
             serde_json::from_str(&file_content).expect("JSON was not well-formatted");
         let mut map = HashMap::new();
         for binding in bindings {
-            if let Some(key) = binding.to_key() {
-                map.insert(binding.id, key);
-            }
+            map.insert(binding.id.clone(), binding);
         }
         Keybindings { bindings: map }
     }
+
     #[cfg(target_arch = "wasm32")]
     pub fn new() -> Self {
         let file_content = include_str!("../../resources/keybindings.json");
         let bindings: Vec<Keybinding> =
-            serde_json::from_str(&file_content).expect("JSON was not well- formatted");
+            serde_json::from_str(&file_content).expect("JSON was not well-formatted");
         let mut map = HashMap::new();
         for binding in bindings {
-            if let Some(key) = binding.to_key() {
-                map.insert(binding.id, key);
-            }
+            map.insert(binding.id.clone(), binding);
         }
         Keybindings { bindings: map }
     }
 
     pub fn is_pressed(&self, ctx: &egui::Context, id: &str) -> bool {
-        if let Some(key) = self.bindings.get(id) {
-            ctx.input(|i| i.key_pressed(*key))
+        if let Some(binding) = self.bindings.get(id) {
+            if let Some(key) = binding.to_key() {
+                ctx.input(|i| {
+                    let key_pressed = i.key_pressed(key);
+                    let ctrl_pressed = binding.ctrl && i.modifiers.ctrl;
+                    let alt_pressed = binding.alt && i.modifiers.alt;
+
+                    key_pressed && (!binding.ctrl || ctrl_pressed) && (!binding.alt || alt_pressed)
+                })
+            } else {
+                false
+            }
         } else {
             false
         }

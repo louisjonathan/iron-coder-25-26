@@ -15,6 +15,7 @@ Add existing features from Iron Coder to the new interface:
 	- Terminal window proof of concept.
 - File Explorer window implementation (Evan P)
 	- File Explorer window shows files and directories.
+	
 Add novel features:
 - Colorschemes (Jonathan L)
 	- Set Colorschemes for UI and text.

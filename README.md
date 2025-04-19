@@ -1,18 +1,28 @@
 # iron-coder-25-26
-This project serves as a testing environment for future Iron Coder features. While familiarizing ourselves with the codebase, we will utilize new libraries and create features in a simplified and abstract manner.
+This project serves as a testing environment for future Iron Coder features. Although not fully functional, it demonstrates multiple individually functional Iron Coder features in a refactored interface.
 
-## Test Application Goals:
-Get a working proof of concept for the following:
-- Window Docking (Jonathan B)
-	- Utilize egui_dock to expand the functionality of egui. Generate tabs that can be opened and closed, each with modularity and different functionality.
-- Keybinding Support (Evan P)
-	- Create a modular keybindings system that reads egui inputs and does actions based on the hotkey configuration. Parses a .json file for hotkey editing and addition.
-- Color Scheme (Jonathan L)
-	- Modify egui styling using color schemes by parsing .toml files. Designed in a manner that allows for expansion in the future.
+## Prototype Application Goals:
+Add existing features from Iron Coder to the new interface:
+- WebAssembly compilation (Jonathan L)
+	- Basic demonstration of the capability to compile for WebAssembly.
+- Board Information (Jonathan L)
+	- Board Information window.
+- Canvas implementation (Jonathan B)
+	- Canvas window with various optimizations.
+- FileTab implementation (Jonathan B)
+	- File editing tab.
+- Terminal window implementation (Evan P)
+	- Terminal window proof of concept.
+- File Explorer window implementation (Evan P)
+	- File Explorer window shows files and directories.
+Add novel features:
+- Colorschemes (Jonathan L)
+	- Set Colorschemes for UI and text.
+- Centralized SharedState struct (Jonathan B)
+	- Refactor interservice communication.
+- Keyboard shortcuts (Evan P)
+	- Allow users to set custom keyboard shortcuts.
 
 ## Known Bugs
-- Tabs opened using the "View" menu appear on the focused window split. Ideally, each tab would have a default location that it would dock to (for example, File Explorer on the left, Terminal at the bottom).
-
-### Works Cited
-
-[Color Palettes](https://github.com/Experience-Monks/nice-color-palettes/tree/master)
+- The application crashes when interacting with UI elements related to unimplemented features.
+- Certain features are unavailable in the WebAssembly build.

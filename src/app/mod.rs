@@ -864,7 +864,6 @@ impl Default for MainWindow {
     fn default() -> Self {
         let mut tree = DockState::new(vec![
             "Canvas".to_owned(),
-            "Editor".to_owned(),
             "Settings".to_owned(),
             "./src/main.rs".to_owned(),
         ]);

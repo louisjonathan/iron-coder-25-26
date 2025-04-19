@@ -1,6 +1,8 @@
 # iron-coder-25-26
 This project serves as a testing environment for future Iron Coder features. Although not fully functional, it demonstrates multiple individually functional Iron Coder features in a refactored interface.
 
+![Screenshot](screenshots/ironcoder.png)
+
 ## Prototype Application Goals:
 Add existing features from Iron Coder to the new interface:
 - WebAssembly compilation (Jonathan L)

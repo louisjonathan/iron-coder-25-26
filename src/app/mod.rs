@@ -64,6 +64,7 @@ static OPENABLE_TABS: &'static [&'static str] = &[
     "File Explorer",
     "Terminal",
     "Board Info",
+	"Debug"
 ];
 
 trait BaseTab {
@@ -71,6 +72,46 @@ trait BaseTab {
         ui.label("Default");
     }
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
+}
+
+// struct SampleTab {
+// }
+
+// impl SampleTab {
+//     fn default() -> Self {
+//         Self {
+//         }
+//     }
+// }
+
+// impl BaseTab for SampleTab {
+//     fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
+//     }
+
+//     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+//         self
+//     }
+// }
+
+struct DebugTab {
+}
+
+impl DebugTab {
+    fn default() -> Self {
+        Self {
+        }
+    }
+}
+
+impl BaseTab for DebugTab {
+    fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
+		ui.label("Testing!");
+		
+	}
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 }
 
 struct CanvasTab {
@@ -170,27 +211,34 @@ impl CanvasTab {
 }
 
 impl BaseTab for CanvasTab {
-    fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
+	fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
+		// grab mouse location
+        let mouse_screen = ui.input(|i| i.pointer.hover_pos()).unwrap_or_default();
+
         ui.set_clip_rect(ui.max_rect());
 
+		ui.label(format!("Canvas zoom: {}", self.canvas_zoom));
+		ui.label(format!("Canvas offset: {}", self.canvas_offset));
+		ui.label(format!("Mouse location: {}", mouse_screen));
+		
         let response = ui.allocate_response(ui.available_size(), Sense::drag());
 
+		// adjust offset when dragged
         if response.dragged() {
-            self.canvas_offset += response.drag_delta();
+			self.canvas_offset += response.drag_delta() * self.canvas_zoom;
         }
 
         if response.hovered() {
-            let scroll_delta = ui.ctx().input(|i| i.smooth_scroll_delta.y);
+			let scroll_delta = ui.ctx().input(|i| i.smooth_scroll_delta.y);
             let zoom_factor = 1.01;
 
+			// handle scrolling to zoom on mouse location using transformations
             if scroll_delta != 0.0 {
                 let zoom = if scroll_delta > 0.0 {
                     zoom_factor
                 } else {
                     1.0 / zoom_factor
                 };
-
-                let mouse_screen = ui.input(|i| i.pointer.hover_pos()).unwrap_or_default();
 
                 let rect = response.rect;
                 let to_screen = emath::RectTransform::from_to(
@@ -209,6 +257,7 @@ impl BaseTab for CanvasTab {
 
                 let mouse_screen_after = new_to_screen.transform_pos(mouse_canvas_before);
 
+				// change offset based on where we zoom
                 self.canvas_offset += mouse_screen - mouse_screen_after;
             }
         }
@@ -704,8 +753,9 @@ impl BaseTab for BoardInfoTab {
                         .add(board::display::BoardSelectorWidget(b.clone()))
                         .clicked()
                     {
-                        board = Some(b.clone());
-                        self.chosen_board_idx = Some(i);
+						state.project.add_board(b.clone());
+                        // board = Some(b.clone());
+                        // self.chosen_board_idx = Some(i);
                     }
                 }
 
@@ -823,7 +873,6 @@ impl SharedState {
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
 
         let mut project = Project::default();
-        project.add_board(boards[0].clone());
         let boards_used = project.system.get_all_boards();
         Self {
             keybindings: Keybindings::new(),
@@ -998,6 +1047,10 @@ impl MainWindow {
                     }),
                 );
             }
+			"Debug" => {
+				self.tabs
+                    .insert(tab_name.clone(), Box::new(DebugTab{}));
+			}
             _ => {}
         }
         self.tree.push_to_focused_leaf(tab_name);

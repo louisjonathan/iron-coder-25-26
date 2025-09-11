@@ -1,6 +1,8 @@
 use crate::app::tabs::base_tab::BaseTab;
 use crate::app::SharedState;
 
+use crate::app::CanvasBoard;
+
 use crate::board;
 use crate::board::display;
 use serde::{Deserialize, Serialize};
@@ -60,6 +62,7 @@ impl BaseTab for BoardInfoTab {
                         .clicked()
                     {
 						state.project.add_board(b.clone());
+                        state.boards_used.push(CanvasBoard::new(&b).unwrap());
                         // board = Some(b.clone());
                         // self.chosen_board_idx = Some(i);
                     }

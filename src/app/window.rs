@@ -1,4 +1,5 @@
 use crate::app::SharedState;
+use crate::board::Board;
 use super::tabs::*;
 
 use crate::app::colorschemes::colorschemes;
@@ -65,7 +66,7 @@ impl Default for MainWindow {
         let [a, b] = tree.main_surface_mut().split_left(
             NodeIndex::root(),
             0.3,
-            vec!["File Explorer".to_owned()],
+            vec!["Board Info".to_owned()],
         );
 
         let [_, _] = tree
@@ -74,6 +75,7 @@ impl Default for MainWindow {
 
         let mut tabs: HashMap<String, Box<dyn BaseTab>> = HashMap::new();
 
+        tabs.insert("Board Info".to_string(), Box::new(BoardInfoTab::new()));
         tabs.insert("Canvas".to_string(), Box::new(CanvasTab::new()));
         tabs.insert("Settings".to_string(), Box::new(SettingsTab::new()));
         tabs.insert(
@@ -96,19 +98,6 @@ impl Default for MainWindow {
 }
 
 impl MainWindow {
-    // /// Called once before the first frame.
-    // pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-    //     // This is also where you can customize the look and feel of egui using
-    //     // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
-
-    //     // Load previous app state (if any).
-    //     // Note that you must enable the `persistence` feature for this to work.
-    //     if let Some(storage) = cc.storage {
-    //         return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-    //     }
-
-    //     Default::default()
-    // }
     pub fn display_menu(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             if self.tabs.contains_key("Settings") {
@@ -208,35 +197,6 @@ impl eframe::App for MainWindow {
             // close tab keybind for Jon... (once I figure out how to reliably find the current tab)
             println!("Close tab bind pressed...");
         }
-
-        // if self.tabs.contains_key("Settings") {
-        //     //make sure settings tab gets current context
-        //     //need help with this line
-        //     let settings_tab = self
-        //         .tabs
-        //         .get_mut("Settings")
-        //         .unwrap()
-        //         .as_any_mut()
-        //         .downcast_mut::<SettingsTab>()
-        //         .unwrap();
-        //     if settings_tab.should_random_colorscheme == true {
-        //         self.state
-        //             .colorschemes
-        //             .set_color_scheme(&ctx, &colorschemes::colorschemes::get_random_color_scheme());
-        //         settings_tab.should_random_colorscheme = false;
-        //     } else if settings_tab.should_example_colorscheme == true {
-        //         self.state.colorschemes.set_color_scheme(&ctx, &100);
-        //         settings_tab.should_example_colorscheme = false;
-        //     }
-        // }
-
-        // if self.keybindings.is_pressed(ctx, "test_a") {
-        //     println!("Test A!");
-        // }
-
-        // if self.keybindings.is_pressed(ctx, "test_b") {
-        //     println!("Test B!");
-        // }
 
         let mut context = WindowContext {
             tabs: &mut self.tabs,

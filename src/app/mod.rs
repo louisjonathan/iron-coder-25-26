@@ -11,3 +11,9 @@ pub use tabs::*;
 
 pub mod window;
 pub use window::MainWindow;
+
+mod canvas_board;
+use canvas_board::CanvasBoard;
+
+mod canvas_connection;
+use canvas_connection::CanvasConnection;

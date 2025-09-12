@@ -35,14 +35,22 @@ web-sys={version="0.3.46",features = [
   'Document',
   'Window',
 ]}
-wasm-bindgen-futures = "0.4.19"
-winit = "0.29" 
-futures = {version="0.3.10",features=["thread-pool"]}
-getrandom = { version = "<=0.2.15", features = ["js"] }
-rand = "<=0.8.5"
+#wasm-bindgen-futures = "0.4.19"
+#winit = "0.29" 
+#futures = {version="0.3.10",features=["thread-pool"]}
+#getrandom = { version = "<=0.2.15", features = ["js"] }
+wasm-bindgen-futures = "*"
+getrandom = { version = "*", features = ["wasm_js"] }
+rand = "*"
+opfs = "*"
+zip = "*"
+futures="*"
+#rand = "<=0.8.5"
+
+# both:
 [dependencies]
-egui = "0.31.1"
-eframe = { version = "0.31.1", default-features = false, features = [
+egui = "*"
+eframe = { version = "*", default-features = false, features = [
     "accesskit",     # Make egui compatible with screen readers. NOTE: adds a lot of dependencies.
     "default_fonts", # Embed the default egui fonts.
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
@@ -62,7 +70,7 @@ serde_json = "1.0"
 toml = "0.8.20"
 log = "0.4.27"
 # # You only need serde if you want app persistence:
-egui_extras = { version = "0.31.1", features = ["image", "all_loaders"] }
+egui_extras = { version = "*", features = ["image", "all_loaders"] }
 image = { version = "0.24.7", features = ["jpeg", "png", "gif"] }
 #syntect = "5.0.0"
 enum-iterator = "2.1.0"

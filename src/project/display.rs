@@ -5,7 +5,7 @@
 //! the system editor.
 
 use egui::{Key, Response};
-use egui_extras::RetainedImage;
+
 use log::{info, warn};
 use std::collections::HashMap;
 use std::path::Path;

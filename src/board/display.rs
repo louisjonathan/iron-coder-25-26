@@ -4,7 +4,7 @@ use crate::board::Board;
 use egui::text::{LayoutJob, TextFormat};
 use egui::widgets::Widget;
 use egui::{Color32, FontFamily, FontId, Response, Ui};
-use egui_extras::RetainedImage;
+
 use log::{debug, info};
 
 /// Construct a LayoutJob with a bold heading, followed by a colon,
@@ -58,9 +58,15 @@ impl Widget for Board {
                             ui.style().visuals.window_stroke.color,
                         ));
                         // ui.label(label);
-                        let retained_image =
-                            RetainedImage::from_color_image("pic", svg_board_info.image);
-                        retained_image.show_max_size(ui, egui::vec2(150.0, 150.0));
+
+                        let texture_handle = ui.ctx().load_texture(
+                            "pic",
+                            svg_board_info.image,
+                            egui::TextureOptions::default(),
+                        );
+                        let image_widget =
+                            egui::Image::new(&texture_handle).max_size(egui::vec2(150.0, 150.0));
+                        ui.add(image_widget);
                     });
                     ui.horizontal(|ui| {
                         ui.label(make_field_widget_text(
@@ -188,9 +194,14 @@ impl Widget for BoardSelectorWidget {
                             ui.style().visuals.window_stroke.color,
                         ));
                         // ui.label(label);
-                        let retained_image =
-                            RetainedImage::from_color_image("pic", svg_board_info.image);
-                        let _ = retained_image.show_max_size(ui, egui::vec2(150.0, 150.0));
+                        let texture_handle = ui.ctx().load_texture(
+                            "pic",
+                            svg_board_info.image,
+                            egui::TextureOptions::default(),
+                        );
+                        let image_widget =
+                            egui::Image::new(&texture_handle).max_size(egui::vec2(150.0, 150.0));
+                        ui.add(image_widget);
                     });
                     ui.horizontal(|ui| {
                         ui.label(make_field_widget_text(
@@ -242,9 +253,15 @@ impl Widget for BoardMiniWidget {
                 .show(ui, |ui| {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                         ui.label(this_board.clone().name);
-                        let retained_image =
-                            RetainedImage::from_color_image("pic", svg_board_info.image);
-                        retained_image.show_max_size(ui, egui::vec2(96.0, 96.0));
+
+                        let texture_handle = ui.ctx().load_texture(
+                            "pic",
+                            svg_board_info.image,
+                            egui::TextureOptions::default(),
+                        );
+                        let image_widget =
+                            egui::Image::new(&texture_handle).max_size(egui::vec2(96.0, 96.0));
+                        ui.add(image_widget);
                     });
                 })
                 .response

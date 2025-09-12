@@ -56,6 +56,10 @@ impl FileTab {
         }
         Ok(())
     }
+
+    pub fn is_synced(&self) -> bool {
+        self.synced
+    }
 }
 
 impl BaseTab for FileTab {
@@ -127,6 +131,10 @@ impl BaseTab for FileTab {
     }
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
         self
     }
 }

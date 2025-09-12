@@ -7,6 +7,7 @@ use eframe::egui::{Ui};
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 use std::collections::HashMap;
 use std::path::Path;
+use std::fs;
 
 static OPENABLE_TABS: &'static [&'static str] = &[
     "Settings",
@@ -20,18 +21,34 @@ static OPENABLE_TABS: &'static [&'static str] = &[
 struct WindowContext<'a> {
     tabs: &'a mut HashMap<String, Box<dyn BaseTab>>,
     state: &'a mut SharedState,
+    active_tab: &'a mut Option<String>,
 }
 
 impl<'a> egui_dock::TabViewer for WindowContext<'a> {
     type Tab = String;
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
+        // Is FileTab? and change s made?
+        if let Some(file_tab) = self.tabs.get(tab) {
+            if let Some(file_tab) = file_tab.as_any().downcast_ref::<FileTab>() {
+                if !file_tab.is_synced() {
+                    return format!("● {}", tab).into();
+                }
+            }
+        }
         tab.as_str().into()
     }
 
     fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
-        if let Some(tab) = self.tabs.get_mut(tab) {
-            tab.draw(ui, self.state);
+        // Check if the pointer is over this tab's area and there was a click
+        let rect = ui.max_rect();
+        if ui.ctx().input(|i| i.pointer.any_click()) && 
+           ui.ctx().input(|i| i.pointer.hover_pos().map_or(false, |pos| rect.contains(pos))) {
+            *self.active_tab = Some(tab.clone());
+        }
+        
+        if let Some(tab_content) = self.tabs.get_mut(tab) {
+            tab_content.draw(ui, self.state);
         }
     }
 
@@ -53,6 +70,7 @@ pub struct MainWindow {
     tree: DockState<String>,
     tabs: HashMap<String, Box<dyn BaseTab>>,
     state: SharedState,
+    active_tab: Option<String>,
 }
 
 impl Default for MainWindow {
@@ -60,13 +78,13 @@ impl Default for MainWindow {
         let mut tree = DockState::new(vec![
             "Canvas".to_owned(),
             "Settings".to_owned(),
-            "./src/main.rs".to_owned(),
+            "example_file.rs".to_owned(),
         ]);
 
         let [a, b] = tree.main_surface_mut().split_left(
             NodeIndex::root(),
             0.3,
-            vec!["Board Info".to_owned()],
+            vec!["Board Info".to_owned(), "File Explorer".to_owned()],
         );
 
         let [_, _] = tree
@@ -84,15 +102,35 @@ impl Default for MainWindow {
         );
         tabs.insert("Terminal".to_string(), Box::new(TerminalTab::new()));
 
+        // New sample file instead of main.rs (because we dont want to accidentally change lol)
+        // TODO remove this eventually obv
+        let example_file_path = Path::new("example_file.rs");
+        
+        if !example_file_path.exists() {
+            let example_content = r#"// This is an example Rust file for testing the Iron Coder editor
+
+fn main() {
+    println!("Hello from the Iron Coder editor!");
+    println!("{}", message);
+}
+"#;
+            if let Err(e) = fs::write(example_file_path, example_content) {
+                println!("Can't create example_file.rs.");
+            }
+        }
+        
+        // load example file
         let mut filetab = FileTab::default();
-        let path = Path::new("./src/main.rs");
-        filetab.load_from_file(path);
-        tabs.insert(path.to_string_lossy().into_owned(), Box::new(filetab));
+        if let Err(e) = filetab.load_from_file(example_file_path) {
+            println!("Can't load example_file.rs.");
+        }
+        tabs.insert("example_file.rs".to_string(), Box::new(filetab));
 
         Self {
             tree: tree,
             tabs: tabs,
             state: SharedState::default(),
+            active_tab: None,
         }
     }
 }
@@ -134,6 +172,11 @@ impl MainWindow {
             }
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
+                    if ui.button("Save").clicked() {
+                        self.save_current_file();
+                        ui.close_menu();
+                    }
+                    ui.separator();
                     if ui.button("Settings").clicked() {
                         ui.close_menu();
                     }
@@ -187,11 +230,43 @@ impl MainWindow {
         }
         self.tree.push_to_focused_leaf(tab_name);
     }
+
+    fn save_current_file(&mut self) {
+        // Use the tracked active tab
+        if let Some(active_tab_name) = &self.active_tab.clone() {
+            if let Some(tab) = self.tabs.get_mut(active_tab_name) {
+                if let Some(file_tab) = tab.as_any_mut().downcast_mut::<FileTab>() {
+                    match file_tab.save() {
+                        Ok(()) => {
+                            println!("File '{}' saved successfully", active_tab_name);
+                        }
+                        Err(e) => {
+                            println!("Error saving file '{}': {}", active_tab_name, e);
+                        }
+                    }
+                } else {
+                    println!("Current tab '{}' is not a file tab", active_tab_name);
+                }
+            } else {
+                println!("Could not find active tab '{}'", active_tab_name);
+            }
+        } else {
+            println!("No active tab found");
+        }
+    }
+
+    fn get_active_tab_id(&self) -> Option<String> {
+        self.active_tab.clone()
+    }
 }
 
 impl eframe::App for MainWindow {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.display_menu(ctx, _frame);
+
+        if self.state.keybindings.is_pressed(ctx, "save_file") {
+            self.save_current_file();
+        }
 
         if self.state.keybindings.is_pressed(ctx, "close_tab") {
             // close tab keybind for Jon... (once I figure out how to reliably find the current tab)
@@ -201,6 +276,7 @@ impl eframe::App for MainWindow {
         let mut context = WindowContext {
             tabs: &mut self.tabs,
             state: &mut self.state,
+            active_tab: &mut self.active_tab,
         };
 
         DockArea::new(&mut self.tree)

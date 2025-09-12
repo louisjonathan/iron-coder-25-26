@@ -1,5 +1,6 @@
 use crate::app::SharedState;
 use crate::board::Board;
+use crate::project::Project;
 use super::tabs::*;
 
 use crate::app::colorschemes::colorschemes;
@@ -136,6 +137,9 @@ impl MainWindow {
                 ui.menu_button("File", |ui| {
                     if ui.button("Settings").clicked() {
                         ui.close_menu();
+                    }
+                    if ui.button("Open File From ZIP").clicked(){
+                        Project::open(self.state.project.clone());
                     }
                 });
                 ui.menu_button("View", |ui| {

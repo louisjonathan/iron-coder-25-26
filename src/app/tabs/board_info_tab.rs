@@ -61,7 +61,7 @@ impl BaseTab for BoardInfoTab {
                         .add(board::display::BoardSelectorWidget(b.clone()))
                         .clicked()
                     {
-						state.project.add_board(b.clone());
+						state.project.borrow_mut().add_board(b.clone());
                         state.boards_used.push(CanvasBoard::new(&b).unwrap());
                         // board = Some(b.clone());
                         // self.chosen_board_idx = Some(i);

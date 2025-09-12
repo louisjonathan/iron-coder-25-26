@@ -5,11 +5,14 @@ use crate::project::Project;
 use crate::app::colorschemes::colorschemes;
 use std::path::Path;
 use crate::app::CanvasConnection;
-
+#[cfg(target_arch = "wasm32")]
+use std::rc::Rc;
+#[cfg(target_arch = "wasm32")]
+use std::cell::RefCell;
 pub struct SharedState {
     pub keybindings: Keybindings,
     pub colorschemes: colorschemes,
-    pub project: Project,
+    pub project: Rc<RefCell<Project>>,
     pub boards: Vec<board::Board>,
     pub boards_used: Vec<CanvasBoard>,
     pub connections: Vec<CanvasConnection>,
@@ -46,13 +49,20 @@ impl SharedState {
         let mut connections = Vec::new();
         connections.push(CanvasConnection::new());
 
-        let mut project = Project::default();
-        project.add_board(boards[0].clone());
-        let boards_used = project.system.get_all_boards();
+          let project_rc = Rc::new(RefCell::new(Project::default()));
+        
+        
+        let boards_used = {
+            let mut project_mut = project_rc.borrow_mut();
+            let boards: Vec<board::Board> = vec![board::Board::default()];
+            project_mut.add_board(boards[0].clone());
+            project_mut.system.get_all_boards()
+        };
+        
         Self {
             keybindings: Keybindings::new(),
             colorschemes: colorschemes::default(),
-            project: project,
+            project: project_rc,
             boards: boards,
             boards_used: Vec::new(),
             connections,

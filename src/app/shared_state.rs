@@ -38,21 +38,24 @@ impl SharedState {
     }
 
     #[cfg(target_arch = "wasm32")]
-    fn default() -> Self {
-        let boards: Vec<board::Board> = vec![board::Board::default()];
+    pub fn default() -> Self {
+        use std::default;
 
-        #[cfg(target_arch = "wasm32")]
         let boards: Vec<board::Board> = vec![board::Board::default()];
+        
+        let mut connections = Vec::new();
+        connections.push(CanvasConnection::new());
 
         let mut project = Project::default();
         project.add_board(boards[0].clone());
         let boards_used = project.system.get_all_boards();
         Self {
             keybindings: Keybindings::new(),
-            colorschemes: colorschemes::colorschemes::default(),
+            colorschemes: colorschemes::default(),
             project: project,
             boards: boards,
-            boards_used,
+            boards_used: Vec::new(),
+            connections,
         }
     }
 }

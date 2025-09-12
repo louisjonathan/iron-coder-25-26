@@ -1,15 +1,15 @@
 use crate::board::{Board, svg_reader::SvgBoardInfo};
 use crate::project::system::Connection;
-use egui::{Pos2, Rect, Ui, Sense, Color32, TextureId, Vec2, Id};
+use egui::{Color32, Id, Pos2, Rect, Sense, TextureHandle, TextureId, Ui, Vec2};
 use emath::RectTransform;
 
 use std::collections::HashMap;
-use egui_extras::{RetainedImage};
+
 use std::vec::Vec;
 
 pub struct CanvasBoard {
 	board: Board,
-	retained_image: RetainedImage,
+	retained_image: Option<TextureHandle>,
 	texture_id: Option<TextureId>,
 	display_size: Vec2,
 	image_rect: Rect,
@@ -21,7 +21,7 @@ pub struct CanvasBoard {
 impl CanvasBoard {
     pub fn new(board: &Board) -> Option<Self> {
 		if let Some(svg_board_info) = &board.svg_board_info {
-			let retained_image = RetainedImage::from_color_image("board_picture", svg_board_info.image.clone());
+			// let retained_image = RetainedImage::from_color_image("board_picture", svg_board_info.image.clone());
 
 			let display_size = svg_board_info.physical_size;
 			let image_origin = egui::pos2(0.0, 0.0);
@@ -37,7 +37,7 @@ impl CanvasBoard {
 
 			Some(Self {
 				board: board.clone(),
-				retained_image,
+				retained_image : None,
 				texture_id: None,
 				display_size,
 				image_rect,
@@ -51,8 +51,12 @@ impl CanvasBoard {
     }
 
 	pub fn draw(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2) {
+		if self.retained_image == None {
+			self.retained_image=Some(ui.ctx().load_texture("board picture", self.board.svg_board_info.as_ref().unwrap().image.clone(), egui::TextureOptions::default()));
+		}
+		
 		let texture_id = self.texture_id.get_or_insert_with(|| {
-			self.retained_image.texture_id(ui.ctx())
+			self.retained_image.as_ref().unwrap().id()
 		});
 
 		let canvas_rect = self.image_rect.translate(self.canvas_pos);

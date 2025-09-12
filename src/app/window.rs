@@ -7,7 +7,7 @@ use eframe::egui::{Ui};
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 use std::collections::HashMap;
 use std::path::Path;
-
+use egui_dock::tab_viewer::OnCloseResponse;
 static OPENABLE_TABS: &'static [&'static str] = &[
     "Settings",
     "Canvas",
@@ -35,9 +35,9 @@ impl<'a> egui_dock::TabViewer for WindowContext<'a> {
         }
     }
 
-    fn on_close(&mut self, _tab: &mut Self::Tab) -> bool {
+    fn on_close(&mut self, _tab: &mut Self::Tab) -> OnCloseResponse{
         self.tabs.remove(_tab);
-        true
+        OnCloseResponse::Close
     }
 
     fn closeable(&mut self, _tab: &mut String) -> bool {

@@ -43,6 +43,7 @@ pub use system::Connection;
 
 pub mod display;
 use display::ProjectViewType;
+use std::string::FromUtf8Error;
 
 pub mod egui_helpers;
 
@@ -66,11 +67,26 @@ pub enum ProjectIOError {
     FilesystemError,
     LoadToTomlError,
     WasmError(String),
+    FromUtf8(FromUtf8Error),
+    TomlDe(toml::de::Error),
 }
 #[cfg(target_arch = "wasm32")]
 impl From<JsValue> for ProjectIOError {
     fn from(e: JsValue) -> Self {
         Self::WasmError(format!("{:?}", e))
+    }
+}
+
+impl From<FromUtf8Error> for ProjectIOError {
+    fn from(e: FromUtf8Error) -> Self {
+        Self::FromUtf8(e)
+    }
+}
+
+
+impl From<toml::de::Error> for ProjectIOError {
+    fn from(e: toml::de::Error) -> Self {
+        Self::TomlDe(e)
     }
 }
 /// A Project represents the highest level of Iron Coder, which contains

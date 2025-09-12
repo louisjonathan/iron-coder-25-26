@@ -6,7 +6,7 @@ use crate::project::system::Connection;
 use eframe::egui::{Pos2, Rect, Response, Sense, Ui, Vec2};
 
 use std::collections::HashMap;
-use egui_extras::RetainedImage;
+
 
 pub struct CanvasTab {
     canvas_zoom: f32,

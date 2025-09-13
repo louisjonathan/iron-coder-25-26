@@ -2,8 +2,11 @@ use crate::app::tabs::base_tab::BaseTab;
 use crate::app::SharedState;
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+
 use std::fs::{read_dir};
+
+
+use std::path::PathBuf;
 
 pub struct FileExplorerTab {
     root_dir: PathBuf,
@@ -39,6 +42,7 @@ impl FileExplorerTab {
         }
     }
 }
+
 
 impl BaseTab for FileExplorerTab {
     fn draw(&mut self, ui: &mut egui::Ui, _state: &mut SharedState) {

@@ -46,6 +46,7 @@ opfs = "*"
 zip = "*"
 futures="*"
 #rand = "<=0.8.5"
+js-sys = "*"
 
 # both:
 [dependencies]

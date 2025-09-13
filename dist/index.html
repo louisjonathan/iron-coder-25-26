@@ -12,8 +12,8 @@
     <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
     
 <script type="module">
-import init, * as bindings from '/egui_dock_testing-3755c71834038bdb.js';
-const wasm = await init({ module_or_path: '/egui_dock_testing-3755c71834038bdb_bg.wasm' });
+import init, * as bindings from '/egui_dock_testing-ed7fce3dd41bb469.js';
+const wasm = await init({ module_or_path: '/egui_dock_testing-ed7fce3dd41bb469_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -127,7 +127,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
             }
         }
     </style>
-<link rel="modulepreload" href="/egui_dock_testing-3755c71834038bdb.js" crossorigin="anonymous" integrity="sha384-HVD5zEMv2eBl+Rc1jmWpi4/tU+jsIBgltDXicgrySHx5qxFbrDRW1oL0JQJSD3yy"><link rel="preload" href="/egui_dock_testing-3755c71834038bdb_bg.wasm" crossorigin="anonymous" integrity="sha384-gvneAm1KYChwK96xj5t9lH2WRUFPTKJfONaKreWto7lxTWRMjz/CqCx09yXDmDPK" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/egui_dock_testing-ed7fce3dd41bb469.js" crossorigin="anonymous" integrity="sha384-qAm1HrRVRhCW+yoDnXCcorS6uwf65yrYA6q+K7ESb2W1RKZuLnvezSNRYWR3BZhU"><link rel="preload" href="/egui_dock_testing-ed7fce3dd41bb469_bg.wasm" crossorigin="anonymous" integrity="sha384-OlLtOX/3GdgXoh5F+Yl2+GfNq51Bcif66NjKcOJ2pr8YEQel/5BiEyTtfWnB/T/R" as="fetch" type="application/wasm"></head>
 
 <body>
     <!-- The WASM code will resize the canvas dynamically -->

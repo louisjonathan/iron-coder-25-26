@@ -1,19 +1,33 @@
 use crate::app::tabs::base_tab::BaseTab;
 use crate::app::SharedState;
-
+#[cfg(not (target_arch = "wasm32"))]
 use std::fs::{File, OpenOptions};
+#[cfg(not (target_arch = "wasm32"))]
 use std::io::{Read, Seek, Write};
 use egui::ScrollArea;
 use std::path::{PathBuf, Path};
 use log::info;
-
+#[cfg(target_arch = "wasm32")]
+use opfs::{
+    persistent::{self, app_specific_dir, DirectoryHandle, FileHandle, WritableFileStream},
+    CreateWritableOptions, GetDirectoryHandleOptions, GetFileHandleOptions,
+};
+#[cfg(target_arch = "wasm32")]
+use opfs::{DirectoryHandle as _, FileHandle as _, WritableFileStream as _};
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen_futures::spawn_local;
+#[cfg(target_arch = "wasm32")]
+use std::rc::Rc;
+#[cfg(target_arch = "wasm32")]
+use std::cell::RefCell;
+#[cfg(target_arch = "wasm32")]
+use web_sys::wasm_bindgen::JsValue;
 pub struct FileTab {
-    path: Option<PathBuf>,
     code: String,
-    file: Option<File>,
+    file_handle: Option<FileHandle>,
     synced: bool,
 }
-
+#[cfg(not (target_arch = "wasm32"))]
 impl FileTab {
     pub fn default() -> Self {
         Self {
@@ -51,7 +65,44 @@ impl FileTab {
         Ok(())
     }
 }
+#[cfg(target_arch = "wasm32")]
+impl FileTab {
+    pub fn default() -> Self {
+        Self {
+            code: String::new(),
+            file_handle: None,
+            synced: false,
+        }
+    }
 
+    pub async fn load_from_file(&mut self, file_handle: opfs::persistent::FileHandle) -> std::io::Result<()> {
+        self.code.clear();
+        self.file_handle = Some(file_handle.clone());
+        if let Some(file_handle) = &mut self.file_handle {
+            let buf = match file_handle.read().await {
+                Ok(ret)=>ret,
+                Err(e) => return Ok(()),
+            };
+            self.code = match String::from_utf8(buf){
+                Ok(ret) => ret,
+                Err(e) => return Ok(()),
+            };
+            self.synced = true;
+        }
+        Ok(())
+    }
+
+    pub async fn save(&mut self) -> std::io::Result<()> {
+        // if let Some(file_handle) = &mut self.file_handle {
+            
+        //     file.set_len(0)?;
+        //     file.write(self.code.as_bytes())?;
+        //     file.sync_all()?;
+        //     self.synced = true;
+        // }
+        Ok(())
+    }
+}
 impl BaseTab for FileTab {
     fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
         ScrollArea::both().auto_shrink([false; 2]).show(ui, |ui| {

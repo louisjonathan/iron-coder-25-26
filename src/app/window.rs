@@ -86,9 +86,12 @@ impl Default for MainWindow {
         tabs.insert("Terminal".to_string(), Box::new(TerminalTab::new()));
 
         let mut filetab = FileTab::default();
-        let path = Path::new("./src/main.rs");
-        filetab.load_from_file(path);
-        tabs.insert(path.to_string_lossy().into_owned(), Box::new(filetab));
+        #[cfg(not (target_arch = "wasm32"))]
+        if let path = Path::new("./src/main.rs"){
+            filetab.load_from_file(path);
+            tabs.insert(path.to_string_lossy().into_owned(), Box::new(filetab));
+        }
+        
 
         Self {
             tree: tree,

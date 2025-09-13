@@ -1397,6 +1397,7 @@ dependencies = [
  "futures",
  "getrandom 0.3.3",
  "image 0.24.9",
+ "js-sys",
  "log",
  "opfs",
  "prettyplease",

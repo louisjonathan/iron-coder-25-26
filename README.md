@@ -3,6 +3,14 @@ This project serves as a testing environment for future Iron Coder features. Alt
 
 ![Screenshot](screenshots/ironcoder.png)
 
+## How to Build and Run
+
+To build and run the application:
+
+```bash
+cargo run
+```
+
 ## Prototype Application Goals:
 Add existing features from Iron Coder to the new interface:
 - WebAssembly compilation (Jonathan L)

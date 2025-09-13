@@ -7,6 +7,9 @@ use crate::board;
 use crate::board::display;
 use serde::{Deserialize, Serialize};
 
+use std::rc::Rc;
+use std::cell::RefCell;
+
 #[derive(Serialize, Deserialize, Default)]
 pub struct BoardInfoTab {
     chosen_board_idx: Option<usize>,
@@ -18,24 +21,6 @@ impl BoardInfoTab {
             chosen_board_idx: None,
         }
     }
-
-    // /// Populate the project board list via the app-wide 'known boards' list
-    // fn load_board_resources(&mut self) {
-    //     info!("updating project boards from known boards list.");
-    //     for b in state.project.system.get_all_boards_mut().iter_mut() {
-    //         // returns true if the current, project board is equal to the current known_board
-    //         let predicate = |known_board: &&Board| {
-    //             return known_board == b;
-    //         };
-    //         if let Some(known_board) = self.known_boards.iter().find(predicate) {
-    //             **b = known_board.clone();
-    //         } else {
-    //             warn!("Could not find the project board in the known boards list. Was the project manifest \
-    //                    generated with an older version of Iron Coder?")
-    //         }
-    //     }
-    // }
-    // /// Display the list of available boards in a window, and return one if it was clicked
 }
 
 impl BaseTab for BoardInfoTab {
@@ -62,7 +47,10 @@ impl BaseTab for BoardInfoTab {
                         .clicked()
                     {
 						state.project.add_board(b.clone());
-                        state.boards_used.push(CanvasBoard::new(&b).unwrap());
+
+                        let board = CanvasBoard::new(&b).unwrap();
+                        let board_rc = Rc::new(RefCell::new(board));
+                        state.boards_used.push(board_rc);
                         // board = Some(b.clone());
                         // self.chosen_board_idx = Some(i);
                     }

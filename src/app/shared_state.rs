@@ -5,14 +5,16 @@ use crate::project::Project;
 use crate::app::colorschemes::colorschemes;
 use std::path::Path;
 use crate::app::CanvasConnection;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 pub struct SharedState {
     pub keybindings: Keybindings,
     pub colorschemes: colorschemes,
     pub project: Project,
     pub boards: Vec<board::Board>,
-    pub boards_used: Vec<CanvasBoard>,
-    pub connections: Vec<CanvasConnection>,
+    pub boards_used: Vec<Rc<RefCell<CanvasBoard>>>,
+    pub connections: Vec<Rc<RefCell<CanvasConnection>>>,
 }
 
 impl SharedState {
@@ -25,7 +27,6 @@ impl SharedState {
         let boards_used = Vec::new();
         
         let mut connections = Vec::new();
-        connections.push(CanvasConnection::new());
 
         Self {
             keybindings: Keybindings::new(),

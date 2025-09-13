@@ -4,7 +4,7 @@ use crate::app::canvas_board::CanvasBoard;
 use crate::project::Project;
 use crate::app::colorschemes::colorschemes;
 use crate::app::syntax_highlighting::SyntaxHighlighter;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use crate::app::CanvasConnection;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -17,6 +17,7 @@ pub struct SharedState {
     pub boards: Vec<board::Board>,
     pub boards_used: Vec<Rc<RefCell<CanvasBoard>>>,
     pub connections: Vec<Rc<RefCell<CanvasConnection>>>,
+    pub requested_file_to_open: Option<PathBuf>,
 }
 
 impl SharedState {
@@ -38,6 +39,7 @@ impl SharedState {
             boards,
             boards_used,
             connections,
+            requested_file_to_open: None,
         }
     }
 
@@ -58,6 +60,7 @@ impl SharedState {
             project: project,
             boards: boards,
             boards_used,
+            requested_file_to_open: None,
         }
     }
 }

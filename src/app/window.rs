@@ -9,6 +9,9 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::fs;
 
+#[cfg(not(target_arch = "wasm32"))]
+use rfd::FileDialog;
+
 static OPENABLE_TABS: &'static [&'static str] = &[
     "Settings",
     "Canvas",
@@ -172,6 +175,10 @@ impl MainWindow {
             }
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
+                    if ui.button("Open").clicked() {
+                        self.open_file_dialog();
+                        ui.close_menu();
+                    }
                     if ui.button("Save").clicked() {
                         self.save_current_file();
                         ui.close_menu();
@@ -258,6 +265,63 @@ impl MainWindow {
     fn get_active_tab_id(&self) -> Option<String> {
         self.active_tab.clone()
     }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn open_file_dialog(&mut self) {
+        // list of allowable files to open
+        if let Some(file_path) = FileDialog::new()
+            .add_filter("Supported files", &["rs", "json", "txt"])
+            .add_filter("Rust files", &["rs"])
+            .add_filter("JSON files", &["json"])
+            .add_filter("Text files", &["txt"])
+            .pick_file()
+        {
+            self.open_file(&file_path);
+        }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn open_file_dialog(&mut self) {
+        println!("Blocking file opening because of wasm.");
+    }
+
+    fn open_file(&mut self, file_path: &Path) {
+        let tab_name = file_path.display().to_string();
+        
+        if self.tabs.contains_key(&tab_name) {
+            println!("File '{}' is already open", tab_name);
+            return;
+        }
+
+        let mut file_tab = FileTab::default();
+        match file_tab.load_from_file(file_path) {
+            Ok(()) => {
+                self.tabs.insert(tab_name.clone(), Box::new(file_tab));
+                
+                self.add_file_tab_intelligently(tab_name.clone());
+                
+                println!("File '{}' opened successfully", tab_name);
+            }
+            Err(e) => {
+                println!("Error opening file '{}': {}", tab_name, e);
+            }
+        }
+    }
+
+    fn add_file_tab_intelligently(&mut self, tab_name: String) {
+        self.tree.push_to_focused_leaf(tab_name);
+    }
+
+    fn is_file_tab(&self, tab_name: &str) -> bool {
+        // list of allowable files to open
+        tab_name.contains('.') && (
+            tab_name.ends_with(".rs") || 
+            tab_name.ends_with(".json") || 
+            tab_name.ends_with(".txt") ||
+            tab_name.contains('/') ||  // for unix
+            tab_name.contains('\\') // for windows
+        )
+    }
 }
 
 impl eframe::App for MainWindow {
@@ -271,6 +335,11 @@ impl eframe::App for MainWindow {
         if self.state.keybindings.is_pressed(ctx, "close_tab") {
             // close tab keybind for Jon... (once I figure out how to reliably find the current tab)
             println!("Close tab bind pressed...");
+        }
+
+        // wait for file picker
+        if let Some(file_path) = self.state.requested_file_to_open.take() {
+            self.open_file(&file_path);
         }
 
         let mut context = WindowContext {

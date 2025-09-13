@@ -48,6 +48,7 @@ impl BaseTab for FileExplorerTab {
                 dir: &PathBuf,
                 expanded_dirs: &HashMap<PathBuf, Vec<PathBuf>>,
                 toggle_dir: &mut dyn FnMut(PathBuf),
+                file_clicked: &mut dyn FnMut(PathBuf),
                 max_visible: usize,
                 visible_count: &mut usize,
                 depth: usize,
@@ -78,15 +79,32 @@ impl BaseTab for FileExplorerTab {
                                 entry,
                                 expanded_dirs,
                                 toggle_dir,
+                                file_clicked,
                                 max_visible,
                                 visible_count,
                                 depth + 1,
                             );
                         } else {
                             let file_name = entry.file_name().unwrap_or_default().to_string_lossy();
+                            
+                            // check if this is a supported file type
+                            let is_supported_file = entry.extension()
+                                .and_then(|ext| ext.to_str())
+                                .map(|ext| matches!(ext, "rs" | "json" | "txt"))
+                                .unwrap_or(false);
+                            
                             ui.horizontal(|ui| {
                                 ui.add_space((depth + 1) as f32 * 16.0);
-                                ui.label(format!("{}", file_name));
+                                
+                                if is_supported_file {
+                                    // Make supported files clickable
+                                    if ui.button(format!("{}", file_name)).clicked() {
+                                        file_clicked(entry.clone());
+                                    }
+                                } else {
+                                    // Not clickable
+                                    ui.label(format!("{}", file_name));
+                                }
                             });
                             *visible_count += 1;
                         }
@@ -108,6 +126,10 @@ impl BaseTab for FileExplorerTab {
                 }
             };
 
+            let mut file_clicked = |file_path: PathBuf| {
+                _state.requested_file_to_open = Some(file_path);
+            };
+
             let max_visible = 500;
             let mut visible_count = 0;
             draw_directory(
@@ -115,6 +137,7 @@ impl BaseTab for FileExplorerTab {
                 &root_dir,
                 &expanded_dirs,
                 &mut toggle_dir,
+                &mut file_clicked,
                 max_visible,
                 &mut visible_count,
                 0,

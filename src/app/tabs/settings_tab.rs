@@ -17,9 +17,7 @@ impl SettingsTab {
 impl BaseTab for SettingsTab {
     fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
         ui.heading("Settings");
-        ui.label("Random setting 1");
-        let mut s1_value = 50.0;
-        ui.add(egui::Slider::new(&mut s1_value, 0.0..=100.0).text("Slider 1"));
+        
         if ui.button("Set example colorscheme").clicked() {
             self.should_example_colorscheme = true;
         }

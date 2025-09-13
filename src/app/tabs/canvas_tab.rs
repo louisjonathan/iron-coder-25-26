@@ -83,6 +83,10 @@ impl BaseTab for CanvasTab {
         );
 
         let mouse_pos = mouse_screen - rect.min;
+        let mouse_canvas = to_screen.inverse().transform_pos(Pos2::new(mouse_screen.x, mouse_screen.y));
+
+        /* DEBUG DISPLAY MOUSE & MOUSE CANVAS POSITIONS
+
         ui.painter().text(
             mouse_screen + Vec2{x: 0.0, y: 0.0},
             Align2::LEFT_TOP,
@@ -91,7 +95,6 @@ impl BaseTab for CanvasTab {
             Color32::WHITE
         );
 
-        let mouse_canvas = to_screen.inverse().transform_pos(Pos2::new(mouse_screen.x, mouse_screen.y));
         ui.painter().text(
             mouse_screen + Vec2{x: 0.0, y: 12.0},
             Align2::LEFT_TOP,
@@ -99,6 +102,9 @@ impl BaseTab for CanvasTab {
             FontId::monospace(12.0),
             Color32::WHITE
         );
+        
+         */
+
         self.draw_grid(ui, &to_screen);
 
         let draw_all_pins = ui.input(|i| i.key_down(Key::Tab));

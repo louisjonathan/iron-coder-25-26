@@ -50,7 +50,7 @@ impl CanvasBoard {
 		}
     }
 
-	pub fn draw(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2, draw_all_pins: bool) {
+	pub fn draw(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2) {
 		let texture_id = self.texture_id.get_or_insert_with(|| {
 			self.retained_image.texture_id(ui.ctx())
 		});
@@ -67,7 +67,9 @@ impl CanvasBoard {
 		if self.selected {
 			self.highlight(ui, to_screen);
 		}
+	}
 
+	pub fn draw_pins(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2, draw_all_pins: bool) {
 		for ((pin_name, pin_rect)) in self.pin_locations.iter() {
 			let canvas_pin_rect = (*pin_rect).translate(self.canvas_pos);
 			let transformed_pin_rect = to_screen.transform_rect(canvas_pin_rect);

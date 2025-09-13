@@ -6,6 +6,7 @@ use crate::board;
 use crate::project::system::Connection;
 use eframe::egui::{Pos2, Rect, Response, Sense, Ui, Vec2, Color32, Stroke, Key, Align2, FontId};
 use emath::RectTransform;
+use syntect::highlighting::Color;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -34,13 +35,19 @@ impl BaseTab for CanvasTab {
 		// grab mouse location
         let mouse_screen = ui.input(|i| i.pointer.hover_pos()).unwrap_or_default();
 
-        ui.set_clip_rect(ui.max_rect());
-
 		// ui.label(format!("Canvas zoom: {}", self.canvas_zoom));
 		// ui.label(format!("Canvas offset: {}", self.canvas_offset));
 		// ui.label(format!("Mouse location: {}", mouse_screen));
 		
         let response = ui.allocate_response(ui.available_size(), Sense::click_and_drag());
+
+        let rect = response.rect;
+
+        ui.painter().text(rect.min+Vec2{x:0.0,y:0.0}, Align2::LEFT_TOP, "Ctrl: Show all pins", FontId::monospace(12.0), Color32::WHITE);
+        
+        if self.connection_in_progress.is_some() {
+            ui.painter().text(rect.min+Vec2{x:0.0,y:12.0}, Align2::LEFT_TOP, "Escape: Quit current connection", FontId::monospace(12.0), Color32::WHITE);
+        }
 
         if response.hovered() {
 			let scroll_delta = ui.ctx().input(|i| i.smooth_scroll_delta.y);
@@ -54,7 +61,6 @@ impl BaseTab for CanvasTab {
                     1.0 / zoom_factor
                 };
 
-                let rect = response.rect;
                 let to_screen = emath::RectTransform::from_to(
                     Rect::from_min_size(Pos2::ZERO, rect.size() / self.canvas_zoom),
                     rect.translate(self.canvas_offset),
@@ -107,17 +113,17 @@ impl BaseTab for CanvasTab {
 
         self.draw_grid(ui, &to_screen);
 
-        let draw_all_pins = ui.input(|i| i.key_down(Key::Tab));
+        let draw_all_pins = ui.input(|i| i.modifiers.ctrl);
 
-        let quit_connection = ui.input(|i| i.key_down(Key::Escape));
-        if quit_connection {
+        let quit_connection = ui.input(|i| i.key_pressed(Key::Escape));
+        if quit_connection && self.connection_in_progress.is_some() {
             state.connections.pop();
             self.connection_in_progress = None;
         }
 
         for canvas_board_rc in &state.boards_used {
             let mut canvas_board = canvas_board_rc.borrow_mut();
-            canvas_board.draw(ui, &to_screen, &mouse_screen, draw_all_pins);
+            canvas_board.draw(ui, &to_screen, &mouse_screen);
         }
 
         if let Some(mut conn) = self.connection_in_progress.take() {
@@ -194,6 +200,11 @@ impl BaseTab for CanvasTab {
         for conn in &mut state.connections {
             let connection = conn.borrow();
             connection.draw(ui, &to_screen, mouse_canvas);
+        }
+
+        for canvas_board_rc in &state.boards_used {
+            let mut canvas_board = canvas_board_rc.borrow_mut();
+            canvas_board.draw_pins(ui, &to_screen, &mouse_screen, draw_all_pins);
         }
     }
 

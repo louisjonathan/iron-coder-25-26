@@ -2,6 +2,7 @@
 pub mod icons;
 mod colorschemes;
 mod keybinding;
+mod syntax_highlighting;
 
 mod shared_state;
 use shared_state::SharedState;

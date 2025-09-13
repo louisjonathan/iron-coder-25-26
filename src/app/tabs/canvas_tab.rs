@@ -188,15 +188,13 @@ impl BaseTab for CanvasTab {
             let connection = conn.borrow();
             connection.draw(ui, &to_screen, mouse_canvas);
         }
-
-        // if ui.input(|i| i.pointer.secondary_clicked()) {
-        //     state.connections.push(CanvasConnection::new());
-        // }
-
-        
     }
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
         self
     }
 }

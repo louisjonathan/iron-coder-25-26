@@ -3,6 +3,7 @@ use crate::board;
 use crate::app::canvas_board::CanvasBoard;
 use crate::project::Project;
 use crate::app::colorschemes::colorschemes;
+use crate::app::syntax_highlighting::SyntaxHighlighter;
 use std::path::Path;
 use crate::app::CanvasConnection;
 use std::rc::Rc;
@@ -11,6 +12,7 @@ use std::cell::RefCell;
 pub struct SharedState {
     pub keybindings: Keybindings,
     pub colorschemes: colorschemes,
+    pub syntax_highlighter: SyntaxHighlighter,
     pub project: Project,
     pub boards: Vec<board::Board>,
     pub boards_used: Vec<Rc<RefCell<CanvasBoard>>>,
@@ -31,6 +33,7 @@ impl SharedState {
         Self {
             keybindings: Keybindings::new(),
             colorschemes: colorschemes::default(),
+            syntax_highlighter: SyntaxHighlighter::new(),
             project,
             boards,
             boards_used,
@@ -51,6 +54,7 @@ impl SharedState {
         Self {
             keybindings: Keybindings::new(),
             colorschemes: colorschemes::colorschemes::default(),
+            syntax_highlighter: SyntaxHighlighter::new(),
             project: project,
             boards: boards,
             boards_used,

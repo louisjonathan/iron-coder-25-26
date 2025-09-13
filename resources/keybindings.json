@@ -1,10 +1,10 @@
 [
     {
-        "id": "open_settings",
+        "id": "save_file",
         "key": "S",
         "ctrl": true,
         "alt": false,
-        "description": "Open settings."
+        "description": "Save the current file."
     },
     {
         "id": "test_a",

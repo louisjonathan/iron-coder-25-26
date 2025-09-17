@@ -8,6 +8,7 @@ This project serves as a testing environment for future Iron Coder features. Alt
 To build and run the application:
 
 ```bash
+cargo install cargo-generate
 cargo run
 ```
 

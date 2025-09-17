@@ -124,27 +124,27 @@ impl Default for MainWindow {
 
         // New sample file instead of main.rs (because we dont want to accidentally change lol)
         // TODO remove this eventually obv
-        let example_file_path = Path::new("example_file.rs");
+        // let example_file_path = Path::new("example_file.rs");
         
-        if !example_file_path.exists() {
-            let example_content = r#"// This is an example Rust file for testing the Iron Coder editor
+        // if !example_file_path.exists() {
+        //     let example_content = r#"// This is an example Rust file for testing the Iron Coder editor
 
-fn main() {
-    println!("Hello from the Iron Coder editor!");
-    println!("{}", message);
-}
-"#;
-            if let Err(e) = fs::write(example_file_path, example_content) {
-                println!("Can't create example_file.rs.");
-            }
-        }
+        // fn main() {
+        //     println!("Hello from the Iron Coder editor!");
+        //     println!("{}", message);
+        // }
+        // "#;
+        //     if let Err(e) = fs::write(example_file_path, example_content) {
+        //         println!("Can't create example_file.rs.");
+        //     }
+        // }
         
-        // load example file
-        let mut filetab = FileTab::default();
-        if let Err(e) = filetab.load_from_file(example_file_path) {
-            println!("Can't load example_file.rs.");
-        }
-        tabs.insert("example_file.rs".to_string(), Box::new(filetab));
+        // // load example file
+        // let mut filetab = FileTab::default();
+        // if let Err(e) = filetab.load_from_file(example_file_path) {
+        //     println!("Can't load example_file.rs.");
+        // }
+        // tabs.insert("example_file.rs".to_string(), Box::new(filetab));
 
         Self {
             tree: tree,

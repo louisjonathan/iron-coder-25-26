@@ -6,11 +6,24 @@ use crate::app::colorschemes::colorschemes;
 use eframe::egui::{Ui};
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs;
 
 #[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
+
+#[derive(Default)]
+struct NewProjectDialog {
+    name: String,
+    path: String,
+}
+
+impl NewProjectDialog {
+    fn reset(&mut self) {
+        self.name.clear();
+        self.path.clear();
+    }
+}
 
 static OPENABLE_TABS: &'static [&'static str] = &[
     "Settings",
@@ -74,6 +87,8 @@ pub struct MainWindow {
     tabs: HashMap<String, Box<dyn BaseTab>>,
     state: SharedState,
     active_tab: Option<String>,
+    show_new_project_dialog: bool,
+    new_project_dialog: NewProjectDialog,
 }
 
 impl Default for MainWindow {
@@ -134,6 +149,8 @@ fn main() {
             tabs: tabs,
             state: SharedState::default(),
             active_tab: None,
+            show_new_project_dialog: false,
+            new_project_dialog: NewProjectDialog::default(),
         }
     }
 }
@@ -175,6 +192,11 @@ impl MainWindow {
             }
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
+                    if ui.button("New Project").clicked() {
+                        self.show_new_project_dialog = true;
+                        ui.close_menu();
+                    }
+                    ui.separator();
                     if ui.button("Open").clicked() {
                         self.open_file_dialog();
                         ui.close_menu();
@@ -322,11 +344,116 @@ impl MainWindow {
             tab_name.contains('\\') // for windows
         )
     }
+
+    fn display_new_project_dialog(&mut self, ctx: &egui::Context) {
+        let mut should_create_project = false;
+        let mut should_close_dialog = false;
+        
+        egui::Window::new("New Project")
+            .open(&mut self.show_new_project_dialog)
+            .collapsible(false)
+            .resizable(false)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                ui.label("Create a new Iron Coder project:");
+                ui.separator();
+                
+                ui.horizontal(|ui| {
+                    ui.label("Project Name:");
+                    ui.text_edit_singleline(&mut self.new_project_dialog.name);
+                });
+                
+                ui.horizontal(|ui| {
+                    ui.label("Project Path:");
+                    ui.text_edit_singleline(&mut self.new_project_dialog.path);
+                    
+                    #[cfg(not(target_arch = "wasm32"))]
+                    if ui.button("Browse...").clicked() {
+                        if let Some(folder) = FileDialog::new().pick_folder() {
+                            self.new_project_dialog.path = folder.display().to_string();
+                        }
+                    }
+                    
+                    #[cfg(target_arch = "wasm32")]
+                    if ui.button("Browse...").clicked() {
+                        // TODO: Add wasm32 support for folder picking
+                        ui.label("Folder picking not supported in web version");
+                    }
+                });
+                
+                ui.separator();
+                
+                ui.horizontal(|ui| {
+                    if ui.button("Create Project").clicked() {
+                        should_create_project = true;
+                    }
+                    
+                    if ui.button("Cancel").clicked() {
+                        should_close_dialog = true;
+                    }
+                });
+            });
+            
+        if should_create_project {
+            self.create_new_project();
+        }
+        
+        if should_close_dialog {
+            self.show_new_project_dialog = false;
+            self.new_project_dialog.reset();
+        }
+    }
+
+    fn create_new_project(&mut self) {
+        if self.new_project_dialog.name.is_empty() {
+            return;
+        }
+        
+        if self.new_project_dialog.path.is_empty() {
+            return;
+        }
+        
+        // Create a new project
+        let mut new_project = crate::project::Project::default();
+        new_project.borrow_name().clone_from(&self.new_project_dialog.name);
+        
+        // Set the location and save
+        let project_path = PathBuf::from(&self.new_project_dialog.path);
+        
+        // create the project by saving it to the specified location
+        let project_folder = project_path.join(&self.new_project_dialog.name);
+        
+        match std::fs::create_dir_all(&project_folder) {
+            Ok(()) => {
+                // Set the location for saving
+                new_project.set_location(project_folder);
+                
+                match new_project.save() {
+                    Ok(()) => {
+                        self.state.project = new_project;
+                        self.show_new_project_dialog = false;
+                        self.new_project_dialog.reset();
+                        println!("Project '{}' created successfully!", self.new_project_dialog.name);
+                    }
+                    Err(e) => {
+                        println!("Error creating project: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                println!("Error creating project directory: {}", e);
+            }
+        }
+    }
 }
 
 impl eframe::App for MainWindow {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.display_menu(ctx, _frame);
+
+        if self.show_new_project_dialog {
+            self.display_new_project_dialog(ctx);
+        }
 
         if self.state.keybindings.is_pressed(ctx, "save_file") {
             self.save_current_file();

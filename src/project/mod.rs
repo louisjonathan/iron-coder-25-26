@@ -99,6 +99,10 @@ impl Project {
         }
     }
 
+    pub fn set_location(&mut self, path: PathBuf) {
+        self.location = Some(path);
+    }
+
     pub fn add_board(&mut self, board: Board) {
         match board.is_main_board() {
             true => {

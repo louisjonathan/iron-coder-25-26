@@ -356,30 +356,38 @@ impl Project {
     //     });
     // }
 
-    // Generate the Cargo project template based on the main board template (if it has one).
-    // The template will be written to the project directory.
-    // TODO - generally more useful error returns, i.e. if the cargo generate command returns a
-    // non-zero exit status, or if the project directory already contains a Cargo project.
-    // pub fn generate_cargo_template(&mut self, ctx: &egui::Context) -> Result {
-    //     info!("generating project template");
-    //     let mut cmds: Vec<duct::Expression> = vec![];
-    //     if let Some(mb) = &self.system.main_board {
-    //         if let Some(template_dir) = mb.get_template_dir() {
-    //             let cmd = duct::cmd!(
-    //                 "cargo",
-    //                 "generate",
-    //                 "--path",
-    //                 template_dir.as_path().to_str().unwrap(),
-    //                 "--name",
-    //                 self.name.clone(),
-    //                 "--destination",
-    //                 self.get_location(),
-    //                 "--init",
-    //             );
-    //             cmds.push(cmd);
-    //         } else {
-    //             return Err(ProjectIOError::NoProjectTemplate);
-    //         }
+    pub fn generate_cargo_template(&mut self) -> Result {
+        if let Some(mb) = &self.system.main_board {
+            if let Some(template_dir) = mb.get_template_dir() {
+                let destination = self.get_location();
+                
+                let cmd = duct::cmd!(
+                    "cargo",
+                    "generate",
+                    "--path",
+                    template_dir.as_path().to_str().unwrap(),
+                    "--name",
+                    self.name.clone(),
+                    "--destination",
+                    destination.clone(),
+                    "--init",
+                );
+                
+                match cmd.run() {
+                    Ok(output) => {
+                        Ok(())
+                    }
+                    Err(e) => {
+                        Err(ProjectIOError::FilesystemError)
+                    }
+                }
+            } else {
+                return Err(ProjectIOError::NoProjectTemplate);
+            }
+        } else {
+            return Err(ProjectIOError::NoMainBoard);
+        }
+    }
     // iterate through BSP paths and add the crates to the project
     // TODO: This needs to be changed, likely an issue with
     // updating the crates in the main toml file. Figure out why!

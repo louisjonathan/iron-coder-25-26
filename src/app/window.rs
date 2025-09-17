@@ -16,12 +16,14 @@ use rfd::FileDialog;
 struct NewProjectDialog {
     name: String,
     path: String,
+    selected_board_index: usize,
 }
 
 impl NewProjectDialog {
     fn reset(&mut self) {
         self.name.clear();
         self.path.clear();
+        self.selected_board_index = 0;
     }
 }
 
@@ -381,6 +383,29 @@ impl MainWindow {
                     }
                 });
                 
+                ui.horizontal(|ui| {
+                    ui.label("Main Board:");
+                    let main_boards: Vec<_> = self.state.boards.iter()
+                        .filter(|b| b.is_main_board())
+                        .collect();
+                    
+                    if !main_boards.is_empty() {
+                        let selected_board_name = main_boards.get(self.new_project_dialog.selected_board_index)
+                            .map(|b| b.get_name())
+                            .unwrap_or("Unknown");
+                        
+                        egui::ComboBox::from_label("")
+                            .selected_text(selected_board_name)
+                            .show_ui(ui, |ui| {
+                                for (i, board) in main_boards.iter().enumerate() {
+                                    ui.selectable_value(&mut self.new_project_dialog.selected_board_index, i, board.get_name());
+                                }
+                            });
+                    } else {
+                        ui.label("No main boards available");
+                    }
+                });
+                
                 ui.separator();
                 
                 ui.horizontal(|ui| {
@@ -417,6 +442,18 @@ impl MainWindow {
         let mut new_project = crate::project::Project::default();
         new_project.borrow_name().clone_from(&self.new_project_dialog.name);
         
+        // select board for the project
+        if self.new_project_dialog.selected_board_index < self.state.boards.len() {
+            let main_boards: Vec<_> = self.state.boards.iter()
+                .filter(|b| b.is_main_board())
+                .collect();
+            
+            if self.new_project_dialog.selected_board_index < main_boards.len() {
+                let board = main_boards[self.new_project_dialog.selected_board_index].clone();
+                new_project.system.main_board = Some(board);
+            }
+        }
+        
         // Set the location and save
         let project_path = PathBuf::from(&self.new_project_dialog.path);
         
@@ -428,12 +465,26 @@ impl MainWindow {
                 // Set the location for saving
                 new_project.set_location(project_folder);
                 
+                // .ironcoder.toml
                 match new_project.save() {
                     Ok(()) => {
+                        // Get cargo-generate template
+                        if new_project.system.main_board.is_some() {
+                            match new_project.generate_cargo_template() {
+                                Ok(()) => {
+                                    println!("Project template generated.");
+                                }
+                                Err(e) => {
+                                    println!("Is cargo-generate installed? Try: cargo install cargo-generate");
+                                }
+                            }
+                        }
+                        
                         self.state.project = new_project;
                         self.show_new_project_dialog = false;
+                        let project_name = self.new_project_dialog.name.clone();
                         self.new_project_dialog.reset();
-                        println!("Project '{}' created successfully!", self.new_project_dialog.name);
+                        println!("Project '{}' created.", project_name);
                     }
                     Err(e) => {
                         println!("Error creating project: {}", e);

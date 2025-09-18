@@ -5,7 +5,7 @@ mod keybinding;
 mod syntax_highlighting;
 
 mod shared_state;
-use shared_state::SharedState;
+use shared_state::{Message, SharedState};
 
 pub mod tabs;
 pub use tabs::*;

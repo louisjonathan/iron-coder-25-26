@@ -200,6 +200,7 @@ impl MainWindow {
                     if ui.button("Open Project").clicked() {
                         self.open_project();
                         self.state.load_boards_from_project();
+                        self.state.;
                         ui.close_menu();
                     }
                     ui.separator();

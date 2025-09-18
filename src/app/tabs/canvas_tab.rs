@@ -2,10 +2,11 @@ use crate::app::{canvas_board, canvas_connection::CanvasConnection};
 use crate::app::tabs::base_tab::BaseTab;
 use crate::app::canvas_board::CanvasBoard;
 use crate::app::canvas_element::CanvasSelection;
-use crate::app::SharedState;
+use crate::app::{Message, SharedState};
 use crate::board;
 use crate::project::system::Connection;
 use eframe::egui::{Pos2, Rect, Response, Sense, Ui, Vec2, Color32, Stroke, Key, Align2, FontId};
+use eframe::glow::FALSE;
 use egui::color_picker::color_picker_color32;
 use emath::RectTransform;
 use syntect::highlighting::Color;
@@ -385,5 +386,15 @@ impl CanvasTab {
             }
         }
         return false;
+    }
+
+    pub fn reload(&mut self, state: &mut SharedState) {
+        self.canvas_zoom = 5.0;
+        self.canvas_offset = Vec2::new(0.0, 0.0);
+        self.connection_in_progress = None;
+        self.selection = None;
+
+        state.boards_used.clear();
+        state.connections.clear();
     }
 }

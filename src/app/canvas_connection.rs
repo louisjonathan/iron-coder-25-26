@@ -94,7 +94,7 @@ impl CanvasConnection {
 		self.add_point(pin_pos);
 		self.add_point(pin_pos);
 		
-		// TODO: fix pin reverse engineering
+		// TODO: fix pin propagation
 		// let tolerance = 10.0;
 		// let len = self.points.len();
 		// if self.points[len-1].distance(pin_pos) > tolerance || len == 2 {

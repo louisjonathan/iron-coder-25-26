@@ -18,3 +18,5 @@ use canvas_board::CanvasBoard;
 
 mod canvas_connection;
 use canvas_connection::CanvasConnection;
+
+mod canvas_element;

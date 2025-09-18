@@ -1,3 +1,4 @@
+use crate::app::canvas_connection::CanvasConnection;
 use crate::board::{Board, svg_reader::SvgBoardInfo};
 use crate::project::system::Connection;
 use egui::{Pos2, Rect, Ui, Sense, Color32, TextureId, Vec2, Id, Response};
@@ -7,6 +8,9 @@ use std::collections::HashMap;
 use egui_extras::{RetainedImage};
 use std::vec::Vec;
 
+use std::rc::Rc;
+use std::cell::RefCell;
+
 pub struct CanvasBoard {
 	pub board: Board,
 	retained_image: RetainedImage,
@@ -14,8 +18,14 @@ pub struct CanvasBoard {
 	display_size: Vec2,
 	image_rect: Rect,
 	pin_locations: Vec<(String, Rect)>,
-	selected: bool,
 	canvas_pos: Vec2,
+	pub connections: Vec<Rc<RefCell<CanvasConnection>>>,
+}
+
+impl Drop for CanvasBoard {
+    fn drop(&mut self) {
+        println!("Dropping board {}", self.board.get_name());
+    }
 }
 
 impl CanvasBoard {
@@ -27,13 +37,15 @@ impl CanvasBoard {
 			let image_origin = egui::pos2(0.0, 0.0);
 			let image_rect = Rect::from_min_size(image_origin, display_size);
 
-			let mut pin_locations = Vec::<(String, Rect)>::new();
+			let mut pin_locations = Vec::new();
 
 			for (pin_name, mut pin_rect) in &svg_board_info.pin_rects {
 				// translate the rects so they are in absolute coordinates
 				pin_rect = pin_rect.translate(image_rect.left_top().to_vec2());
 				pin_locations.push((pin_name.clone(), pin_rect));
 			}
+
+			let connections = Vec::new();
 
 			Some(Self {
 				board: board.clone(),
@@ -42,8 +54,8 @@ impl CanvasBoard {
 				display_size,
 				image_rect,
 				pin_locations,
-				selected: false,
 				canvas_pos: Vec2::new(0.0, 0.0),
+				connections,
 			})
 		} else {
 			None
@@ -63,10 +75,6 @@ impl CanvasBoard {
 			egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
 			egui::Color32::WHITE,
 		);
-
-		if self.selected {
-			self.highlight(ui, to_screen);
-		}
 	}
 
 	pub fn draw_pins(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2, draw_all_pins: bool) {
@@ -113,23 +121,33 @@ impl CanvasBoard {
 		);
 	}
 
-	pub fn board_interact(&mut self, to_screen: &RectTransform, zoom: &f32, response: &Response, mouse_pos: &Pos2) -> bool {
+	pub fn contains(&self, to_screen: &RectTransform, mouse_pos: &Pos2) -> bool {
 		let canvas_rect = self.image_rect.translate(self.canvas_pos);
 		let transformed_rect = to_screen.transform_rect(canvas_rect);
 
 		if (transformed_rect.contains(*mouse_pos)) {
+			return true;
+		}
+		return false;
+	}
+
+	pub fn interact(&mut self, to_screen: &RectTransform, zoom: &f32, response: &Response, mouse_pos: &Pos2) -> bool {
+		let canvas_rect = self.image_rect.translate(self.canvas_pos);
+		let transformed_rect = to_screen.transform_rect(canvas_rect);
+
+		if self.contains(to_screen, mouse_pos) {
 			if response.clicked() {
-				self.selected = !self.selected;
 				return true;
 			}
 	
 			if response.dragged() {
-				self.selected = true;
+				if !self.connections.is_empty() {
+					return false;
+				}
 				self.canvas_pos += response.drag_delta() / *zoom;
 				return true;
 			}
 		}
-
 		return false;
 	}
 
@@ -148,14 +166,18 @@ impl CanvasBoard {
 		return None;
 	}
 
-	pub fn deselect(&mut self) {
-		self.selected = false;
-	}
-
 	pub fn get_pin_location(&self, pin_name: &String) -> Option<Pos2> {
 		self.pin_locations
 			.iter()
 			.find(|(name, _rect)| name == pin_name)
 			.map(|(_name, rect)| rect.center())
+	}
+
+	pub fn get_canvas_position(&self) -> Vec2 {
+		return self.canvas_pos;
+	}
+
+	pub fn drop_connection(&mut self, r: &Rc<RefCell<CanvasConnection>>) {
+		self.connections.retain(|c| !Rc::ptr_eq(c, r));
 	}
 }

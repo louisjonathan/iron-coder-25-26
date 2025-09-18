@@ -27,6 +27,12 @@ impl SharedState {
         let boards: Vec<board::Board> = board::get_boards(boards_dir);
 
         let mut project = Project::default();
+        project.known_boards = boards.clone();
+        match project.reload() {
+            Ok(_) => (),
+            Err(e) => println!("error reloading project from disk! {:?}", e),
+        }
+
         let boards_used = Vec::new();
         
         let mut connections = Vec::new();

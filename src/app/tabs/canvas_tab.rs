@@ -265,7 +265,6 @@ impl BaseTab for CanvasTab {
                 for c in &state.connections {
                     let connection = c.borrow();
                     if connection.contains(&to_screen, &mouse_screen) {
-                        println!("CONNECTION CONTAINS");
                         connection_clicked = true;
                         self.selection = Some(CanvasSelection::Connection(c.clone()));
                         ignore_canvas = true;
@@ -278,7 +277,6 @@ impl BaseTab for CanvasTab {
                     for b in state.boards_used.iter().rev() {
                         let board = b.borrow();
                         if board.contains(&to_screen, &mouse_screen) {
-                            println!("BOARD CONTAINS!!");
                             self.selection = Some(CanvasSelection::Board(b.clone()));
                             ignore_canvas = true;
                             break;

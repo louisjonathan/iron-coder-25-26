@@ -141,6 +141,7 @@ impl Project {
     /// Populate the project board list via the app-wide 'known boards' list
     fn load_board_resources(&mut self) {
         info!("updating project boards from known boards list.");
+        
         for b in self.system.get_all_boards_mut().iter_mut() {
             // returns true if the current, project board is equal to the current known_board
             let predicate = |known_board: &&Board| {

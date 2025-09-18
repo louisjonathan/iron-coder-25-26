@@ -1,5 +1,5 @@
 use crate::app::SharedState;
-use crate::board::Board;
+use crate::board::{Board, get_boards};
 use super::tabs::*;
 
 use crate::app::colorschemes::colorschemes;
@@ -199,6 +199,7 @@ impl MainWindow {
                     }
                     if ui.button("Open Project").clicked() {
                         self.open_project();
+                        self.state.load_boards_from_project();
                         ui.close_menu();
                     }
                     ui.separator();

@@ -15,6 +15,13 @@ impl TerminalTab {
             command_input: String::new(),
         }
     }
+
+    /// Append build/flash output to the terminal
+    pub fn append_build_output(&mut self, output: &str) {
+        if !output.is_empty() {
+            self.terminal_output.push_str(output);
+        }
+    }
 }
 
 impl BaseTab for TerminalTab {

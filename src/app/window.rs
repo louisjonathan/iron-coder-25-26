@@ -6,11 +6,26 @@ use crate::app::colorschemes::colorschemes;
 use eframe::egui::{Ui};
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs;
 
 #[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
+
+#[derive(Default)]
+struct NewProjectDialog {
+    name: String,
+    path: String,
+    selected_board_index: usize,
+}
+
+impl NewProjectDialog {
+    fn reset(&mut self) {
+        self.name.clear();
+        self.path.clear();
+        self.selected_board_index = 0;
+    }
+}
 
 static OPENABLE_TABS: &'static [&'static str] = &[
     "Settings",
@@ -74,6 +89,8 @@ pub struct MainWindow {
     tabs: HashMap<String, Box<dyn BaseTab>>,
     state: SharedState,
     active_tab: Option<String>,
+    show_new_project_dialog: bool,
+    new_project_dialog: NewProjectDialog,
 }
 
 impl Default for MainWindow {
@@ -81,7 +98,6 @@ impl Default for MainWindow {
         let mut tree = DockState::new(vec![
             "Canvas".to_owned(),
             "Settings".to_owned(),
-            "example_file.rs".to_owned(),
         ]);
 
         let [a, b] = tree.main_surface_mut().split_left(
@@ -107,33 +123,35 @@ impl Default for MainWindow {
 
         // New sample file instead of main.rs (because we dont want to accidentally change lol)
         // TODO remove this eventually obv
-        let example_file_path = Path::new("example_file.rs");
+        // let example_file_path = Path::new("example_file.rs");
         
-        if !example_file_path.exists() {
-            let example_content = r#"// This is an example Rust file for testing the Iron Coder editor
+        // if !example_file_path.exists() {
+        //     let example_content = r#"// This is an example Rust file for testing the Iron Coder editor
 
-fn main() {
-    println!("Hello from the Iron Coder editor!");
-    println!("{}", message);
-}
-"#;
-            if let Err(e) = fs::write(example_file_path, example_content) {
-                println!("Can't create example_file.rs.");
-            }
-        }
+        // fn main() {
+        //     println!("Hello from the Iron Coder editor!");
+        //     println!("{}", message);
+        // }
+        // "#;
+        //     if let Err(e) = fs::write(example_file_path, example_content) {
+        //         println!("Can't create example_file.rs.");
+        //     }
+        // }
         
-        // load example file
-        let mut filetab = FileTab::default();
-        if let Err(e) = filetab.load_from_file(example_file_path) {
-            println!("Can't load example_file.rs.");
-        }
-        tabs.insert("example_file.rs".to_string(), Box::new(filetab));
+        // // load example file
+        // let mut filetab = FileTab::default();
+        // if let Err(e) = filetab.load_from_file(example_file_path) {
+        //     println!("Can't load example_file.rs.");
+        // }
+        // tabs.insert("example_file.rs".to_string(), Box::new(filetab));
 
         Self {
             tree: tree,
             tabs: tabs,
             state: SharedState::default(),
             active_tab: None,
+            show_new_project_dialog: false,
+            new_project_dialog: NewProjectDialog::default(),
         }
     }
 }
@@ -175,6 +193,15 @@ impl MainWindow {
             }
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
+                    if ui.button("New Project").clicked() {
+                        self.show_new_project_dialog = true;
+                        ui.close_menu();
+                    }
+                    if ui.button("Open Project").clicked() {
+                        self.open_project();
+                        ui.close_menu();
+                    }
+                    ui.separator();
                     if ui.button("Open").clicked() {
                         self.open_file_dialog();
                         ui.close_menu();
@@ -199,6 +226,16 @@ impl MainWindow {
                                 self.add_tab(tab_name.to_string());
                             }
                         }
+                    }
+                });
+                ui.menu_button("Build", |ui| {
+                    if ui.button("Build Project").clicked() {
+                        self.state.project.build(ctx);
+                        ui.close_menu();
+                    }
+                    if ui.button("Flash to Board").clicked() {
+                        self.state.project.load_to_board(ctx);
+                        ui.close_menu();
                     }
                 });
             });
@@ -285,6 +322,18 @@ impl MainWindow {
         println!("Blocking file opening because of wasm.");
     }
 
+    fn open_project(&mut self) {
+        match self.state.project.open() {
+            Ok(()) => {
+                self.refocus_file_explorer_to_project();
+                println!("Project opened successfully.");
+            }
+            Err(e) => {
+                println!("Failed to open project.");
+            }
+        }
+    }
+
     fn open_file(&mut self, file_path: &Path) {
         let tab_name = file_path.display().to_string();
         
@@ -322,11 +371,196 @@ impl MainWindow {
             tab_name.contains('\\') // for windows
         )
     }
+
+    fn refocus_file_explorer_to_project(&mut self) {
+        if let Some(file_explorer_tab) = self.tabs.get_mut("File Explorer") {
+            if let Some(file_explorer) = file_explorer_tab.as_any_mut().downcast_mut::<FileExplorerTab>() {
+                if let Some(project_location) = self.state.project.get_location_path() {
+                    file_explorer.set_root_dir(project_location);
+                }
+            }
+        }
+    }
+
+    fn display_new_project_dialog(&mut self, ctx: &egui::Context) {
+        let mut should_create_project = false;
+        let mut should_close_dialog = false;
+        
+        egui::Window::new("New Project")
+            .open(&mut self.show_new_project_dialog)
+            .collapsible(false)
+            .resizable(false)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                ui.label("Create a new Iron Coder project:");
+                ui.separator();
+                
+                ui.horizontal(|ui| {
+                    ui.label("Project Name:");
+                    ui.text_edit_singleline(&mut self.new_project_dialog.name);
+                });
+                
+                ui.horizontal(|ui| {
+                    ui.label("Project Path:");
+                    ui.text_edit_singleline(&mut self.new_project_dialog.path);
+                    
+                    #[cfg(not(target_arch = "wasm32"))]
+                    if ui.button("Browse...").clicked() {
+                        if let Some(folder) = FileDialog::new().pick_folder() {
+                            self.new_project_dialog.path = folder.display().to_string();
+                        }
+                    }
+                    
+                    #[cfg(target_arch = "wasm32")]
+                    if ui.button("Browse...").clicked() {
+                        // TODO: Add wasm32 support for folder picking
+                        ui.label("Folder picking not supported in web version");
+                    }
+                });
+                
+                ui.horizontal(|ui| {
+                    ui.label("Main Board:");
+                    let main_boards: Vec<_> = self.state.boards.iter()
+                        .filter(|b| b.is_main_board())
+                        .collect();
+                    
+                    if !main_boards.is_empty() {
+                        let selected_board_name = main_boards.get(self.new_project_dialog.selected_board_index)
+                            .map(|b| b.get_name())
+                            .unwrap_or("Unknown");
+                        
+                        egui::ComboBox::from_label("")
+                            .selected_text(selected_board_name)
+                            .show_ui(ui, |ui| {
+                                for (i, board) in main_boards.iter().enumerate() {
+                                    ui.selectable_value(&mut self.new_project_dialog.selected_board_index, i, board.get_name());
+                                }
+                            });
+                    } else {
+                        ui.label("No main boards available");
+                    }
+                });
+                
+                ui.separator();
+                
+                ui.horizontal(|ui| {
+                    if ui.button("Create Project").clicked() {
+                        should_create_project = true;
+                    }
+                    
+                    if ui.button("Cancel").clicked() {
+                        should_close_dialog = true;
+                    }
+                });
+            });
+            
+        if should_create_project {
+            self.create_new_project();
+        }
+        
+        if should_close_dialog {
+            self.show_new_project_dialog = false;
+            self.new_project_dialog.reset();
+        }
+    }
+
+    fn create_new_project(&mut self) {
+        if self.new_project_dialog.name.is_empty() {
+            return;
+        }
+        
+        if self.new_project_dialog.path.is_empty() {
+            return;
+        }
+        
+        // Create a new project
+        let mut new_project = crate::project::Project::default();
+        new_project.borrow_name().clone_from(&self.new_project_dialog.name);
+        
+        // select board for the project
+        if self.new_project_dialog.selected_board_index < self.state.boards.len() {
+            let main_boards: Vec<_> = self.state.boards.iter()
+                .filter(|b| b.is_main_board())
+                .collect();
+            
+            if self.new_project_dialog.selected_board_index < main_boards.len() {
+                let board = main_boards[self.new_project_dialog.selected_board_index].clone();
+                new_project.system.main_board = Some(board);
+            }
+        }
+        
+        // Set the location and save
+        let project_path = PathBuf::from(&self.new_project_dialog.path);
+        
+        // create the project by saving it to the specified location
+        let project_folder = project_path.join(&self.new_project_dialog.name);
+        
+        match std::fs::create_dir_all(&project_folder) {
+            Ok(()) => {
+                // Set the location for saving
+                new_project.set_location(project_folder);
+                
+                // .ironcoder.toml
+                match new_project.save() {
+                    Ok(()) => {
+                        // Get cargo-generate template
+                        if new_project.system.main_board.is_some() {
+                            match new_project.generate_cargo_template() {
+                                Ok(()) => {
+                                    println!("Project template generated.");
+                                }
+                                Err(e) => {
+                                    println!("Is cargo-generate installed? Try: cargo install cargo-generate");
+                                }
+                            }
+                        }
+                        
+                        // open the project
+                        let project_location = new_project.get_location_path();
+                        match self.state.project.load_from(&project_location.unwrap()) {
+                            Ok(()) => {
+                                self.refocus_file_explorer_to_project();
+                                self.show_new_project_dialog = false;
+                                let project_name = self.new_project_dialog.name.clone();
+                                self.new_project_dialog.reset();
+                                println!("Project '{}' created and opened.", project_name);
+                            }
+                            Err(e) => {
+                                println!("Project created but failed to open: {:?}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!("Error creating project: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                println!("Error creating project directory: {}", e);
+            }
+        }
+    }
 }
 
 impl eframe::App for MainWindow {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Update project terminal output and forward to Terminal tab
+        self.state.project.update_terminal_output();
+        let build_output = self.state.project.get_terminal_output();
+        if !build_output.is_empty() {
+            if let Some(terminal_tab) = self.tabs.get_mut("Terminal") {
+                if let Some(terminal) = terminal_tab.as_any_mut().downcast_mut::<TerminalTab>() {
+                    terminal.append_build_output(build_output);
+                }
+            }
+            self.state.project.clear_terminal_output();
+        }
+
         self.display_menu(ctx, _frame);
+
+        if self.show_new_project_dialog {
+            self.display_new_project_dialog(ctx);
+        }
 
         if self.state.keybindings.is_pressed(ctx, "save_file") {
             self.save_current_file();

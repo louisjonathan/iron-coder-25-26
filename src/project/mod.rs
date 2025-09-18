@@ -99,6 +99,19 @@ impl Project {
         }
     }
 
+    pub fn get_location_path(&self) -> Option<PathBuf> {
+        self.location.clone()
+    }
+
+    pub fn set_location(&mut self, path: PathBuf) {
+        self.location = Some(path);
+    }
+
+    /// file explorer should be refocused to the project directory
+    pub fn should_refocus_file_explorer(&self) -> bool {
+        self.location.is_some()
+    }
+
     pub fn add_board(&mut self, board: Board) {
         match board.is_main_board() {
             true => {
@@ -152,7 +165,7 @@ impl Project {
     }
 
     /// Load a project from a specified directory, and sync the board assets.
-    fn load_from(&mut self, project_directory: &Path) -> Result {
+    pub fn load_from(&mut self, project_directory: &Path) -> Result {
         let project_file = project_directory.join(PROJECT_FILE_NAME);
         let toml_str = match fs::read_to_string(project_file) {
             Ok(s) => s,
@@ -288,30 +301,29 @@ impl Project {
         }
     }
 
-    // // Build the code with Cargo
-    // fn build(&mut self, ctx: &egui::Context) {
-    //     // Make sure we have a valid path
-    //     if let Some(path) = &self.location {
-    //         info!("building project at {}", path.display().to_string());
-    //         // self.code_editor.save_all().unwrap_or_else(|_| warn!("error saving tabs!"));
-    //         let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "build");
-    //         self.run_background_commands(&[cmd], ctx);
-    //     } else {
-    //         self.info_logger("project needs a valid working directory before building");
-    //     }
-    // }
+    // Build the code with Cargo
+    pub fn build(&mut self, ctx: &egui::Context) {
+    // Make sure we have a valid path
+        if let Some(path) = &self.location {
+            info!("building project at {}", path.display().to_string());
+            // self.code_editor.save_all().unwrap_or_else(|_| warn!("error saving tabs!"));
+            let cmd = duct::cmd!("cargo", "build").dir(path);
+            self.run_background_commands(&[cmd], ctx);
+        } else {
+            self.info_logger("project needs a valid working directory before building");
+        }
+    }
 
-    // // Load the code (for now using 'cargo run')
-    // fn load_to_board(&mut self, ctx: &egui::Context) {
-    //     if let Some(path) = &self.location {
-    //         let cmd = duct::cmd!("cargo", "-Z", "unstable-options", "-C", path.as_path().to_str().unwrap(), "run");
-    //         self.run_background_commands(&[cmd], ctx);
-    //         self.info_logger("Successfully flashed board.");
-    //     } else {
-    //         self.info_logger("project needs a valid working directory before building");
-    //     }
-
-    // }
+    // Load the code (for now using 'cargo run')
+    pub fn load_to_board(&mut self, ctx: &egui::Context) {
+        if let Some(path) = &self.location {
+            let cmd = duct::cmd!("cargo", "run").dir(path);
+            self.run_background_commands(&[cmd], ctx);
+            self.info_logger("Successfully flashed board.");
+        } else {
+            self.info_logger("project needs a valid working directory before building");
+        }
+    }
 
     // pub fn new_file(&mut self) -> io::Result<()> {
     //     if self.location == None {
@@ -331,51 +343,59 @@ impl Project {
     // TODO - fix bug that calling this command again before a former call's thread is
     //   complete will overwrite the rx channel in the Project object. Possible solution
     //   might be to add a command to a queue to be evaluated.
-    // fn run_background_commands(&mut self, cmds: &[duct::Expression], ctx: &egui::Context) {
-    //     // create comms channel
-    //     let context = ctx.clone();
-    //     let commands = cmds.to_owned();
-    //     let (tx, rx) = std::sync::mpsc::channel();
-    //     self.receiver = Some(rx);
-    //     let _ = std::thread::spawn(move || {
-    //         for cmd in commands.iter() {
-    //             let reader = cmd.stderr_to_stdout().unchecked().reader().unwrap();
-    //             let mut lines = std::io::BufReader::new(reader).lines();
-    //             while let Some(line) = lines.next() {
-    //                 let line = line.unwrap() + "\n";
-    //                 debug!("sending line through channel");
-    //                 tx.send(line).unwrap();
-    //                 context.request_repaint();
-    //             }
-    //         }
-    //         info!("leaving thread");
-    //     });
-    // }
+    fn run_background_commands(&mut self, cmds: &[duct::Expression], ctx: &egui::Context) {
+        // create comms channel
+        let context = ctx.clone();
+        let commands = cmds.to_owned();
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.receiver = Some(rx);
+        let _ = std::thread::spawn(move || {
+            for cmd in commands.iter() {
+                let reader = cmd.stderr_to_stdout().unchecked().reader().unwrap();
+                let mut lines = std::io::BufReader::new(reader).lines();
+                while let Some(line) = lines.next() {
+                    let line = line.unwrap() + "\n";
+                    debug!("sending line through channel");
+                    tx.send(line).unwrap();
+                    context.request_repaint();
+                }
+            }
+            info!("leaving thread");
+        });
+    }
 
-    // Generate the Cargo project template based on the main board template (if it has one).
-    // The template will be written to the project directory.
-    // TODO - generally more useful error returns, i.e. if the cargo generate command returns a
-    // non-zero exit status, or if the project directory already contains a Cargo project.
-    // pub fn generate_cargo_template(&mut self, ctx: &egui::Context) -> Result {
-    //     info!("generating project template");
-    //     let mut cmds: Vec<duct::Expression> = vec![];
-    //     if let Some(mb) = &self.system.main_board {
-    //         if let Some(template_dir) = mb.get_template_dir() {
-    //             let cmd = duct::cmd!(
-    //                 "cargo",
-    //                 "generate",
-    //                 "--path",
-    //                 template_dir.as_path().to_str().unwrap(),
-    //                 "--name",
-    //                 self.name.clone(),
-    //                 "--destination",
-    //                 self.get_location(),
-    //                 "--init",
-    //             );
-    //             cmds.push(cmd);
-    //         } else {
-    //             return Err(ProjectIOError::NoProjectTemplate);
-    //         }
+    pub fn generate_cargo_template(&mut self) -> Result {
+        if let Some(mb) = &self.system.main_board {
+            if let Some(template_dir) = mb.get_template_dir() {
+                let destination = self.get_location();
+                
+                let cmd = duct::cmd!(
+                    "cargo",
+                    "generate",
+                    "--path",
+                    template_dir.as_path().to_str().unwrap(),
+                    "--name",
+                    self.name.clone(),
+                    "--destination",
+                    destination.clone(),
+                    "--init",
+                );
+                
+                match cmd.run() {
+                    Ok(output) => {
+                        Ok(())
+                    }
+                    Err(e) => {
+                        Err(ProjectIOError::FilesystemError)
+                    }
+                }
+            } else {
+                return Err(ProjectIOError::NoProjectTemplate);
+            }
+        } else {
+            return Err(ProjectIOError::NoMainBoard);
+        }
+    }
     // iterate through BSP paths and add the crates to the project
     // TODO: This needs to be changed, likely an issue with
     // updating the crates in the main toml file. Figure out why!
@@ -423,4 +443,21 @@ impl Project {
     //     }
     //     Ok("".to_string())
     // }
+
+    /// Update terminal output
+    pub fn update_terminal_output(&mut self) {
+        if let Some(rx) = &self.receiver {
+            while let Ok(line) = rx.try_recv() {
+                self.terminal_buffer.push_str(&line);
+            }
+        }
+    }
+
+    pub fn get_terminal_output(&self) -> &str {
+        &self.terminal_buffer
+    }
+
+    pub fn clear_terminal_output(&mut self) {
+        self.terminal_buffer.clear();
+    }
 }

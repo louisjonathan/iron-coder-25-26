@@ -1,5 +1,6 @@
 #![allow(warnings)]
 use egui_dock_testing::app::MainWindow;
+use egui_extras::install_image_loaders;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn main() -> eframe::Result<()> {
@@ -12,8 +13,13 @@ pub fn main() -> eframe::Result<()> {
     eframe::run_native(
         "IRON CODER",
         options,
-        Box::new(|_cc| Ok(Box::<MainWindow>::default())),
-    )
+        Box::new(|cc| {
+        install_image_loaders(&cc.egui_ctx); // <-- call here
+        Ok(Box::<MainWindow>::default())
+        }),
+    )?;
+
+    Ok(())
 }
 
 ///from https://github.com/emilk/eframe_template/blob/main/src/main.rs

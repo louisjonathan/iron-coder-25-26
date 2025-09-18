@@ -98,7 +98,6 @@ impl Default for MainWindow {
         let mut tree = DockState::new(vec![
             "Canvas".to_owned(),
             "Settings".to_owned(),
-            "example_file.rs".to_owned(),
         ]);
 
         let [a, b] = tree.main_surface_mut().split_left(

@@ -1,6 +1,6 @@
 use crate::project::Connection;
 use crate::board::Board;
-use egui::{Pos2, Vec2, Color32, Rect};
+use egui::{Color32, Pos2, Rect, Response, Stroke, Vec2, Key};
 use emath::RectTransform;
 use crate::app::canvas_board::CanvasBoard;
 
@@ -8,40 +8,40 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 pub struct CanvasConnection {
-    connection: Option<Connection>,
-    points: Vec<Pos2>,
-    color: egui::Color32,
-    width: f32,
-    start_board: Rc<RefCell<CanvasBoard>>,
-    start_pin: String,
-    end_board: Option<Rc<RefCell<CanvasBoard>>>,
-    end_pin: Option<String>,
+	connection: Option<Connection>,
+	points: Vec<Pos2>,
+	color: egui::Color32,
+	width: f32,
+	start_board: Rc<RefCell<CanvasBoard>>,
+	start_pin: String,
+	end_board: Option<Rc<RefCell<CanvasBoard>>>,
+	end_pin: Option<String>,
+}
+
+impl Drop for CanvasConnection {
+    fn drop(&mut self) {
+        println!("Dropping connection {}:{:?}", self.start_pin, self.end_pin);
+    }
 }
 
 impl CanvasConnection {
-    pub fn new(start_board: Rc<RefCell<CanvasBoard>>, start_pin: String) -> Self {
-        let color = egui::Color32::RED;
-        let points = Vec::<Pos2>::new();
-        let width = 4.0;
+	pub fn new(start_board: Rc<RefCell<CanvasBoard>>, start_pin: String) -> Self {
+		let color = egui::Color32::RED;
+		let points = Vec::<Pos2>::new();
+		let width = 4.0;
 
 		let mut points = points;
-		// {
-		// 	let canvas_board = start_board.borrow_mut();
-		// 	if let Some(p) = canvas_board.get_pin_location(&start_pin) {
-		// 		points.push(p);
-		// 	}
-		// }
 
-        Self {
-            connection: None,
-            points,
-            color,
-            width,
-            start_board: start_board,
-            start_pin,
-            end_board: None,
-            end_pin: None,
-        }
+		Self {
+			connection: None,
+			points,
+			color,
+			width,
+			start_board: start_board,
+			start_pin,
+			end_board: None,
+			end_pin: None,
+		}
 	}
 
 	pub fn draw(&self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: Pos2) {
@@ -61,19 +61,56 @@ impl CanvasConnection {
 		}
 	}
 
-	pub fn add_point(&mut self, p: Pos2)
-	{
-		let mut p = p;
-		if let Some(lastp) = self.points.last() {
-			let xdiff = (p.x - lastp.x).abs();
-			let ydiff = (p.y - lastp.y).abs();
-			if xdiff > ydiff {
+	pub fn add_point(&mut self, mut p: Pos2) {
+		// to avoid mut borrow, use index
+		let len = self.points.len();
+		if len == 1 {
+			p.y = self.points[0].y;
+		} else if len > 1 {
+			let lastp = self.points[len - 1];
+
+			let dx = p.x - lastp.x;
+			let dy = p.y - lastp.y;
+
+			if dx.abs() > dy.abs() {
 				p.y = lastp.y;
+				if len > 2 && self.points[len - 2].y == p.y {
+					self.points[len - 1].x = p.x;
+					println!("EXTEND");
+					return;
+				}
 			} else {
 				p.x = lastp.x;
+				if len > 2 && self.points[len - 2].x == p.x {
+					self.points[len - 1].y = p.y;
+					println!("EXTEND");
+					return;
+				}
 			}
 		}
 		self.points.push(p);
+	}
+
+	pub fn add_end_point(&mut self, mouse_pos: &Pos2, pin_pos: Pos2) {
+		
+		self.add_point(pin_pos);
+		self.add_point(pin_pos);
+		
+		// TODO: fix pin reverse engineering
+		// let tolerance = 10.0;
+		// let len = self.points.len();
+		// if self.points[len-1].distance(pin_pos) > tolerance || len == 2 {
+		// 	self.add_point(pin_pos);
+		// } else if len > 3 {
+		// 	self.points[len-1] = pin_pos;
+		// 	let dx = self.points[len-2].x - pin_pos.x;
+		// 	let dy = self.points[len-2].y - pin_pos.y;
+		// 	if dx.abs() < dy.abs() {
+		// 		self.points[len-2].x = pin_pos.x;
+		// 	} else {
+		// 		self.points[len-2].y = pin_pos.y;
+		// 	}
+		// }
 	}
 
 	pub fn end(&mut self, end_board: Rc<RefCell<CanvasBoard>>, end_pin: String) {
@@ -87,25 +124,145 @@ impl CanvasConnection {
 
 	pub fn draw_ghost(&self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: Pos2)
 	{
-		if let Some(lastp) = self.points.last() {
-			let mut p = mouse_pos;
-			let xdiff = (p.x - lastp.x).abs();
-			let ydiff = (p.y - lastp.y).abs();
-			if xdiff > ydiff {
+		let mut p = mouse_pos;
+		let len = self.points.len();
+		if len == 1 {
+			p.y = self.points[0].y;
+		} else if len > 1 {
+			let lastp = self.points[len - 1];
+
+			let dx = p.x - lastp.x;
+			let dy = p.y - lastp.y;
+
+			if dx.abs() > dy.abs() {
 				p.y = lastp.y;
 			} else {
 				p.x = lastp.x;
 			}
-
-			let ghost_color = Color32::from_rgba_unmultiplied(
-				self.color.r(),
-				self.color.g(),
-				self.color.b(),
-				31
-			);
-			ui.painter().line_segment(
-			[to_screen.transform_pos(*lastp), to_screen.transform_pos(p)],
-			egui::Stroke::new(self.width, ghost_color));
 		}
+
+		let ghost_color = Color32::from_rgba_unmultiplied(
+			self.color.r(),
+			self.color.g(),
+			self.color.b(),
+			31
+		);
+		ui.painter().line_segment(
+		[to_screen.transform_pos(self.points[len - 1]), to_screen.transform_pos(p)],
+		egui::Stroke::new(self.width, ghost_color));
+	}
+
+	pub fn highlight(&self, ui: &mut egui::Ui, to_screen: &RectTransform) {
+		let pin_r = 5.0;
+		let point_color = Color32::WHITE;
+		// let point_color = Color32::from_rgba_unmultiplied(127, 0, 0, 191);
+		for p in &self.points {
+			let p_t = to_screen.transform_pos(*p);
+			ui.painter().circle_stroke(
+				p_t,
+				pin_r,
+				Stroke::new(2.0, point_color)
+			);
+		}
+	}
+
+	pub fn contains(&self, to_screen: &RectTransform, mouse_pos: &Pos2) -> bool {
+		// make vec of points-1 rects
+		// transform & check contains on each
+		let padding = 10.0;
+
+		for window in self.points.windows(2) {
+			let p1 = to_screen.transform_pos(window[0]);
+			let p2 = to_screen.transform_pos(window[1]);
+
+			// vertical segments
+			if (p1.x == p2.x) {
+				let (ymin, ymax) = (p1.y.min(p2.y), p1.y.max(p2.y));
+				if (mouse_pos.x - p1.x).abs() <= padding
+					&& mouse_pos.y >= ymin - padding
+					&& mouse_pos.y <= ymax + padding
+				{
+					return true;
+				}
+			}
+			if (p1.y == p2.y) {
+				let (xmin, xmax) = (p1.x.min(p2.x), p1.x.max(p2.x));
+				if (mouse_pos.y - p1.y).abs() <= padding
+					&& mouse_pos.x >= xmin - padding
+					&& mouse_pos.x <= xmax + padding
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	pub fn interact(&mut self, to_screen: &RectTransform, zoom: &f32, response: &Response, mouse_pos: &Pos2) -> bool {
+		// TODO: let you drag first or last points to other pins on the same board		
+		let tolerance = 15.0;
+
+		if response.dragged() {
+			// rust borrow checker will not allow multiple neighboring mutations, index loop instead
+			let len = self.points.len();
+			for i in 1..len-1 {
+				let dist = mouse_pos.distance(to_screen.transform_pos(self.points[i]));
+				if dist < tolerance {
+					let mut movement = response.drag_delta() / *zoom;
+
+					if i == 1 {
+						if self.points[i-1].x == self.points[i].x {
+							movement.x = 0.0;
+						} else {
+							movement.y = 0.0;
+						}
+					}
+					if i == len-2 {
+						if self.points[i+1].x == self.points[i].x {
+							movement.x = 0.0;
+						} else {
+							movement.y = 0.0;
+						}
+					}
+
+					if i != 1 {
+						if self.points[i-1].x == self.points[i].x {
+							self.points[i-1].x += movement.x;
+						} else {
+							self.points[i-1].y += movement.y;
+						}
+					}
+
+					if i != len-2 {
+						if self.points[i+1].x == self.points[i].x {
+							self.points[i+1].x += movement.x;
+						} else {
+							self.points[i+1].y += movement.y;
+						}
+					}
+
+					self.points[i] += movement;
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	pub fn get_start_board(&self) -> Rc<RefCell<CanvasBoard>> {
+		return self.start_board.clone();
+	}
+
+	pub fn get_start_pin(&self) -> String {
+		return self.start_pin.clone();
+	}
+
+	pub fn get_end_pin(&self) -> Option<String> {
+		return self.end_pin.clone();
+	}
+
+	pub fn get_end_board(&self) -> Option<Rc<RefCell<CanvasBoard>>> {
+		return self.end_board.clone();
 	}
 }

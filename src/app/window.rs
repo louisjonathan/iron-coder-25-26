@@ -198,6 +198,10 @@ impl MainWindow {
                         self.show_new_project_dialog = true;
                         ui.close_menu();
                     }
+                    if ui.button("Open Project").clicked() {
+                        self.open_project();
+                        ui.close_menu();
+                    }
                     ui.separator();
                     if ui.button("Open").clicked() {
                         self.open_file_dialog();
@@ -309,6 +313,18 @@ impl MainWindow {
         println!("Blocking file opening because of wasm.");
     }
 
+    fn open_project(&mut self) {
+        match self.state.project.open() {
+            Ok(()) => {
+                self.refocus_file_explorer_to_project();
+                println!("Project opened successfully.");
+            }
+            Err(e) => {
+                println!("Failed to open project.");
+            }
+        }
+    }
+
     fn open_file(&mut self, file_path: &Path) {
         let tab_name = file_path.display().to_string();
         
@@ -345,6 +361,16 @@ impl MainWindow {
             tab_name.contains('/') ||  // for unix
             tab_name.contains('\\') // for windows
         )
+    }
+
+    fn refocus_file_explorer_to_project(&mut self) {
+        if let Some(file_explorer_tab) = self.tabs.get_mut("File Explorer") {
+            if let Some(file_explorer) = file_explorer_tab.as_any_mut().downcast_mut::<FileExplorerTab>() {
+                if let Some(project_location) = self.state.project.get_location_path() {
+                    file_explorer.set_root_dir(project_location);
+                }
+            }
+        }
     }
 
     fn display_new_project_dialog(&mut self, ctx: &egui::Context) {
@@ -480,11 +506,20 @@ impl MainWindow {
                             }
                         }
                         
-                        self.state.project = new_project;
-                        self.show_new_project_dialog = false;
-                        let project_name = self.new_project_dialog.name.clone();
-                        self.new_project_dialog.reset();
-                        println!("Project '{}' created.", project_name);
+                        // open the project
+                        let project_location = new_project.get_location_path();
+                        match self.state.project.load_from(&project_location.unwrap()) {
+                            Ok(()) => {
+                                self.refocus_file_explorer_to_project();
+                                self.show_new_project_dialog = false;
+                                let project_name = self.new_project_dialog.name.clone();
+                                self.new_project_dialog.reset();
+                                println!("Project '{}' created and opened.", project_name);
+                            }
+                            Err(e) => {
+                                println!("Project created but failed to open: {:?}", e);
+                            }
+                        }
                     }
                     Err(e) => {
                         println!("Error creating project: {}", e);

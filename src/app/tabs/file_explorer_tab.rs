@@ -19,6 +19,11 @@ impl FileExplorerTab {
         }
     }
 
+    pub fn set_root_dir(&mut self, new_root: PathBuf) {
+        self.root_dir = new_root;
+        self.expanded_dirs.clear();
+    }
+
     fn read_dir(dir: &PathBuf) -> Vec<PathBuf> {
         read_dir(dir)
             .map(|entries| {

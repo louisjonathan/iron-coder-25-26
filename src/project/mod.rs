@@ -99,8 +99,17 @@ impl Project {
         }
     }
 
+    pub fn get_location_path(&self) -> Option<PathBuf> {
+        self.location.clone()
+    }
+
     pub fn set_location(&mut self, path: PathBuf) {
         self.location = Some(path);
+    }
+
+    /// file explorer should be refocused to the project directory
+    pub fn should_refocus_file_explorer(&self) -> bool {
+        self.location.is_some()
     }
 
     pub fn add_board(&mut self, board: Board) {
@@ -156,7 +165,7 @@ impl Project {
     }
 
     /// Load a project from a specified directory, and sync the board assets.
-    fn load_from(&mut self, project_directory: &Path) -> Result {
+    pub fn load_from(&mut self, project_directory: &Path) -> Result {
         let project_file = project_directory.join(PROJECT_FILE_NAME);
         let toml_str = match fs::read_to_string(project_file) {
             Ok(s) => s,

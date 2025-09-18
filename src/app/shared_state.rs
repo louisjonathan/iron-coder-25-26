@@ -63,4 +63,50 @@ impl SharedState {
             requested_file_to_open: None,
         }
     }
+
+    pub fn add_board(&mut self, b: &board::Board) {
+
+        match b.is_main_board() {
+            true => {
+                if self.project.has_main_board() {
+                    // info!("project already contains a main board! aborting.");
+                    self.project.terminal_buffer += "Project already contains a main board\n";
+                    return;
+                } else {
+                    self.project.system.main_board = Some(b.clone());
+                    let board_rc = Rc::new(RefCell::new(CanvasBoard::new(&b).unwrap()));
+                    self.boards_used.push(board_rc);
+                }
+            }
+            false => {
+                // don't duplicate a board
+                if self.project.system.peripheral_boards.contains(&b) {
+                    // info!(
+                    //     "project <{}> already contains board <{:?}>",
+                    //     self.name, board
+                    // );
+                    self.project.terminal_buffer += "Project already contains that board\n";
+                    return;
+                } else {
+                    self.project.system.peripheral_boards.push(b.clone());
+                    let board_rc = Rc::new(RefCell::new(CanvasBoard::new(&b).unwrap()));
+                    self.boards_used.push(board_rc);
+                }
+            }
+        }
+    }
+
+    pub fn load_boards_from_project(&mut self) {
+        if let Some(b) = &self.project.system.main_board {
+            if let Some(cb) = CanvasBoard::new(&b) {
+                self.boards_used.push(Rc::new(RefCell::new(cb)));
+            }
+        }
+
+        for b in &self.project.system.peripheral_boards {
+            if let Some(cb) = CanvasBoard::new(&b) {
+                self.boards_used.push(Rc::new(RefCell::new(cb)));
+            }
+        }
+    }
 }

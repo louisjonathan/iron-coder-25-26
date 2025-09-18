@@ -46,13 +46,12 @@ impl BaseTab for BoardInfoTab {
                         .add(board::display::BoardSelectorWidget(b.clone()))
                         .clicked()
                     {
-						state.project.add_board(b.clone());
+                        state.add_board(&b);
 
-                        let board = CanvasBoard::new(&b).unwrap();
-                        let board_rc = Rc::new(RefCell::new(board));
-                        state.boards_used.push(board_rc);
-                        // board = Some(b.clone());
-                        // self.chosen_board_idx = Some(i);
+						// state.project.add_board(b.clone());
+
+                        // let board_rc = Rc::new(RefCell::new(CanvasBoard::new(&b).unwrap()));
+                        // state.boards_used.push(board_rc);
                     }
                 }
 

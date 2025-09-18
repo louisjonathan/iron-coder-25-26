@@ -59,7 +59,7 @@ pub struct Project {
     #[serde(skip)]
     // pub code_editor: CodeEditor,
     // #[serde(skip)]
-    terminal_buffer: String,
+    pub terminal_buffer: String,
     #[serde(skip)]
     receiver: Option<std::sync::mpsc::Receiver<String>>,
     current_view: ProjectViewType,

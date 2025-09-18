@@ -33,9 +33,9 @@ impl BaseTab for BoardInfoTab {
             num_cols = 1;
         }
         egui::containers::scroll_area::ScrollArea::vertical().show(ui, |ui| {
-            if ui.button("Generate New Board").clicked() {
-                todo!();
-            }
+            // if ui.button("Generate New Board").clicked() {
+            //     todo!();
+            // }
             ui.label("or select a board from the list below");
             ui.columns(num_cols, |columns| {
                 for (i, b) in state.boards.clone().into_iter().enumerate() {

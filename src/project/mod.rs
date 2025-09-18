@@ -141,7 +141,6 @@ impl Project {
     /// Populate the project board list via the app-wide 'known boards' list
     fn load_board_resources(&mut self) {
         info!("updating project boards from known boards list.");
-        println!("TRYING TO LOAD BOARD RESOURCES");
         
         for b in self.system.get_all_boards_mut().iter_mut() {
             // returns true if the current, project board is equal to the current known_board
@@ -150,7 +149,6 @@ impl Project {
             };
             if let Some(known_board) = self.known_boards.iter().find(predicate) {
                 **b = known_board.clone();
-                println!("BOARD KNOWN, {}", known_board.get_name());
             } else {
                 warn!("Could not find the project board in the known boards list. Was the project manifest \
                        generated with an older version of Iron Coder?")
@@ -186,7 +184,6 @@ impl Project {
         self.name = p.name;
         self.location = Some(project_directory.to_path_buf());
         self.system = p.system;
-        println!("LOADED MAIN BOARD {}", self.system.main_board.as_ref().unwrap().get_name());
         self.current_view = p.current_view;
         // sync the assets with the global ones
         self.load_board_resources();

@@ -76,14 +76,12 @@ impl CanvasConnection {
 				p.y = lastp.y;
 				if len > 2 && self.points[len - 2].y == p.y {
 					self.points[len - 1].x = p.x;
-					println!("EXTEND");
 					return;
 				}
 			} else {
 				p.x = lastp.x;
 				if len > 2 && self.points[len - 2].x == p.x {
 					self.points[len - 1].y = p.y;
-					println!("EXTEND");
 					return;
 				}
 			}
@@ -119,7 +117,7 @@ impl CanvasConnection {
 
 		let sb = self.start_board.borrow();
 		let eb = end_board.borrow();
-		println!("CONNECTED {}:{} TO {}:{}", sb.board.get_name(), self.start_pin, eb.board.get_name(), end_pin);
+		println!("TODO: GENERATE CODE TO CONNECT {}:{} TO {}:{} BASED ON INTERFACE", sb.board.get_name(), self.start_pin, eb.board.get_name(), end_pin);
 	}
 
 	pub fn draw_ghost(&self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: Pos2)

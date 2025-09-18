@@ -104,7 +104,6 @@ impl SharedState {
 
     pub fn load_boards_from_project(&mut self) {
         if let Some(b) = &self.project.system.main_board {
-            println!("I MEAN BOARD FOUND {}", b.get_name());
             if let Some(cb) = CanvasBoard::new(&b) {
                 self.boards_used.push(Rc::new(RefCell::new(cb)));
             }

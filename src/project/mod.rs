@@ -308,7 +308,9 @@ impl Project {
         if let Some(path) = &self.location {
             info!("building project at {}", path.display().to_string());
             // self.code_editor.save_all().unwrap_or_else(|_| warn!("error saving tabs!"));
+            #[cfg(not(target_arch = "wasm32"))]
             let cmd = duct::cmd!("cargo", "build").dir(path);
+            #[cfg(not(target_arch = "wasm32"))]
             self.run_background_commands(&[cmd], ctx);
         } else {
             self.info_logger("project needs a valid working directory before building");
@@ -318,7 +320,9 @@ impl Project {
     // Load the code (for now using 'cargo run')
     pub fn load_to_board(&mut self, ctx: &egui::Context) {
         if let Some(path) = &self.location {
+            #[cfg(not(target_arch = "wasm32"))]
             let cmd = duct::cmd!("cargo", "run").dir(path);
+            #[cfg(not(target_arch = "wasm32"))]
             self.run_background_commands(&[cmd], ctx);
             self.info_logger("Successfully flashed board.");
         } else {
@@ -344,6 +348,8 @@ impl Project {
     // TODO - fix bug that calling this command again before a former call's thread is
     //   complete will overwrite the rx channel in the Project object. Possible solution
     //   might be to add a command to a queue to be evaluated.
+    #[cfg(not(target_arch = "wasm32"))]
+    //FIXME: WASM DUCT NOT SUPPORTED, REQUIRE ALTERNATE CRATE
     fn run_background_commands(&mut self, cmds: &[duct::Expression], ctx: &egui::Context) {
         // create comms channel
         let context = ctx.clone();
@@ -364,11 +370,12 @@ impl Project {
             info!("leaving thread");
         });
     }
-
+#[cfg(not(target_arch = "wasm32"))]
     pub fn generate_cargo_template(&mut self) -> Result {
         if let Some(mb) = &self.system.main_board {
             if let Some(template_dir) = mb.get_template_dir() {
                 let destination = self.get_location();
+            
                 
                 let cmd = duct::cmd!(
                     "cargo",
@@ -381,7 +388,7 @@ impl Project {
                     destination.clone(),
                     "--init",
                 );
-                
+            
                 match cmd.run() {
                     Ok(output) => {
                         Ok(())

@@ -506,6 +506,7 @@ impl MainWindow {
                     Ok(()) => {
                         // Get cargo-generate template
                         if new_project.system.main_board.is_some() {
+                            #[cfg(not(target_arch = "wasm32"))]
                             match new_project.generate_cargo_template() {
                                 Ok(()) => {
                                     println!("Project template generated.");

@@ -3,6 +3,8 @@ use crate::board;
 use crate::app::canvas_board::CanvasBoard;
 use crate::project::Project;
 use crate::app::colorschemes::colorschemes;
+            #[cfg(not(target_arch = "wasm32"))]
+
 use crate::app::syntax_highlighting::SyntaxHighlighter;
 use std::path::{Path, PathBuf};
 use crate::app::CanvasConnection;
@@ -12,6 +14,8 @@ use std::cell::RefCell;
 pub struct SharedState {
     pub keybindings: Keybindings,
     pub colorschemes: colorschemes,
+            #[cfg(not(target_arch = "wasm32"))]
+
     pub syntax_highlighter: SyntaxHighlighter,
     pub project: Project,
     pub boards: Vec<board::Board>,
@@ -40,6 +44,8 @@ impl SharedState {
         Self {
             keybindings: Keybindings::new(),
             colorschemes: colorschemes::default(),
+            #[cfg(not(target_arch = "wasm32"))]
+
             syntax_highlighter: SyntaxHighlighter::new(),
             project,
             boards,
@@ -50,22 +56,24 @@ impl SharedState {
     }
 
     #[cfg(target_arch = "wasm32")]
-    fn default() -> Self {
+    pub fn default() -> Self {
         let boards: Vec<board::Board> = vec![board::Board::default()];
 
         #[cfg(target_arch = "wasm32")]
         let boards: Vec<board::Board> = vec![board::Board::default()];
-
+        let mut connections = Vec::new();
         let mut project = Project::default();
         project.add_board(boards[0].clone());
-        let boards_used = project.system.get_all_boards();
+        let boards_used =  Vec::new();
         Self {
             keybindings: Keybindings::new(),
-            colorschemes: colorschemes::colorschemes::default(),
+            colorschemes: colorschemes::default(),            
+            #[cfg(not(target_arch = "wasm32"))]
             syntax_highlighter: SyntaxHighlighter::new(),
             project: project,
             boards: boards,
             boards_used,
+            connections: connections,
             requested_file_to_open: None,
         }
     }

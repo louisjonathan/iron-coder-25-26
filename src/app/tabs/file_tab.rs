@@ -73,6 +73,7 @@ impl BaseTab for FileTab {
             let former_contents = self.code.clone();
             
             // did the text change?
+            #[cfg(not(target_arch = "wasm32"))]
             if self.use_syntax_highlighting && 
                (self.cached_layout_job.is_none() || self.last_highlighted_text != self.code) {
                 
@@ -82,7 +83,7 @@ impl BaseTab for FileTab {
                 self.cached_layout_job = Some(state.syntax_highlighter.highlight_code(&self.code, language));
                 self.last_highlighted_text = self.code.clone();
             }
-            
+            #[cfg(not(target_arch = "wasm32"))]
             let response = if self.use_syntax_highlighting && !self.code.is_empty() {
                 // apply syntax highlighting
                 let cached_job = self.cached_layout_job.clone();

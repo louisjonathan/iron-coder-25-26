@@ -1,18 +1,22 @@
+#[cfg(not(target_arch = "wasm32"))]
 use syntect::parsing::SyntaxSet;
+#[cfg(not(target_arch = "wasm32"))]
 use syntect::highlighting::{ThemeSet, Style};
+#[cfg(not(target_arch = "wasm32"))]
 use syntect::easy::HighlightLines;
+#[cfg(not(target_arch = "wasm32"))]
 use syntect::util::LinesWithEndings;
 use eframe::egui::{self, Color32, TextFormat};
 use std::path::Path;
 
 // simple implementation of syntax highlighting with syntect ymmv
-
+#[cfg(not(target_arch = "wasm32"))]
 pub struct SyntaxHighlighter {
     syntax_set: SyntaxSet,
     theme_set: ThemeSet,
     current_theme: String,
 }
-
+#[cfg(not(target_arch = "wasm32"))]
 impl Default for SyntaxHighlighter {
     fn default() -> Self {
         Self {
@@ -22,7 +26,7 @@ impl Default for SyntaxHighlighter {
         }
     }
 }
-
+#[cfg(not(target_arch = "wasm32"))]
 impl SyntaxHighlighter {
     pub fn new() -> Self {
         Self::default()

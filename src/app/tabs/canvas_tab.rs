@@ -8,6 +8,7 @@ use crate::project::system::Connection;
 use eframe::egui::{Pos2, Rect, Response, Sense, Ui, Vec2, Color32, Stroke, Key, Align2, FontId};
 use egui::color_picker::color_picker_color32;
 use emath::RectTransform;
+            #[cfg(not(target_arch = "wasm32"))]
 use syntect::highlighting::Color;
 
 use std::rc::Rc;

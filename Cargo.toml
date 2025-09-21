@@ -27,19 +27,47 @@ env_logger = "0.11"
 tracy-client = "0.18.0"
 rfd = "*"
 rand = "*"
+syntect = "5.0.0"
+duct = "0.13.6"
 
 # web:
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 rfd = {version="*",default-features=false,features=["gtk3","common-controls-v6"]}
-web-sys={version="0.3.46",features = [
+web-sys={version="*",features = [
+  'FileSystem',
   'Document',
   'Window',
+  'FileSystem',
+  'FileSystemCreateWritableOptions',
+  'FileSystemDirectoryEntry',
+  'FileSystemDirectoryHandle',
+  'FileSystemDirectoryReader',
+  'FileSystemEntriesCallback',
+  'FileSystemEntry',
+  'FileSystemEntryCallback',
+  'FileSystemFileEntry',
+  'FileSystemFileHandle',
+  'FileSystemFlags',
+  'FileSystemGetDirectoryOptions',
+  'FileSystemGetFileOptions',
+  'FileSystemHandle',
+  'FileSystemHandlePermissionDescriptor',
+  'FileSystemPermissionDescriptor',
+  'FileSystemReadWriteOptions',
+  'FileSystemRemoveOptions',
+  'FileSystemSyncAccessHandle',
+  'FileSystemWritableFileStream',
+  'Navigator',
+  'StorageManager',
 ]}
-wasm-bindgen-futures = "0.4.19"
+wasm-bindgen-futures = "*"
 winit = "0.29" 
-futures = {version="0.3.10",features=["thread-pool"]}
+futures = {version="*",features=["thread-pool"]}
 getrandom = { version = "<=0.2.15", features = ["js"] }
 rand = "<=0.8.5"
+
+
+
 [dependencies]
 egui = "0.31.1"
 eframe = { version = "0.31.1", default-features = false, features = [
@@ -49,10 +77,8 @@ eframe = { version = "0.31.1", default-features = false, features = [
     "persistence",   # Enable restoring app state when restarting the app.
     "wayland",       # To support Linux (and CI)
 ] }
-egui_dock = "*"
-emath = "*"
-
-
+egui_dock = "0.16.0"
+emath = "0.31.1"
 # Needed for terminal. Remove in future if terminal has been changed/finalized.
 encoding_rs = "=0.8.35"
 encoding_rs_io = "0.1.7"
@@ -64,7 +90,6 @@ log = "0.4.27"
 # # You only need serde if you want app persistence:
 egui_extras = { version = "0.31.1", features = ["image", "all_loaders"] }
 image = { version = "0.24.7", features = ["jpeg", "png", "gif"] }
-syntect = "5.0.0"
 enum-iterator = "2.1.0"
 ra_ap_ide = "0.0.273"
 syn = { version = "2.0.25", features = ["full", "extra-traits", "parsing", "visit"] }
@@ -84,7 +109,7 @@ usvg = "0.35.0"
 # k_board = "1.2.2"
 # git2 = "0.19.0"
 # fs_extra = "1.3.0"
-duct = "0.13.6"
+
 
 [patch.crates-io]
 #getrandom = { version = "0.3.2", features = ["wasm_js"] }

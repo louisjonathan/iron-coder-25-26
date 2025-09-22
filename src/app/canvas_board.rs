@@ -22,12 +22,6 @@ pub struct CanvasBoard {
 	pub connections: Vec<Rc<RefCell<CanvasConnection>>>,
 }
 
-impl Drop for CanvasBoard {
-    fn drop(&mut self) {
-        println!("Dropping board {}", self.board.get_name());
-    }
-}
-
 impl CanvasBoard {
     pub fn new(board: &Board) -> Option<Self> {
 		if let Some(svg_board_info) = &board.svg_board_info {

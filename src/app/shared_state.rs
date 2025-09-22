@@ -28,10 +28,10 @@ impl SharedState {
 
         let mut project = Project::default();
         project.known_boards = boards.clone();
-        match project.reload() {
-            Ok(_) => (),
-            Err(e) => println!("error reloading project from disk! {:?}", e),
-        }
+        // match project.reload() {
+        //     Ok(_) => (),
+        //     Err(e) => println!("error reloading project from disk! {:?}", e),
+        // }
 
         let boards_used = Vec::new();
         

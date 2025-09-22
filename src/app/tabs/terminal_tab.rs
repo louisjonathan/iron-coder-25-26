@@ -76,6 +76,7 @@ impl BaseTab for TerminalTab {
         ui.allocate_ui_at_rect(terminalbuffer_rect, |ui| {
             egui::ScrollArea::vertical()
                 .auto_shrink([false; 2])
+                .stick_to_bottom(true)
                 .show(ui, |ui| {
                     ui.add(
                         egui::TextEdit::multiline(&mut self.terminal_output)

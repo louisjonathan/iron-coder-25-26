@@ -18,12 +18,6 @@ pub struct CanvasConnection {
 	end_pin: Option<String>,
 }
 
-impl Drop for CanvasConnection {
-    fn drop(&mut self) {
-        println!("Dropping connection {}:{:?}", self.start_pin, self.end_pin);
-    }
-}
-
 impl CanvasConnection {
 	pub fn new(start_board: Rc<RefCell<CanvasBoard>>, start_pin: String) -> Self {
 		let color = egui::Color32::RED;

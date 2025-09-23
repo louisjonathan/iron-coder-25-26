@@ -84,26 +84,22 @@ impl CanvasConnection {
 	pub fn add_point(&mut self, mut p: Pos2) {
 		// to avoid mut borrow, use index
 		let len = self.points.len();
-		if len == 1 {
-			p.y = self.points[0].y;
-		} else if len > 1 {
-			let lastp = self.points[len - 1];
+		let lastp = self.points[len - 1];
 
-			let dx = p.x - lastp.x;
-			let dy = p.y - lastp.y;
+		let dx = p.x - lastp.x;
+		let dy = p.y - lastp.y;
 
-			if dx.abs() > dy.abs() {
-				p.y = lastp.y;
-				if len > 2 && self.points[len - 2].y == p.y {
-					self.points[len - 1].x = p.x;
-					return;
-				}
-			} else {
-				p.x = lastp.x;
-				if len > 2 && self.points[len - 2].x == p.x {
-					self.points[len - 1].y = p.y;
-					return;
-				}
+		if dx.abs() > dy.abs() {
+			p.y = lastp.y;
+			if len > 2 && self.points[len - 2].y == p.y {
+				self.points[len - 1].x = p.x;
+				return;
+			}
+		} else {
+			p.x = lastp.x;
+			if len > 2 && self.points[len - 2].x == p.x {
+				self.points[len - 1].y = p.y;
+				return;
 			}
 		}
 		self.points.push(p);

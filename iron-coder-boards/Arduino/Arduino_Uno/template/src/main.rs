@@ -21,18 +21,12 @@ fn main() -> ! {
      * examples available.
      */
 
-    let mut led = pins.d11.into_output();
     let mut internal_led = pins.d13.into_output();
-    let button = pins.d12.into_pull_up_input();
 
     loop {
-        if button.is_low() {
-            led.set_low();
-            uwriteln!(&mut serial, "button pressed!").unwrap_infallible();
-        } else {
-            led.set_high();
-        }
         arduino_hal::delay_ms(100);
+        internal_led.toggle();
+        arduino_hal::delay_ms(500);
         internal_led.toggle();
     }
 }

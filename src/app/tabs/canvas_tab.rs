@@ -111,7 +111,7 @@ impl BaseTab for CanvasTab {
 
         self.draw_grid(ui, &to_screen);
 
-        let draw_all_pins = ui.input(|i| i.modifiers.ctrl);
+        let draw_all_pins = ui.input(|i| i.modifiers.alt);
 
         if ui.input(|i| i.key_pressed(Key::Delete)) {
             if let Some(s) = self.selection.take() {
@@ -157,7 +157,7 @@ impl BaseTab for CanvasTab {
         // Keybind text
         // TODO: bind to keybinds backend
         let mut offset = 0.0;
-        ui.painter().text(rect.min+Vec2{x:0.0,y:offset}, Align2::LEFT_TOP, "Ctrl: Show all pins", FontId::monospace(12.0), Color32::WHITE);
+        ui.painter().text(rect.min+Vec2{x:0.0,y:offset}, Align2::LEFT_TOP, "Alt: Show all pins", FontId::monospace(12.0), Color32::WHITE);
         offset += 12.0;
 
         if self.selection.is_some() {

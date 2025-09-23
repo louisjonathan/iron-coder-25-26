@@ -37,6 +37,9 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use system::System;
+use std::process::{Child, Stdio};
+use std::sync::mpsc::{self, Sender};
+use std::process::Command;
 
 // use git2::Repository;
 
@@ -61,13 +64,9 @@ pub enum ProjectIOError {
 #[derive(Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct Project {
-    name: String,
-    location: Option<PathBuf>,
+    pub name: String,
+    pub location: Option<PathBuf>,
     // pub system: System,
-    #[serde(skip)]
-    pub terminal_buffer: String,
-    #[serde(skip)]
-    receiver: Option<std::sync::mpsc::Receiver<String>>,
     current_view: ProjectViewType,
 
 
@@ -90,7 +89,7 @@ impl Project {
     fn info_logger(&mut self, msg: &str) {
         info!("{}", msg);
         let msg = msg.to_owned() + "\n";
-        self.terminal_buffer += &msg;
+        // self.terminal_buffer += &msg;
     }
 
     pub fn borrow_name(&mut self) -> &mut String {
@@ -202,7 +201,7 @@ impl Project {
         self.peripheral_boards = p.peripheral_boards;
         self.connections = p.connections;
         self.load_board_resources(kb);
-        self.terminal_buffer.clear();
+        // self.terminal_buffer.clear();
 
         Ok(())
     }
@@ -249,7 +248,7 @@ impl Project {
                         "you might be overwriting an existing Iron Coder project! \
                         Are you sure you wish to continue?"
                     );
-                    self.terminal_buffer += "beware of overwriting and existing project file!\n";
+                    // self.terminal_buffer += "beware of overwriting and existing project file!\n";
                     return Ok(());
                 }
             }
@@ -310,28 +309,17 @@ impl Project {
     }
 
     // Build the code with Cargo
-    pub fn build(&mut self, ctx: &egui::Context) {
-    // Make sure we have a valid path
-        if let Some(path) = &self.location {
-            info!("building project at {}", path.display().to_string());
-            // self.code_editor.save_all().unwrap_or_else(|_| warn!("error saving tabs!"));
-            let cmd = duct::cmd!("cargo", "build").dir(path);
-            self.run_background_commands(&[cmd], ctx);
-        } else {
-            self.info_logger("project needs a valid working directory before building");
-        }
-    }
-
-    // Load the code (for now using 'cargo run')
-    pub fn load_to_board(&mut self, ctx: &egui::Context) {
-        if let Some(path) = &self.location {
-            let cmd = duct::cmd!("cargo", "run").dir(path);
-            self.run_background_commands(&[cmd], ctx);
-            self.info_logger("Successfully flashed board.");
-        } else {
-            self.info_logger("project needs a valid working directory before building");
-        }
-    }
+    // pub fn build(&mut self, ctx: &egui::Context) {
+    // // Make sure we have a valid path
+    //     if let Some(path) = &self.location {
+    //         info!("building project at {}", path.display().to_string());
+    //         // self.code_editor.save_all().unwrap_or_else(|_| warn!("error saving tabs!"));
+    //         let cmd = duct::cmd!("cargo", "build").dir(path);
+    //         self.run_background_commands(&[cmd], ctx);
+    //     } else {
+    //         self.info_logger("project needs a valid working directory before building");
+    //     }
+    // }
 
     // pub fn new_file(&mut self) -> io::Result<()> {
     //     if self.location == None {
@@ -351,26 +339,26 @@ impl Project {
     // TODO - fix bug that calling this command again before a former call's thread is
     //   complete will overwrite the rx channel in the Project object. Possible solution
     //   might be to add a command to a queue to be evaluated.
-    fn run_background_commands(&mut self, cmds: &[duct::Expression], ctx: &egui::Context) {
-        // create comms channel
-        let context = ctx.clone();
-        let commands = cmds.to_owned();
-        let (tx, rx) = std::sync::mpsc::channel();
-        self.receiver = Some(rx);
-        let _ = std::thread::spawn(move || {
-            for cmd in commands.iter() {
-                let reader = cmd.stderr_to_stdout().unchecked().reader().unwrap();
-                let mut lines = std::io::BufReader::new(reader).lines();
-                while let Some(line) = lines.next() {
-                    let line = line.unwrap() + "\n";
-                    debug!("sending line through channel");
-                    tx.send(line).unwrap();
-                    context.request_repaint();
-                }
-            }
-            info!("leaving thread");
-        });
-    }
+    // fn run_background_commands(&mut self, cmds: &[duct::Expression], ctx: &egui::Context) {
+    //     // create comms channel
+    //     let context = ctx.clone();
+    //     let commands = cmds.to_owned();
+    //     let (tx, rx) = std::sync::mpsc::channel();
+    //     self.receiver = Some(rx);
+    //     let _ = std::thread::spawn(move || {
+    //         for cmd in commands.iter() {
+    //             let reader = cmd.stderr_to_stdout().unchecked().reader().unwrap();
+    //             let mut lines = std::io::BufReader::new(reader).lines();
+    //             while let Some(line) = lines.next() {
+    //                 let line = line.unwrap() + "\n";
+    //                 debug!("sending line through channel");
+    //                 tx.send(line).unwrap();
+    //                 context.request_repaint();
+    //             }
+    //         }
+    //         info!("leaving thread");
+    //     });
+    // }
 
     pub fn generate_cargo_template(&mut self) -> Result {
         if let Some(mb) = &self.main_board {
@@ -453,21 +441,21 @@ impl Project {
     // }
 
     /// Update terminal output
-    pub fn update_terminal_output(&mut self) {
-        if let Some(rx) = &self.receiver {
-            while let Ok(line) = rx.try_recv() {
-                self.terminal_buffer.push_str(&line);
-            }
-        }
-    }
+    // pub fn update_terminal_output(&mut self) {
+    //     if let Some(rx) = &self.receiver {
+    //         while let Ok(line) = rx.try_recv() {
+    //             self.terminal_buffer.push_str(&line);
+    //         }
+    //     }
+    // }
 
-    pub fn get_terminal_output(&self) -> &str {
-        &self.terminal_buffer
-    }
+    // pub fn get_terminal_output(&self) -> &str {
+    //     &self.terminal_buffer
+    // }
 
-    pub fn clear_terminal_output(&mut self) {
-        self.terminal_buffer.clear();
-    }
+    // pub fn clear_terminal_output(&mut self) {
+    //     self.terminal_buffer.clear();
+    // }
 
     pub fn remove_board(&mut self, board: &Rc<RefCell<CanvasBoard>>) {
         if let Some(mb) = &self.main_board {

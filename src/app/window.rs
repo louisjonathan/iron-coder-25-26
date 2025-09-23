@@ -237,11 +237,11 @@ impl MainWindow {
                 });
                 ui.menu_button("Build", |ui| {
                     if ui.button("Build Project").clicked() {
-                        self.state.project.build(ctx);
+                        // self.state.project.build(ctx);
                         ui.close_menu();
                     }
                     if ui.button("Flash to Board").clicked() {
-                        self.state.project.load_to_board(ctx);
+                        self.state.load_to_board();
                         ui.close_menu();
                     }
                 });
@@ -552,16 +552,16 @@ impl MainWindow {
 impl eframe::App for MainWindow {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Update project terminal output and forward to Terminal tab
-        self.state.project.update_terminal_output();
-        let build_output = self.state.project.get_terminal_output();
-        if !build_output.is_empty() {
-            if let Some(terminal_tab) = self.tabs.get_mut("Terminal") {
-                if let Some(terminal) = terminal_tab.as_any_mut().downcast_mut::<TerminalTab>() {
-                    terminal.append_build_output(build_output);
-                }
-            }
-            self.state.project.clear_terminal_output();
-        }
+        // self.state.project.update_terminal_output();
+        // let build_output = self.state.project.get_terminal_output();
+        // if !build_output.is_empty() {
+        //     if let Some(terminal_tab) = self.tabs.get_mut("Terminal") {
+        //         if let Some(terminal) = terminal_tab.as_any_mut().downcast_mut::<TerminalTab>() {
+        //             terminal.append_build_output(build_output);
+        //         }
+        //     }
+        //     self.state.project.clear_terminal_output();
+        // }
 
         self.display_menu(ctx, _frame);
 

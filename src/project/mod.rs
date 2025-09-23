@@ -9,6 +9,11 @@ use std::io;
 use std::io::BufRead;
 use std::path::{Path, PathBuf};
 
+use crate::app::{CanvasBoard, CanvasConnection, SharedState};
+use crate::board::get_boards;
+
+use egui::Context;
+
 #[cfg(target_arch = "wasm32")]
 use rfd::AsyncFileDialog;
 #[cfg(not(target_arch = "wasm32"))]
@@ -19,14 +24,17 @@ use serde::{Deserialize, Serialize};
 use crate::board::Board;
 // use crate::app::code_editor::CodeEditor;
 
-pub use system::Connection;
-
 pub mod display;
 use display::ProjectViewType;
 
 pub mod egui_helpers;
 
 pub mod system;
+
+use std::rc::Rc;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use uuid::Uuid;
 
 use system::System;
 
@@ -55,18 +63,25 @@ pub enum ProjectIOError {
 pub struct Project {
     name: String,
     location: Option<PathBuf>,
-    pub system: System,
+    // pub system: System,
     #[serde(skip)]
-    // pub code_editor: CodeEditor,
-    // #[serde(skip)]
     pub terminal_buffer: String,
     #[serde(skip)]
     receiver: Option<std::sync::mpsc::Receiver<String>>,
     current_view: ProjectViewType,
+
+
+    #[serde(with = "rc_refcell_option")]
+    pub main_board: Option<Rc<RefCell<CanvasBoard>>>,
+
+    #[serde(with = "rc_refcell_vec")]
+    pub peripheral_boards: Vec<Rc<RefCell<CanvasBoard>>>,
+
+    #[serde(with = "rc_refcell_vec")]
+    pub connections: Vec<Rc<RefCell<CanvasConnection>>>,
+
     #[serde(skip)]
-    pub known_boards: Vec<Board>,
-    // #[serde(skip)]
-    // repo: Option<Repository>,
+    pub board_map: HashMap<Uuid, Rc<RefCell<CanvasBoard>>>,
 }
 
 // backend functionality for Project struct
@@ -83,7 +98,7 @@ impl Project {
     }
 
     pub fn has_main_board(&self) -> bool {
-        if let Some(_) = self.system.main_board {
+        if let Some(_) = self.main_board {
             return true;
         } else {
             return false;
@@ -112,61 +127,59 @@ impl Project {
         self.location.is_some()
     }
 
-    pub fn add_board(&mut self, board: Board) {
-        match board.is_main_board() {
+    pub fn add_board(&mut self, board: &Rc<RefCell<Board>>) {
+        match board.borrow().is_main_board() {
             true => {
                 if self.has_main_board() {
                     info!("project already contains a main board! aborting.");
                     return;
                 } else {
-                    self.system.main_board = Some(board.clone());
+                    if let Some(b) = CanvasBoard::new(&board.borrow()) {
+                        let b_ref = Rc::new(RefCell::new(b));
+                        self.board_map.insert(b_ref.borrow().id.clone(), b_ref.clone());
+                        self.main_board = Some(b_ref);
+                    }
                 }
             }
             false => {
-                // don't duplicate a board
-                if self.system.peripheral_boards.contains(&board) {
-                    info!(
-                        "project <{}> already contains board <{:?}>",
-                        self.name, board
-                    );
-                    self.terminal_buffer += "project already contains that board\n";
-                    return;
-                } else {
-                    self.system.peripheral_boards.push(board.clone());
+                if let Some(b) = CanvasBoard::new(&board.borrow()) {
+                        let b_ref = Rc::new(RefCell::new(b));
+                        self.board_map.insert(b_ref.borrow().id.clone(), b_ref.clone());
+                        self.peripheral_boards.push(b_ref);
                 }
             }
         }
     }
 
     /// Populate the project board list via the app-wide 'known boards' list
-    fn load_board_resources(&mut self) {
-        info!("updating project boards from known boards list.");
-        
-        for b in self.system.get_all_boards_mut().iter_mut() {
-            // returns true if the current, project board is equal to the current known_board
-            let predicate = |known_board: &&Board| {
-                return known_board == b;
-            };
-            if let Some(known_board) = self.known_boards.iter().find(predicate) {
-                **b = known_board.clone();
-            } else {
-                warn!("Could not find the project board in the known boards list. Was the project manifest \
-                       generated with an older version of Iron Coder?")
-            }
+    fn load_board_resources(&mut self, kb: &Vec<Rc<RefCell<Board>>>) {
+
+        if let Some(b) = &self.main_board {
+            let board_id = b.borrow().id;
+            self.board_map.insert(board_id, b.clone());
+            b.borrow_mut().init_refs(kb, &self);
+        }
+        for b in &self.peripheral_boards {
+            let board_id = b.borrow().id;
+            self.board_map.insert(board_id, b.clone());
+            b.borrow_mut().init_refs(kb, &self);
+        }
+        for c in &self.connections {
+            c.borrow_mut().init_refs(kb, &self);
         }
     }
 
     /// This method will reload the project based on the current project location
-    pub fn reload(&mut self) -> Result {
+    pub fn reload(&mut self, kb: &Vec<Rc<RefCell<Board>>>) -> Result {
         if let Some(location) = self.location.clone() {
-            self.load_from(&location)
+            self.load_from(&location, kb)
         } else {
             Err(ProjectIOError::NoProjectDirectory)
         }
     }
 
     /// Load a project from a specified directory, and sync the board assets.
-    pub fn load_from(&mut self, project_directory: &Path) -> Result {
+    pub fn load_from(&mut self, project_directory: &Path, kb: &Vec<Rc<RefCell<Board>>>) -> Result {
         let project_file = project_directory.join(PROJECT_FILE_NAME);
         let toml_str = match fs::read_to_string(project_file) {
             Ok(s) => s,
@@ -177,34 +190,28 @@ impl Project {
         };
         let p: Project = match toml::from_str(&toml_str) {
             Ok(p) => p,
-            Err(_e) => return Err(ProjectIOError::LoadToTomlError),
+            Err(e) => {
+                eprintln!("Failed to parse TOML: {}", e);
+                return Err(ProjectIOError::LoadToTomlError);
+            }
         };
-        // Now load in certain fields without overwriting others:
-        // self.code_editor.close_all_tabs();
         self.name = p.name;
         self.location = Some(project_directory.to_path_buf());
-        self.system = p.system;
         self.current_view = p.current_view;
-        // sync the assets with the global ones
-        self.load_board_resources();
+        self.main_board = p.main_board;
+        self.peripheral_boards = p.peripheral_boards;
+        self.connections = p.connections;
+        self.load_board_resources(kb);
         self.terminal_buffer.clear();
-        // Open the repo in the project directory
-        // self.repo = match Repository::open(self.get_location()) {
-        //     Ok(repo) => Some(repo),
-        //     Err(e) => {
-        //         info!("Could not open repo: {}", e);
-        //         None
-        //     },
-        // };
 
         Ok(())
     }
 
     /// Prompt the user to select project directory to open
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn open(&mut self) -> Result {
+    pub fn open(&mut self, kb: &Vec<Rc<RefCell<Board>>>) -> Result {
         if let Some(project_directory) = FileDialog::new().pick_folder() {
-            self.load_from(&project_directory)
+            self.load_from(&project_directory, kb)
         } else {
             info!("project open aborted");
             Err(ProjectIOError::FilePickerAborted)
@@ -240,7 +247,7 @@ impl Project {
                 if entry.unwrap().file_name().to_str().unwrap() == PROJECT_FILE_NAME {
                     warn!(
                         "you might be overwriting an existing Iron Coder project! \
-                           Are you sure you wish to continue?"
+                        Are you sure you wish to continue?"
                     );
                     self.terminal_buffer += "beware of overwriting and existing project file!\n";
                     return Ok(());
@@ -366,8 +373,8 @@ impl Project {
     }
 
     pub fn generate_cargo_template(&mut self) -> Result {
-        if let Some(mb) = &self.system.main_board {
-            if let Some(template_dir) = mb.get_template_dir() {
+        if let Some(mb) = &self.main_board {
+            if let Some(template_dir) = mb.borrow().board.get_template_dir() {
                 let destination = self.get_location();
                 
                 let cmd = duct::cmd!(
@@ -460,5 +467,86 @@ impl Project {
 
     pub fn clear_terminal_output(&mut self) {
         self.terminal_buffer.clear();
+    }
+
+    pub fn remove_board(&mut self, board: &Rc<RefCell<CanvasBoard>>) {
+        if let Some(mb) = &self.main_board {
+            if Rc::ptr_eq(board, mb) {
+                self.main_board = None;
+                return;
+            }
+        }
+        self.peripheral_boards.retain(|c| !Rc::ptr_eq(c, board));
+    }
+
+    pub fn remove_connection(&mut self, connection: &Rc<RefCell<CanvasConnection>>) {
+        self.connections.retain(|c| !Rc::ptr_eq(c, connection));
+    }
+
+    pub fn boards_iter(&self) -> impl Iterator<Item=&Rc<RefCell<CanvasBoard>>> {
+        self.main_board.iter().chain(self.peripheral_boards.iter())
+    }
+
+    pub fn boards_iter_rev(&self) -> impl Iterator<Item=&Rc<RefCell<CanvasBoard>>> {
+        self.peripheral_boards.iter().rev().chain(self.main_board.iter().rev())
+    }
+
+    pub fn connections_iter(&self) -> impl Iterator<Item=&Rc<RefCell<CanvasConnection>>> {
+        self.connections.iter()
+    }
+
+    pub fn add_connection(&mut self, c: &Rc<RefCell<CanvasConnection>>) {
+        self.connections.push(c.clone());
+    }
+}
+
+mod rc_refcell_vec {
+    use std::{rc::Rc, cell::RefCell};
+    use serde::{Serializer, Deserializer, Serialize, Deserialize};
+
+    pub fn serialize<T, S>(v: &Vec<Rc<RefCell<T>>>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        T: Clone + Serialize,
+        S: Serializer,
+    {
+        // Create a temporary Vec of plain T for serialization
+        let plain: Vec<T> = v.iter().map(|c| c.borrow().clone()).collect();
+        plain.serialize(serializer)
+    }
+
+    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<Vec<Rc<RefCell<T>>>, D::Error>
+    where
+        T: Deserialize<'de>,
+        D: Deserializer<'de>,
+    {
+        // Deserialize plain Vec<T>
+        let plain: Vec<T> = Vec::deserialize(deserializer)?;
+        // Wrap each element in Rc<RefCell>
+        Ok(plain.into_iter().map(|c| Rc::new(RefCell::new(c))).collect())
+    }
+}
+
+mod rc_refcell_option {
+    use std::{rc::Rc, cell::RefCell};
+    use serde::{Serializer, Deserializer, Serialize, Deserialize};
+
+    pub fn serialize<T, S>(v: &Option<Rc<RefCell<T>>>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        T: Clone + Serialize,
+        S: Serializer,
+    {
+        match v {
+            Some(rc) => rc.borrow().clone().serialize(serializer),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<Option<Rc<RefCell<T>>>, D::Error>
+    where
+        T: Deserialize<'de>,
+        D: Deserializer<'de>,
+    {
+        let opt: Option<T> = Option::deserialize(deserializer)?;
+        Ok(opt.map(|v| Rc::new(RefCell::new(v))))
     }
 }

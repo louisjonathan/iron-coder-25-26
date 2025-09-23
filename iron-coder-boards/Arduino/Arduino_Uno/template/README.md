@@ -1,16 +1,9 @@
-Embedded Rust Template Project for Arduino Uno
-=================================================
+blink
+=====
 
-This repo contains a simple blinky-led example in embedded rust for the Arduino Uno. 
-Through leveraging existing crates, we are able to compile Rust into the avr instruction set used by Arduino boards.
+Rust project for the _Arduino Uno_.
 
-### Acknowledgements
-Most of this code is adapted from [this](https://github.com/Rahix/avr-hal/blob/main/examples/arduino-uno/src/bin/uno-blink.rs) repository -- thanks!
-
-
-
-
-## Build Instructions used to Test Code Fuctionality Outside of Iron Coder
+## Build Instructions
 1. Install prerequisites as described in the [`avr-hal` README] (`avr-gcc`, `avr-libc`, `avrdude`, [`ravedude`]).
 
 2. Run `cargo build` to build the firmware.
@@ -34,3 +27,8 @@ Licensed under either of
    ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
+
+## Contribution
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall
+be dual licensed as above, without any additional terms or conditions.

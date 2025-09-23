@@ -199,7 +199,13 @@ impl MainWindow {
                     }
                     if ui.button("Open Project").clicked() {
                         self.open_project();
-                        self.state.load_boards_from_project();
+                        ui.close_menu();
+                    }
+                    if ui.button("Save Project").clicked() {
+                        match self.state.project.save() {
+                            Ok(_) => println!("Save successful."),
+                            Err(e) => println!("Save failed: {}", e),
+                        }
                         ui.close_menu();
                     }
                     ui.separator();
@@ -324,7 +330,7 @@ impl MainWindow {
     }
 
     fn open_project(&mut self) {
-        match self.state.project.open() {
+        match self.state.project.open(&self.state.known_boards) {
             Ok(()) => {
                 self.refocus_file_explorer_to_project();
                 println!("Project opened successfully.");
@@ -421,20 +427,20 @@ impl MainWindow {
                 
                 ui.horizontal(|ui| {
                     ui.label("Main Board:");
-                    let main_boards: Vec<_> = self.state.boards.iter()
-                        .filter(|b| b.is_main_board())
+                    let main_boards: Vec<_> = self.state.known_boards.iter()
+                        .filter(|b| b.borrow().is_main_board())
                         .collect();
                     
                     if !main_boards.is_empty() {
                         let selected_board_name = main_boards.get(self.new_project_dialog.selected_board_index)
-                            .map(|b| b.get_name())
-                            .unwrap_or("Unknown");
+                            .map(|b| b.borrow().get_name().to_owned())
+                            .unwrap_or("Unknown".to_string());
                         
                         egui::ComboBox::from_label("")
                             .selected_text(selected_board_name)
                             .show_ui(ui, |ui| {
                                 for (i, board) in main_boards.iter().enumerate() {
-                                    ui.selectable_value(&mut self.new_project_dialog.selected_board_index, i, board.get_name());
+                                    ui.selectable_value(&mut self.new_project_dialog.selected_board_index, i, board.borrow().get_name());
                                 }
                             });
                     } else {
@@ -479,14 +485,14 @@ impl MainWindow {
         new_project.borrow_name().clone_from(&self.new_project_dialog.name);
         
         // select board for the project
-        if self.new_project_dialog.selected_board_index < self.state.boards.len() {
-            let main_boards: Vec<_> = self.state.boards.iter()
-                .filter(|b| b.is_main_board())
+        if self.new_project_dialog.selected_board_index < self.state.known_boards.len() {
+            let main_boards: Vec<_> = self.state.known_boards.iter()
+                .filter(|b| b.borrow().is_main_board())
                 .collect();
             
             if self.new_project_dialog.selected_board_index < main_boards.len() {
                 let board = main_boards[self.new_project_dialog.selected_board_index].clone();
-                new_project.system.main_board = Some(board);
+                new_project.add_board(&board);
             }
         }
         
@@ -505,7 +511,7 @@ impl MainWindow {
                 match new_project.save() {
                     Ok(()) => {
                         // Get cargo-generate template
-                        if new_project.system.main_board.is_some() {
+                        if new_project.main_board.is_some() {
                             match new_project.generate_cargo_template() {
                                 Ok(()) => {
                                     println!("Project template generated.");
@@ -518,7 +524,7 @@ impl MainWindow {
                         
                         // open the project
                         let project_location = new_project.get_location_path();
-                        match self.state.project.load_from(&project_location.unwrap()) {
+                        match self.state.project.load_from(&project_location.unwrap(), &self.state.known_boards) {
                             Ok(()) => {
                                 self.refocus_file_explorer_to_project();
                                 self.show_new_project_dialog = false;

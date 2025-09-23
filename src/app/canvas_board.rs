@@ -1,32 +1,57 @@
 use crate::app::canvas_connection::CanvasConnection;
 use crate::board::{Board, svg_reader::SvgBoardInfo};
-use crate::project::system::Connection;
-use egui::{Pos2, Rect, Ui, Sense, Color32, TextureId, Vec2, Id, Response};
+use crate::app::SharedState;
+use egui::{Pos2, Rect, Ui, Sense, Color32, TextureId, Vec2, Id, Response, Context, TextureHandle};
 use emath::RectTransform;
 
 use std::collections::HashMap;
+use std::ptr::eq;
 use egui_extras::{RetainedImage};
 use std::vec::Vec;
 
 use std::rc::Rc;
 use std::cell::RefCell;
 
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+use crate::project::Project;
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(default)]
 pub struct CanvasBoard {
+	pub id: Uuid,
 	pub board: Board,
-	retained_image: RetainedImage,
-	texture_id: Option<TextureId>,
+	#[serde(skip)]
+	texture_handle: Option<TextureHandle>,
 	display_size: Vec2,
+	#[serde(skip)]
 	image_rect: Rect,
 	pin_locations: Vec<(String, Rect)>,
 	canvas_pos: Vec2,
+	#[serde(skip)]
 	pub connections: Vec<Rc<RefCell<CanvasConnection>>>,
+	connection_ids: Vec<Uuid>,
+}
+
+impl Default for CanvasBoard {
+	fn default() -> Self {
+		Self {
+			id: Uuid::default(),
+			board: Board::default(),
+			texture_handle: None,
+			display_size: Vec2::ZERO,
+			image_rect: Rect::ZERO,
+			pin_locations: Vec::new(),
+			canvas_pos: Vec2::ZERO,
+			connection_ids: Vec::new(),
+			connections: Vec::new(),
+		}
+	}
 }
 
 impl CanvasBoard {
-    pub fn new(board: &Board) -> Option<Self> {
+	pub fn new(board: &Board) -> Option<Self> {
 		if let Some(svg_board_info) = &board.svg_board_info {
-			let retained_image = RetainedImage::from_color_image("board_picture", svg_board_info.image.clone());
-
 			let display_size = svg_board_info.physical_size;
 			let image_origin = egui::pos2(0.0, 0.0);
 			let image_rect = Rect::from_min_size(image_origin, display_size);
@@ -39,36 +64,66 @@ impl CanvasBoard {
 				pin_locations.push((pin_name.clone(), pin_rect));
 			}
 
-			let connections = Vec::new();
-
 			Some(Self {
+				id: Uuid::new_v4(),
 				board: board.clone(),
-				retained_image,
-				texture_id: None,
+				texture_handle: None,
 				display_size,
 				image_rect,
 				pin_locations,
 				canvas_pos: Vec2::new(0.0, 0.0),
-				connections,
+				connections: Vec::new(),
+				connection_ids: Vec::new(),
 			})
 		} else {
 			None
 		}
-    }
+	}
+
+	pub fn init_refs(&mut self, kb: &Vec<Rc<RefCell<Board>>>, p: &Project) {
+		if let Some(kb_board) = kb.iter().find(|b_rc| {
+			let b = b_rc.borrow();
+			b.get_name() == self.board.get_name()
+		}) {
+			self.board = kb_board.borrow().clone();
+		}
+
+		if let Some(svg_board_info) = &self.board.svg_board_info {
+			println!("found board svg info on load");
+			let display_size = svg_board_info.physical_size;
+			let image_origin = egui::pos2(0.0, 0.0);
+			self.image_rect = Rect::from_min_size(image_origin, display_size);
+		}
+
+		self.connections = self.connection_ids.iter()
+			.filter_map(|c_id| {
+				p.connections_iter()
+					.find(|c| c.borrow().id == *c_id)
+					.map(|c| c.clone())
+			})
+			.collect();
+
+		println!("populated board {} with {} connections", self.board.get_name(), self.connections.len());
+	}
 
 	pub fn draw(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2) {
-		let texture_id = self.texture_id.get_or_insert_with(|| {
-			self.retained_image.texture_id(ui.ctx())
-		});
+		if self.texture_handle.is_none() {
+			if let Some(svg_board_info) = &self.board.svg_board_info {
+				println!("BINDING BOARD TEXTURE");
+				self.texture_handle = Some(ui.ctx().load_texture(self.board.get_name(), svg_board_info.image.clone(), Default::default()));
+			}
+		}
 
-		let canvas_rect = self.image_rect.translate(self.canvas_pos);
-		let transformed_rect = to_screen.transform_rect(canvas_rect);
-		ui.painter().image(
-			*texture_id,
-			transformed_rect,
-			egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-			egui::Color32::WHITE,
-		);
+		if let Some(texture) = &self.texture_handle {
+			let canvas_rect = self.image_rect.translate(self.canvas_pos);
+			let transformed_rect = to_screen.transform_rect(canvas_rect);
+			ui.painter().image(
+				texture.id(),
+				transformed_rect,
+				egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+				egui::Color32::WHITE,
+			);
+		}
 	}
 
 	pub fn draw_pins(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2, draw_all_pins: bool) {
@@ -173,5 +228,11 @@ impl CanvasBoard {
 
 	pub fn drop_connection(&mut self, r: &Rc<RefCell<CanvasConnection>>) {
 		self.connections.retain(|c| !Rc::ptr_eq(c, r));
+		self.connection_ids.retain(|c|  *c != r.borrow().id);
+	}
+
+	pub fn add_connection(&mut self, r: &Rc<RefCell<CanvasConnection>>) {
+		self.connection_ids.push(r.borrow().id);
+		self.connections.push(r.clone());
 	}
 }

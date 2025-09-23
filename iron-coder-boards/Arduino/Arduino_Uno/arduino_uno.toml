@@ -1,6 +1,6 @@
-
 name = "Arduino Uno"
 manufacturer = "Arduino"
+is_main_board = true
 board_type = "Main"
 standard = "Arduino"
 cpu = "Microchip AVR"

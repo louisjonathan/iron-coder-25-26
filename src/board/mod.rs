@@ -25,6 +25,9 @@ pub mod parsing;
 
 use parsing::BspParseInfo;
 
+use std::rc::Rc;
+use std::cell::RefCell;
+
 /// These are the various standard development board form factors
 #[non_exhaustive]
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -207,8 +210,8 @@ impl Board {
 }
 
 /// Iteratively gather the Boards from the filesystem.
-pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
-    let mut r = Vec::new();
+pub fn get_boards(boards_dir: &Path) -> Vec<Rc<RefCell<Board>>> {
+    let mut r = Vec::<Rc<RefCell<Board>>>::new();
     if let Ok(manufacturers) = fs::read_dir(boards_dir) {
         // first tier of organization is by manufacturer
         for manufacturer in manufacturers {
@@ -281,7 +284,7 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Board> {
                                         board.name.clone()
                                     );
                                 }
-                                r.push(board);
+                                r.push(Rc::new(RefCell::new(board)));
                             }
                             Err(e) => {
                                 warn!(

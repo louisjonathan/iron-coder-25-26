@@ -5,7 +5,7 @@ mod keybinding;
 mod syntax_highlighting;
 
 mod shared_state;
-use shared_state::SharedState;
+pub use shared_state::SharedState;
 
 pub mod tabs;
 pub use tabs::*;
@@ -13,10 +13,10 @@ pub use tabs::*;
 pub mod window;
 pub use window::MainWindow;
 
-mod canvas_board;
-use canvas_board::CanvasBoard;
+pub mod canvas_board;
+pub use canvas_board::CanvasBoard;
 
-mod canvas_connection;
-use canvas_connection::CanvasConnection;
+pub mod canvas_connection;
+pub use canvas_connection::CanvasConnection;
 
 mod canvas_element;

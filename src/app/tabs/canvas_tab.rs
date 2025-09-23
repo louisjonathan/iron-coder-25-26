@@ -4,7 +4,6 @@ use crate::app::canvas_board::CanvasBoard;
 use crate::app::canvas_element::CanvasSelection;
 use crate::app::SharedState;
 use crate::board;
-use crate::project::system::Connection;
 use eframe::egui::{Pos2, Rect, Response, Sense, Ui, Vec2, Color32, Stroke, Key, Align2, FontId};
 use egui::color_picker::color_picker_color32;
 use emath::RectTransform;
@@ -112,63 +111,53 @@ impl BaseTab for CanvasTab {
 
         self.draw_grid(ui, &to_screen);
 
-        let draw_all_pins = ui.input(|i| i.modifiers.ctrl);
+        let draw_all_pins = ui.input(|i| i.modifiers.alt);
 
-        if let Some(s) = &self.selection {
-            let delete_selection = ui.input(|i| i.key_pressed(Key::Delete));
-            if delete_selection {
+        if ui.input(|i| i.key_pressed(Key::Delete)) {
+            if let Some(s) = self.selection.take() {
                 match s {
                     CanvasSelection::Board(board) => {
-                        let b = board.borrow_mut();
-                        for conn in &b.connections {
-                            state.connections.retain(|c| !Rc::ptr_eq(c, &conn));
-                        }
-                        drop(b);
-                        state.boards_used.retain(|c| !Rc::ptr_eq(c, &board));
                         self.selection = None;
+                        state.project.remove_board(&board);
                     }
                     CanvasSelection::Connection(connection) => {
-                        let conn = connection.borrow();
-                        let sb = conn.get_start_board().clone();
-                        let eb = conn.get_end_board().unwrap().clone();
-                        drop(conn);
-                        sb.borrow_mut().drop_connection(connection);
-                        eb.borrow_mut().drop_connection(connection);
-                        state.connections.retain(|c| !Rc::ptr_eq(c, &connection));
                         self.selection = None;
+                        state.project.remove_connection(&connection);
                     }
                 }
-            }
+        }
         }
 
         let quit_connection = ui.input(|i| i.key_pressed(Key::Escape));
         if quit_connection {
-            self.drop_connection_in_progress(state);
+            if self.connection_in_progress.is_some() {
+                state.project.connections.pop();
+                self.connection_in_progress = None;
+            }
         }
 
-        for canvas_board_rc in &state.boards_used {
-            let mut canvas_board = canvas_board_rc.borrow_mut();
-            canvas_board.draw(ui, &to_screen, &mouse_screen);
+        // BOARDS
+        for b in state.project.boards_iter() {
+            b.borrow_mut().draw(ui, &to_screen, &mouse_screen);
         }
 
-        for conn in &mut state.connections {
-            let connection = conn.borrow();
-            connection.draw(ui, &to_screen, mouse_canvas);
+        // CONNECTIONS
+        for c in state.project.connections_iter() {
+            c.borrow().draw(ui, &to_screen, mouse_canvas);
         }
-
         if let Some(c) = &self.connection_in_progress {
             c.borrow().draw(ui, &to_screen, mouse_canvas);
         }
 
-        for canvas_board_rc in &state.boards_used {
-            let mut canvas_board = canvas_board_rc.borrow_mut();
-            canvas_board.draw_pins(ui, &to_screen, &mouse_screen, draw_all_pins);
+        // PINS
+        for b in state.project.boards_iter() {
+            b.borrow_mut().draw_pins(ui, &to_screen, &mouse_screen, draw_all_pins);
         }
 
         // Keybind text
         // TODO: bind to keybinds backend
         let mut offset = 0.0;
-        ui.painter().text(rect.min+Vec2{x:0.0,y:offset}, Align2::LEFT_TOP, "Ctrl: Show all pins", FontId::monospace(12.0), Color32::WHITE);
+        ui.painter().text(rect.min+Vec2{x:0.0,y:offset}, Align2::LEFT_TOP, "Alt: Show all pins", FontId::monospace(12.0), Color32::WHITE);
         offset += 12.0;
 
         if self.selection.is_some() {
@@ -192,33 +181,45 @@ impl BaseTab for CanvasTab {
         // 1
         if let Some(mut conn) = self.connection_in_progress.take() {
             let mut clicked_pin: Option<String> = None;
-            let board_refs = state.boards_used.clone();
-            for canvas_board_rc in &board_refs {
-                let mut canvas_board = canvas_board_rc.borrow_mut();
-                if !canvas_board.contains(&to_screen, &mouse_screen) {
-                    continue;
-                }
-                if let Some(pin) = canvas_board.pin_click(&to_screen, &response, &mouse_screen) {
+            let boards: Vec<_> = state.project.boards_iter().cloned().collect();
+            for canvas_board_rc in &boards {
+                let pin_opt = {
+                    let mut canvas_board = canvas_board_rc.borrow_mut();
+                    if !canvas_board.contains(&to_screen, &mouse_screen) {
+                        None
+                    } else {
+                        canvas_board.pin_click(&to_screen, &response, &mouse_screen)
+                    }
+                };
+
+                if let Some(pin) = pin_opt {
                     clicked_pin = Some(pin.clone());
-                    let mut connection = conn.borrow_mut();
-                    if Rc::ptr_eq(&connection.get_start_board(), canvas_board_rc) {
-                        // drop connection in progress
-                        break;
-                    }
-                    if self.check_pin_use(canvas_board_rc, &pin, state) {
-                        break;
-                    }
-                    
-                    
-                    if let Some(pin_location) = canvas_board.get_pin_location(&pin) {
-                        connection.add_end_point(&mouse_canvas, pin_location+canvas_board.get_canvas_position());
+
+                    let conn_clone = conn.clone();
+                    {
+                        let mut connection = conn_clone.borrow_mut();
+
+                        let pin_location_opt = {
+                            let canvas_board = canvas_board_rc.borrow();
+                            canvas_board.get_pin_location(&pin)
+                                .map(|loc| loc + canvas_board.get_canvas_position())
+                        };
+
+                        if let Some(pin_location) = pin_location_opt {
+                            connection.add_end_point(&mouse_canvas, pin_location);
+                        }
+
+                        connection.get_start_board().borrow_mut().connections.push(conn_clone.clone());
+
+                        connection.end(canvas_board_rc.clone(), pin.clone());
                     }
 
-                    canvas_board.connections.push(conn.clone());
-                    connection.get_start_board().borrow_mut().connections.push(conn.clone());
-                    state.connections.push(conn.clone());
-                    drop(canvas_board);
-                    connection.end(canvas_board_rc.clone(), pin.clone());
+                    {
+                        let mut canvas_board = canvas_board_rc.borrow_mut();
+                        canvas_board.add_connection(&conn_clone);
+                    }
+
+                    state.project.add_connection(&conn_clone);
                     break;
                 }
             }
@@ -238,21 +239,34 @@ impl BaseTab for CanvasTab {
             let mut ignore_canvas = false;
 
             // 2
-            let board_refs = state.boards_used.clone();
-            for canvas_board_rc in &board_refs {
+            let boards: Vec<_> = state.project.boards_iter().cloned().collect();
+            for canvas_board_rc in &boards {
                 if clicked_pin.is_none() {
-                    let mut canvas_board = canvas_board_rc.borrow_mut();
-                    if let Some(pin) = canvas_board.pin_click(&to_screen, &response, &mouse_screen) {
+                    let pin_opt = {
+                        let mut canvas_board = canvas_board_rc.borrow_mut();
+                        canvas_board.pin_click(&to_screen, &response, &mouse_screen)
+                    };
+                    
+                    if let Some(pin) = pin_opt {
                         clicked_pin = Some(pin.clone());
-                        if self.check_pin_use(canvas_board_rc, &pin, state) {
+                        if self.check_pin_use(canvas_board_rc, &pin, &state.project.connections) {
                             break;
                         }
+                        
                         let mut conn = Rc::new(RefCell::new(CanvasConnection::new(canvas_board_rc.clone(), pin.clone())));
-                        let mut connection = conn.borrow_mut();
-                        if let Some(pin_location) = canvas_board.get_pin_location(&pin) {
-                            connection.add_point(pin_location+canvas_board.get_canvas_position());
+                        {
+                            let mut connection = conn.borrow_mut();
+                            let canvas_board = canvas_board_rc.borrow();
+                            if let Some(pin_location) = canvas_board.get_pin_location(&pin) {
+                                connection.add_point(pin_location+canvas_board.get_canvas_position());
+                            }
                         }
-                        drop(connection);
+
+                        {
+                            let mut canvas_board = canvas_board_rc.borrow_mut();
+                            canvas_board.add_connection(&conn);
+                        }
+
                         self.connection_in_progress = Some(conn.clone());
                         break;
                     }
@@ -262,7 +276,7 @@ impl BaseTab for CanvasTab {
             if response.clicked() {
                 // 3
                 let mut connection_clicked = false;
-                for c in &state.connections {
+                for c in state.project.connections_iter() {
                     let connection = c.borrow();
                     if connection.contains(&to_screen, &mouse_screen) {
                         connection_clicked = true;
@@ -274,7 +288,7 @@ impl BaseTab for CanvasTab {
 
                 // 4 only check boards if we didnt click connection
                 if !connection_clicked {
-                    for b in state.boards_used.iter().rev() {
+                    for b in state.project.boards_iter_rev() {
                         let board = b.borrow();
                         if board.contains(&to_screen, &mouse_screen) {
                             self.selection = Some(CanvasSelection::Board(b.clone()));
@@ -365,15 +379,8 @@ impl CanvasTab {
         }
     }
 
-    fn drop_connection_in_progress(&mut self, state: &mut SharedState) {
-        if self.connection_in_progress.is_some() {
-            state.connections.pop();
-            self.connection_in_progress = None;
-        }
-    }
-
-    fn check_pin_use(&self, board: &Rc<RefCell<CanvasBoard>>, pin_name: &String, state: &mut SharedState) -> bool {
-        for c in &state.connections {
+    fn check_pin_use(&self, board: &Rc<RefCell<CanvasBoard>>, pin_name: &String, connections: &Vec<Rc<RefCell<CanvasConnection>>>) -> bool {
+        for c in connections {
             let connection = c.borrow();
             if Rc::ptr_eq(&connection.get_start_board(), board) && pin_name.eq(&connection.get_start_pin()) {
                 return true;
@@ -386,4 +393,14 @@ impl CanvasTab {
         }
         return false;
     }
+
+    // pub fn reload(&mut self, state: &mut SharedState) {
+    //     self.canvas_zoom = 5.0;
+    //     self.canvas_offset = Vec2::new(0.0, 0.0);
+    //     self.connection_in_progress = None;
+    //     self.selection = None;
+
+    //     state.boards_used.clear();
+    //     state.connections.clear();
+    // }
 }

@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 use std::cell::RefCell;
 
-#[derive(Serialize, Deserialize, Default)]
 pub struct BoardInfoTab {
     chosen_board_idx: Option<usize>,
 }
@@ -38,15 +37,15 @@ impl BaseTab for BoardInfoTab {
             // }
             ui.label("or select a board from the list below");
             ui.columns(num_cols, |columns| {
-                for (i, b) in state.boards.clone().into_iter().enumerate() {
+                for (i, b) in state.known_boards.clone().into_iter().enumerate() {
                     let col = i % num_cols;
                     // When a board is clicked, add it to the new project
                     ///@TODO  BoardSelectorWidget
                     if columns[col]
-                        .add(board::display::BoardSelectorWidget(b.clone()))
+                        .add(board::display::BoardSelectorWidget(b.borrow().clone()))
                         .clicked()
                     {
-                        state.add_board(&b);
+                        state.project.add_board(&b);
 
 						// state.project.add_board(b.clone());
 
@@ -55,7 +54,7 @@ impl BaseTab for BoardInfoTab {
                     }
                 }
 
-                let last_col = state.boards_used.len();
+                // let last_col = state.boards_used.len();
             });
         });
     }

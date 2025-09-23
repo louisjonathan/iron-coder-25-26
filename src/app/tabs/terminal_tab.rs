@@ -25,7 +25,19 @@ impl TerminalTab {
 }
 
 impl BaseTab for TerminalTab {
-    fn draw(&mut self, ui: &mut egui::Ui, _state: &mut SharedState) {
+    fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
+
+        let input = ui.input(|i| i.clone());
+        if input.modifiers.ctrl && input.key_released(egui::Key::C) {
+            state.stop_board();
+        }
+
+        if let Some(rx) = &state.rx {
+        for line in rx.try_iter() { // non-blocking
+                state.terminal_buffer.push_str(&line);
+            }
+        }
+
         let tab_rect = ui.max_rect();
 
         let font_height = ui.text_style_height(&egui::TextStyle::Body);
@@ -42,29 +54,29 @@ impl BaseTab for TerminalTab {
                         .desired_width(ui.available_width()),
                 );
     
-                if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                    let command = self.command_input.trim();
-                    if !command.is_empty() {
-                        match Command::new("powershell") // TODO fix this for other OSes just demo for now
-                            .arg("-c")
-                            .arg(command)
-                            .output()
-                        {
-                            Ok(output) => {
-                                let stdout = String::from_utf8_lossy(&output.stdout)
-                                    .trim_end()
-                                    .to_string();
-                                self.terminal_output
-                                    .push_str(&format!("> {}\n{}\n", command, stdout));
-                            }
-                            Err(err) => {
-                                self.terminal_output
-                                    .push_str(&format!("> {}\n{}\n", command, err));
-                            }
-                        }
-                        self.command_input.clear();
-                    }
-                }
+                // if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                //     let command = self.command_input.trim();
+                //     if !command.is_empty() {
+                //         match Command::new("powershell") // TODO fix this for other OSes just demo for now
+                //             .arg("-c")
+                //             .arg(command)
+                //             .output()
+                //         {
+                //             Ok(output) => {
+                //                 let stdout = String::from_utf8_lossy(&output.stdout)
+                //                     .trim_end()
+                //                     .to_string();
+                //                 self.terminal_output
+                //                     .push_str(&format!("> {}\n{}\n", command, stdout));
+                //             }
+                //             Err(err) => {
+                //                 self.terminal_output
+                //                     .push_str(&format!("> {}\n{}\n", command, err));
+                //             }
+                //         }
+                //         self.command_input.clear();
+                //     }
+                // }
             });
         });
 
@@ -79,7 +91,7 @@ impl BaseTab for TerminalTab {
                 .stick_to_bottom(true)
                 .show(ui, |ui| {
                     ui.add(
-                        egui::TextEdit::multiline(&mut self.terminal_output)
+                        egui::TextEdit::multiline(&mut state.terminal_buffer)
                             .font(egui::TextStyle::Monospace)
                             .desired_rows(15)
                             .lock_focus(true)

@@ -8,44 +8,52 @@ use std::path::{Path, PathBuf};
 use crate::app::CanvasConnection;
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::collections::HashMap;
+use uuid::Uuid;
+use std::process::{Child, Stdio};
+use std::sync::mpsc::{self, Sender, Receiver};
+use std::process::Command;
+use std::io::BufRead;
+
+use crate::board::Board;
 
 pub struct SharedState {
     pub keybindings: Keybindings,
     pub colorschemes: colorschemes,
     pub syntax_highlighter: SyntaxHighlighter,
     pub project: Project,
-    pub boards: Vec<board::Board>,
-    pub boards_used: Vec<Rc<RefCell<CanvasBoard>>>,
-    pub connections: Vec<Rc<RefCell<CanvasConnection>>>,
     pub requested_file_to_open: Option<PathBuf>,
+    pub known_boards: Vec<Rc<RefCell<Board>>>,
+
+    pub terminal_buffer: String,
+    pub tx: Option<Sender<String>>,
+    pub rx: Option<Receiver<String>>,
+    pub child: Option<Child>,
 }
 
 impl SharedState {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn default() -> Self {
         let boards_dir = Path::new("./iron-coder-boards");
-        let boards: Vec<board::Board> = board::get_boards(boards_dir);
+        let known_boards = board::get_boards(boards_dir);
 
         let mut project = Project::default();
-        project.known_boards = boards.clone();
         // match project.reload() {
         //     Ok(_) => (),
         //     Err(e) => println!("error reloading project from disk! {:?}", e),
         // }
-
-        let boards_used = Vec::new();
-        
-        let mut connections = Vec::new();
 
         Self {
             keybindings: Keybindings::new(),
             colorschemes: colorschemes::default(),
             syntax_highlighter: SyntaxHighlighter::new(),
             project,
-            boards,
-            boards_used,
-            connections,
             requested_file_to_open: None,
+            known_boards,
+            terminal_buffer: String::new(),
+            tx: None,
+            rx: None,
+            child: None,
         }
     }
 
@@ -70,49 +78,62 @@ impl SharedState {
         }
     }
 
-    pub fn add_board(&mut self, b: &board::Board) {
+    pub fn load_to_board(&mut self) {
+        let (tx, rx) = mpsc::channel();
+        if self.child.is_some() {
+            let tx = tx.clone();
+            tx.send("Use Ctrl+C to stop process before flashing again.".to_string()).unwrap();
+            return;
+        }
+        if let Some(path) = &self.project.location {
+            self.terminal_buffer.clear();
+            self.tx = Some(tx.clone());
+            self.rx = Some(rx);
 
-        match b.is_main_board() {
-            true => {
-                if self.project.has_main_board() {
-                    // info!("project already contains a main board! aborting.");
-                    self.project.terminal_buffer += "Project already contains a main board\n";
-                    return;
-                } else {
-                    self.project.system.main_board = Some(b.clone());
-                    let board_rc = Rc::new(RefCell::new(CanvasBoard::new(&b).unwrap()));
-                    self.boards_used.push(board_rc);
-                }
+            // Spawn cargo run
+            let mut child = Command::new("cargo")
+                .arg("run")
+                .arg("--quiet")
+                .current_dir(path)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap();
+
+            if let Some(stdout) = child.stdout.take() {
+                let tx = tx.clone();
+                std::thread::spawn(move || {
+                    let reader = std::io::BufReader::new(stdout).lines();
+                    for line in reader {
+                        let line = line.unwrap() + "\n";
+                        tx.send(line).unwrap();
+                    }
+                });
             }
-            false => {
-                // don't duplicate a board
-                if self.project.system.peripheral_boards.contains(&b) {
-                    // info!(
-                    //     "project <{}> already contains board <{:?}>",
-                    //     self.name, board
-                    // );
-                    self.project.terminal_buffer += "Project already contains that board\n";
-                    return;
-                } else {
-                    self.project.system.peripheral_boards.push(b.clone());
-                    let board_rc = Rc::new(RefCell::new(CanvasBoard::new(&b).unwrap()));
-                    self.boards_used.push(board_rc);
-                }
+            if let Some(stderr) = child.stderr.take() {
+                let tx = tx.clone();
+                std::thread::spawn(move || {
+                    let reader = std::io::BufReader::new(stderr).lines();
+                    for line in reader {
+                        let line = line.unwrap() + "\n";
+                        tx.send(line).unwrap();
+                    }
+                });
             }
+
+            self.child = Some(child);
         }
     }
 
-    pub fn load_boards_from_project(&mut self) {
-        if let Some(b) = &self.project.system.main_board {
-            if let Some(cb) = CanvasBoard::new(&b) {
-                self.boards_used.push(Rc::new(RefCell::new(cb)));
-            }
-        }
-
-        for b in &self.project.system.peripheral_boards {
-            if let Some(cb) = CanvasBoard::new(&b) {
-                self.boards_used.push(Rc::new(RefCell::new(cb)));
-            }
+    pub fn stop_board(&mut self) {
+        if let Some(mut child) = self.child.take() {
+            let _ = child.kill();
+            let _ = child.wait();
+            self.tx = None;
+            self.rx = None;
+            self.child = None;
+            self.terminal_buffer.clear();
+            self.terminal_buffer.push_str("\nProcess terminated\n");
         }
     }
 }

@@ -1,20 +1,31 @@
-use crate::project::Connection;
 use crate::board::Board;
 use egui::{Color32, Pos2, Rect, Response, Stroke, Vec2, Key};
 use emath::RectTransform;
 use crate::app::canvas_board::CanvasBoard;
 
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use crate::project::Project;
+
 use std::rc::Rc;
 use std::cell::RefCell;
 
+#[derive(Serialize, Deserialize, Default, Clone)]
+#[serde(default)]
 pub struct CanvasConnection {
-	connection: Option<Connection>,
+	pub id: Uuid,
 	points: Vec<Pos2>,
 	color: egui::Color32,
-	width: f32,
+
+	#[serde(skip)]
 	start_board: Rc<RefCell<CanvasBoard>>,
+	start_board_id: Uuid,
 	start_pin: String,
+
+	#[serde(skip)]
 	end_board: Option<Rc<RefCell<CanvasBoard>>>,
+	end_board_id: Uuid,
 	end_pin: Option<String>,
 }
 
@@ -22,19 +33,34 @@ impl CanvasConnection {
 	pub fn new(start_board: Rc<RefCell<CanvasBoard>>, start_pin: String) -> Self {
 		let color = egui::Color32::RED;
 		let points = Vec::<Pos2>::new();
-		let width = 4.0;
 
 		let mut points = points;
 
+		let start_board_id = start_board.borrow().id;
+
 		Self {
-			connection: None,
+			id: Uuid::new_v4(),
 			points,
 			color,
-			width,
 			start_board: start_board,
+			start_board_id,
 			start_pin,
 			end_board: None,
+			end_board_id: Uuid::nil(),
 			end_pin: None,
+		}
+	}
+
+	pub fn init_refs(&mut self, kb: &Vec<Rc<RefCell<Board>>>, p: &Project) {
+		if let Some(s_b) = p.board_map.get(&self.start_board_id) {
+			let id_copy = s_b.borrow().id;
+			self.start_board = s_b.clone();
+			self.start_board_id = id_copy;
+		}
+		if let Some(e_b) = p.board_map.get(&self.end_board_id) {
+			let id_copy = e_b.borrow().id;
+			self.end_board = Some(e_b.clone());
+			self.end_board_id = id_copy;
 		}
 	}
 
@@ -45,7 +71,7 @@ impl CanvasConnection {
 				let end = to_screen.transform_pos(self.points[i+1]);
 				ui.painter().line_segment(
 					[start, end],
-					egui::Stroke::new(self.width, self.color),
+					egui::Stroke::new(4.0, self.color),
 				);
 			}
 		}
@@ -58,26 +84,28 @@ impl CanvasConnection {
 	pub fn add_point(&mut self, mut p: Pos2) {
 		// to avoid mut borrow, use index
 		let len = self.points.len();
-		if len == 1 {
-			p.y = self.points[0].y;
-		} else if len > 1 {
-			let lastp = self.points[len - 1];
 
-			let dx = p.x - lastp.x;
-			let dy = p.y - lastp.y;
+		if len == 0 {
+			self.points.push(p);
+			return;
+		}
 
-			if dx.abs() > dy.abs() {
-				p.y = lastp.y;
-				if len > 2 && self.points[len - 2].y == p.y {
-					self.points[len - 1].x = p.x;
-					return;
-				}
-			} else {
-				p.x = lastp.x;
-				if len > 2 && self.points[len - 2].x == p.x {
-					self.points[len - 1].y = p.y;
-					return;
-				}
+		let lastp = self.points[len - 1];
+
+		let dx = p.x - lastp.x;
+		let dy = p.y - lastp.y;
+
+		if dx.abs() > dy.abs() {
+			p.y = lastp.y;
+			if len > 2 && self.points[len - 2].y == p.y {
+				self.points[len - 1].x = p.x;
+				return;
+			}
+		} else {
+			p.x = lastp.x;
+			if len > 2 && self.points[len - 2].x == p.x {
+				self.points[len - 1].y = p.y;
+				return;
 			}
 		}
 		self.points.push(p);
@@ -88,7 +116,7 @@ impl CanvasConnection {
 		self.add_point(pin_pos);
 		self.add_point(pin_pos);
 		
-		// TODO: fix pin reverse engineering
+		// TODO: fix pin propagation
 		// let tolerance = 10.0;
 		// let len = self.points.len();
 		// if self.points[len-1].distance(pin_pos) > tolerance || len == 2 {
@@ -111,6 +139,8 @@ impl CanvasConnection {
 
 		let sb = self.start_board.borrow();
 		let eb = end_board.borrow();
+
+		self.end_board_id = eb.id;
 		println!("TODO: GENERATE CODE TO CONNECT {}:{} TO {}:{} BASED ON INTERFACE", sb.board.get_name(), self.start_pin, eb.board.get_name(), end_pin);
 	}
 
@@ -141,7 +171,7 @@ impl CanvasConnection {
 		);
 		ui.painter().line_segment(
 		[to_screen.transform_pos(self.points[len - 1]), to_screen.transform_pos(p)],
-		egui::Stroke::new(self.width, ghost_color));
+		egui::Stroke::new(4.0, ghost_color));
 	}
 
 	pub fn highlight(&self, ui: &mut egui::Ui, to_screen: &RectTransform) {

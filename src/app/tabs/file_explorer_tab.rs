@@ -95,7 +95,7 @@ impl BaseTab for FileExplorerTab {
                             // check if this is a supported file type
                             let is_supported_file = entry.extension()
                                 .and_then(|ext| ext.to_str())
-                                .map(|ext| matches!(ext, "rs" | "json" | "txt"))
+                                .map(|ext| matches!(ext, "rs" | "json" | "txt" | "toml"))
                                 .unwrap_or(false);
                             
                             ui.horizontal(|ui| {

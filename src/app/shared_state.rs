@@ -2,7 +2,7 @@ use crate::app::keybinding::{Keybinding, Keybindings};
 use crate::board;
 use crate::app::canvas_board::CanvasBoard;
 use crate::project::Project;
-use crate::app::colorschemes::colorschemes;
+use crate::app::colorschemes::colorscheme;
 use crate::app::syntax_highlighting::SyntaxHighlighter;
 use std::path::{Path, PathBuf};
 use crate::app::CanvasConnection;
@@ -19,7 +19,7 @@ use crate::board::Board;
 
 pub struct SharedState {
     pub keybindings: Keybindings,
-    pub colorschemes: colorschemes,
+    pub colorschemes: colorscheme,
     pub syntax_highlighter: SyntaxHighlighter,
     pub project: Project,
     pub requested_file_to_open: Option<PathBuf>,
@@ -45,7 +45,7 @@ impl SharedState {
 
         Self {
             keybindings: Keybindings::new(),
-            colorschemes: colorschemes::default(),
+            colorschemes: colorscheme::default(),
             syntax_highlighter: SyntaxHighlighter::new(),
             project,
             requested_file_to_open: None,
@@ -69,7 +69,7 @@ impl SharedState {
         let boards_used = project.system.get_all_boards();
         Self {
             keybindings: Keybindings::new(),
-            colorschemes: colorschemes::colorschemes::default(),
+            colorschemes: colorscheme::colorschemes::default(),
             syntax_highlighter: SyntaxHighlighter::new(),
             project: project,
             boards: boards,

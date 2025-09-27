@@ -33,7 +33,9 @@ impl SyntaxHighlighter {
             self.current_theme = theme_name.to_string();
         }
     }
-
+    pub fn get_current_theme(&self) -> &str {
+        &self.current_theme
+    }   
     pub fn available_themes(&self) -> Vec<&String> {
         self.theme_set.themes.keys().collect()
     }
@@ -50,7 +52,7 @@ impl SyntaxHighlighter {
 
     fn style_to_text_format(&self, style: &Style) -> TextFormat {
         let mut format = TextFormat::default();
-        
+
         let fg = style.foreground;
         format.color = Color32::from_rgb(fg.r, fg.g, fg.b);
         

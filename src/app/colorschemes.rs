@@ -80,18 +80,18 @@ pub fn create_or_modify_colorscheme(filename: &String, colors: &HashMap<String, 
 
 pub fn set_colorscheme(ui: &mut egui::Ui, colorscheme: &HashMap<String, Color32>) {
     let mut new_style = (*ui.ctx().style()).clone();
-    //new_style.visuals.widgets.style()
-    //set text override color (requires ui.visuals_mut().widgets.*.fg_stroke_color to be set for some reason)
-    new_style.visuals.override_text_color = Some(colorscheme["extreme_bg_color"]);
-    new_style.visuals.extreme_bg_color = colorscheme["faint_bg_color"];
-    new_style.visuals.faint_bg_color = colorscheme["extreme_bg_color"];
+    
+    
+    new_style.visuals.extreme_bg_color = colorscheme["extreme_bg_color"];
+    new_style.visuals.faint_bg_color = colorscheme["faint_bg_color"];
     new_style.visuals.code_bg_color = colorscheme["code_bg_color"];
     new_style.visuals.panel_fill = colorscheme["panel_fill"];
     new_style.visuals.window_fill = colorscheme["window_fill"];
-    new_style.visuals.hyperlink_color = colorscheme["hyperlink_color"];
-    new_style.visuals.window_stroke.color = colorscheme["window_stroke_color"];
-    new_style.visuals.warn_fg_color = colorscheme["warn_fg_color"];
-    new_style.visuals.error_fg_color = colorscheme["error_fg_color"];
+
+    new_style.visuals.hyperlink_color = colorscheme["panel_fill"];
+    new_style.visuals.window_stroke.color = colorscheme["panel_fill"];
+    new_style.visuals.warn_fg_color = colorscheme["code_bg_color"];
+    new_style.visuals.error_fg_color = colorscheme["faint_bg_color"];
 
     let widget_states = [
         &mut new_style.visuals.widgets.noninteractive,
@@ -102,23 +102,56 @@ pub fn set_colorscheme(ui: &mut egui::Ui, colorscheme: &HashMap<String, Color32>
     ];
 
     for state in widget_states {
-        state.bg_fill = colorscheme["extreme_bg_color"];
-        state.fg_stroke.color = colorscheme["faint_bg_color"];
-        state.weak_bg_fill = colorscheme["panel_fill"];
-        state.bg_stroke.color = colorscheme["hyperlink_color"]; 
+        state.bg_fill = colorscheme["faint_bg_color"];
+        state.fg_stroke.color = colorscheme["code_bg_color"];
+        state.weak_bg_fill = colorscheme["faint_bg_color"];
+        state.bg_stroke.color = colorscheme["window_fill"]; 
     }
+
+    // new_style.visuals.extreme_bg_color = colorscheme["extreme_bg_color"];
+    // new_style.visuals.faint_bg_color = colorscheme["faint_bg_color"];
+    // new_style.visuals.code_bg_color = colorscheme["faint_bg_color"];
+    // new_style.visuals.panel_fill = colorscheme["faint_bg_color"];
+    // new_style.visuals.window_fill = colorscheme["faint_bg_color"];
+
+    // new_style.visuals.hyperlink_color = colorscheme["window_fill"];
+    // new_style.visuals.window_stroke.color = colorscheme["code_bg_color"];
+    // new_style.visuals.warn_fg_color = colorscheme["window_fill"];
+    // new_style.visuals.error_fg_color = colorscheme["window_fill"];
+
+    // let widget_states = [
+    //     &mut new_style.visuals.widgets.noninteractive,
+    //     &mut new_style.visuals.widgets.inactive,
+    //     &mut new_style.visuals.widgets.hovered,
+    //     &mut new_style.visuals.widgets.active,
+    //     &mut new_style.visuals.widgets.open,
+    // ];
+
+    // for state in widget_states {
+    //     state.bg_fill = colorscheme["faint_bg_color"];
+    //     state.fg_stroke.color = colorscheme["code_bg_color"];
+    //     state.weak_bg_fill = colorscheme["faint_bg_color"];
+    //     state.bg_stroke.color = colorscheme["faint_bg_color"]; 
+    // }
 
     ui.ctx().set_style(new_style);
 
 }
-
+/*
+    faint C= code
+    window C= code
+    panel C= code
+    extreme C= code
+ */
 impl colorscheme {
-    pub fn try_use_colorscheme(&mut self, ui: &mut egui::Ui, filename: &String) {
+    pub fn try_use_colorscheme(&mut self, ui: &mut egui::Ui, filename: &String) -> bool {
         if let Some(colors) = try_get_colorscheme(&filename) {
             self.current = colors.clone();
             self.name = filename.clone();
             set_colorscheme(ui, &colors);
+            return true;
         }
+        return false;
     }
     pub fn use_random_colorscheme(&mut self, ui: &mut egui::Ui) {
         let entries = fs::read_dir("./resources/colorschemes").unwrap();

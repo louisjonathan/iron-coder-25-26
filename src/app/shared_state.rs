@@ -68,12 +68,16 @@ impl SharedState {
             );
         }
         let terminal_buffer = last_settings.terminal_buffer.unwrap_or_default();
+        let mut syntax_highlighter = SyntaxHighlighter::new();
+        if let Some(theme_name) = last_settings.syntect_highlighting_file {
+            syntax_highlighter.set_theme(&theme_name);
+        }
 
         Self {
             did_activate_colorscheme: false,
             keybindings: Keybindings::new(),
             colorschemes,
-            syntax_highlighter: SyntaxHighlighter::new(),
+            syntax_highlighter,
             project,
             requested_file_to_open: None,
             known_boards,
@@ -165,6 +169,7 @@ impl SharedState {
     }
     pub fn save_settings(&self) {
         let settings = IDE_Settings {
+            syntect_highlighting_file: Some(self.syntax_highlighter.get_current_theme().to_string()),
             colorscheme_file: Some(self.colorschemes.name.clone()),
             last_opened_project: self.project.location.clone(),
             opened_files: Vec::new(), // Future feature

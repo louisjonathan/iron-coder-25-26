@@ -37,6 +37,7 @@ pub enum BoardStandards {
     RaspberryPi,
     ThingPlus,
     MicroMod,
+    ESP32,
 }
 
 impl fmt::Display for BoardStandards {
@@ -47,6 +48,7 @@ impl fmt::Display for BoardStandards {
             BoardStandards::RaspberryPi => write!(f, "RaspberryPi"),
             BoardStandards::ThingPlus => write!(f, "ThingPlus"),
             BoardStandards::MicroMod => write!(f, "MicroMod"),
+            BoardStandards::ESP32 => write!(f, "ESP32"),
             // _ => write!(f, "Unknown Dev Board Standard"),
         }
     }

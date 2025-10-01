@@ -237,7 +237,7 @@ impl MainWindow {
                 });
                 ui.menu_button("Build", |ui| {
                     if ui.button("Build Project").clicked() {
-                        // self.state.project.build(ctx);
+                        self.state.build_project();
                         ui.close_menu();
                     }
                     if ui.button("Flash to Board").clicked() {

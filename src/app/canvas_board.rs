@@ -109,7 +109,6 @@ impl CanvasBoard {
 	pub fn draw(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2) {
 		if self.texture_handle.is_none() {
 			if let Some(svg_board_info) = &self.board.svg_board_info {
-				println!("BINDING BOARD TEXTURE");
 				self.texture_handle = Some(ui.ctx().load_texture(self.board.get_name(), svg_board_info.image.clone(), Default::default()));
 			}
 		}
@@ -151,7 +150,7 @@ impl CanvasBoard {
 
 	pub fn draw_pin(&self, ui: &mut egui::Ui, pin_name: &String, pin_rect: &Rect) {
 		let pin_name_color = Color32::from_rgba_unmultiplied(0, 255, 0, 63);
-		let pin_color = Color32::from_rgba_unmultiplied(0, 255, 0, 191);
+		let pin_color = Color32::from_rgba_unmultiplied(0, 255, 0, 255);
 
 		let pin_r = pin_rect.height() / 2.0;
 
@@ -162,7 +161,7 @@ impl CanvasBoard {
 		);
 
 		let text_rect = ui.painter().text(
-			pin_rect.center()+Vec2{x:pin_r+1.0,y:0.0},
+			pin_rect.center()+Vec2{x:pin_r+2.0,y:0.0},
 			egui::Align2::LEFT_CENTER,
 			format!("{}", &pin_name),
 			egui::FontId::monospace(pin_r*2.0),

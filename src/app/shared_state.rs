@@ -78,6 +78,52 @@ impl SharedState {
         }
     }
 
+    pub fn build_project(&mut self) {
+        let (tx, rx) = mpsc::channel();
+        if self.child.is_some() {
+            let tx = tx.clone();
+            tx.send("Use Ctrl+C to stop process before flashing again.".to_string()).unwrap();
+            return;
+        }
+        if let Some(path) = &self.project.location {
+            self.terminal_buffer.clear();
+            self.tx = Some(tx.clone());
+            self.rx = Some(rx);
+
+            // Spawn cargo run
+            let mut child = Command::new("cargo")
+                .arg("build")
+                .current_dir(path)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap();
+
+            if let Some(stdout) = child.stdout.take() {
+                let tx = tx.clone();
+                std::thread::spawn(move || {
+                    let reader = std::io::BufReader::new(stdout).lines();
+                    for line in reader {
+                        let line = line.unwrap() + "\n";
+                        tx.send(line).unwrap();
+                    }
+                });
+            }
+            if let Some(stderr) = child.stderr.take() {
+                let tx = tx.clone();
+                std::thread::spawn(move || {
+                    let reader = std::io::BufReader::new(stderr).lines();
+                    for line in reader {
+                        let line = line.unwrap() + "\n";
+                        tx.send(line).unwrap();
+                    }
+                });
+            }
+
+            self.child = Some(child);
+        }
+    }
+
     pub fn load_to_board(&mut self) {
         let (tx, rx) = mpsc::channel();
         if self.child.is_some() {

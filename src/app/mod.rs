@@ -3,7 +3,7 @@ pub mod icons;
 mod colorschemes;
 mod keybinding;
 mod syntax_highlighting;
-
+mod ide_settings;
 mod shared_state;
 pub use shared_state::SharedState;
 

@@ -1,8 +1,7 @@
 use crate::app::SharedState;
 use crate::board::{Board, get_boards};
 use super::tabs::*;
-
-use crate::app::colorschemes::colorschemes;
+use crate::app::colorschemes::colorscheme;
 use eframe::egui::{Ui};
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 use std::collections::HashMap;
@@ -121,29 +120,7 @@ impl Default for MainWindow {
         );
         tabs.insert("Terminal".to_string(), Box::new(TerminalTab::new()));
 
-        // New sample file instead of main.rs (because we dont want to accidentally change lol)
-        // TODO remove this eventually obv
-        // let example_file_path = Path::new("example_file.rs");
-        
-        // if !example_file_path.exists() {
-        //     let example_content = r#"// This is an example Rust file for testing the Iron Coder editor
-
-        // fn main() {
-        //     println!("Hello from the Iron Coder editor!");
-        //     println!("{}", message);
-        // }
-        // "#;
-        //     if let Err(e) = fs::write(example_file_path, example_content) {
-        //         println!("Can't create example_file.rs.");
-        //     }
-        // }
-        
-        // // load example file
-        // let mut filetab = FileTab::default();
-        // if let Err(e) = filetab.load_from_file(example_file_path) {
-        //     println!("Can't load example_file.rs.");
-        // }
-        // tabs.insert("example_file.rs".to_string(), Box::new(filetab));
+        let state= SharedState::default();
 
         Self {
             tree: tree,
@@ -159,37 +136,10 @@ impl Default for MainWindow {
 impl MainWindow {
     pub fn display_menu(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            if self.tabs.contains_key("Settings") {
-                //make sure settings tab gets current context
-                //need help with this line
-                let settings_tab = self
-                    .tabs
-                    .get_mut("Settings")
-                    .unwrap()
-                    .as_any_mut()
-                    .downcast_mut::<SettingsTab>()
-                    .unwrap();
-                if settings_tab.should_random_colorscheme == true {
-                    let random_choice = &colorschemes::get_random_color_scheme();
-                    let colors = colorschemes::get_color_scheme(
-                        &mut self.state.colorschemes,
-                        random_choice,
-                    );
-                    self.state
-                        .colorschemes
-                        .set_color_scheme(&ctx, random_choice);
-
-                    ui.visuals_mut().widgets.noninteractive.fg_stroke.color =
-                        colors["extreme_bg_color"];
-                    ui.visuals_mut().widgets.active.fg_stroke.color = colors["extreme_bg_color"];
-                    ui.visuals_mut().widgets.hovered.fg_stroke.color = colors["extreme_bg_color"];
-                    ui.visuals_mut().widgets.open.fg_stroke.color = colors["extreme_bg_color"];
-
-                    settings_tab.should_random_colorscheme = false;
-                } else if settings_tab.should_example_colorscheme == true {
-                    self.state.colorschemes.set_color_scheme(&ctx, &100);
-                    settings_tab.should_example_colorscheme = false;
-                }
+            if(!self.state.did_activate_colorscheme){
+                self.state.did_activate_colorscheme = true;
+                let name = self.state.colorschemes.name.clone();
+                self.state.colorschemes.try_use_colorscheme(ui, &name);
             }
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
@@ -547,9 +497,16 @@ impl MainWindow {
             }
         }
     }
+
+    
+
 }
 
 impl eframe::App for MainWindow {
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        println!("Exiting application, saving settings...");
+        self.state.save_settings();
+    }
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Update project terminal output and forward to Terminal tab
         // self.state.project.update_terminal_output();
@@ -563,6 +520,7 @@ impl eframe::App for MainWindow {
         //     self.state.project.clear_terminal_output();
         // }
 
+        
         self.display_menu(ctx, _frame);
 
         if self.show_new_project_dialog {

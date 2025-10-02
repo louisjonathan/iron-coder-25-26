@@ -41,7 +41,7 @@ futures = {version="0.3.10",features=["thread-pool"]}
 getrandom = { version = "<=0.2.15", features = ["js"] }
 rand = "<=0.8.5"
 [dependencies]
-egui = "0.31.1"
+egui = {version = "0.31.1", features = ["serde"]}
 eframe = { version = "0.31.1", default-features = false, features = [
     "accesskit",     # Make egui compatible with screen readers. NOTE: adds a lot of dependencies.
     "default_fonts", # Embed the default egui fonts.

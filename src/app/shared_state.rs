@@ -213,6 +213,7 @@ impl SharedState {
             self.terminal_buffer.push_str("\nProcess terminated\n");
         }
     }
+	
     pub fn save_settings(&self) {
         let settings = IDE_Settings {
             syntect_highlighting_file: Some(self.syntax_highlighter.get_current_theme().to_string()),

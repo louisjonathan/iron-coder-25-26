@@ -5,12 +5,27 @@ This project serves as a testing environment for future Iron Coder features. Alt
 
 ## How to Build and Run
 
-To build and run the application:
+### To build and run the application:
+
+Requires rust version >= 1.85.0
 
 ```bash
 cargo install cargo-generate
 cargo run
 ```
+
+### For flashing toolchains:
+
+AVR (Arduino boards)
+- `rustup component add rust-src --toolchain nightly-x86_64-pc-windows-msvc`
+- avr-gcc
+- avr-libc
+- avrdude
+- `cargo +stable install ravedude`
+
+ESP32
+- `cargo install espflash`
+
 
 ## Prototype Application Goals:
 Add existing features from Iron Coder to the new interface:
@@ -36,5 +51,4 @@ Add novel features:
 	- Allow users to set custom keyboard shortcuts.
 
 ## Known Bugs
-- The application crashes when interacting with UI elements related to unimplemented features.
-- Certain features are unavailable in the WebAssembly build.
+- Rapidly moving selected objects will scroll the Canvas due to mouse location inaccuracies.

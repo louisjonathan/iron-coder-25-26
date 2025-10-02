@@ -148,7 +148,8 @@ impl MainWindow {
                         ui.close_menu();
                     }
                     if ui.button("Open Project").clicked() {
-                        self.open_project();
+						self.state.stop_board();
+						self.open_project();
                         ui.close_menu();
                     }
                     if ui.button("Save Project").clicked() {
@@ -187,10 +188,12 @@ impl MainWindow {
                 });
                 ui.menu_button("Build", |ui| {
                     if ui.button("Build Project").clicked() {
+						self.state.stop_board();
                         self.state.build_project();
                         ui.close_menu();
                     }
                     if ui.button("Flash to Board").clicked() {
+						self.state.stop_board();
                         self.state.load_to_board();
                         ui.close_menu();
                     }

@@ -1,11 +1,10 @@
 [package]
 edition      = "2021"
-name         = "esp_test2"
-rust-version = "1.86"
+name         = "esp_test"
 version      = "0.1.0"
 
 [[bin]]
-name = "esp_test2"
+name = "esp_test"
 path = "./src/bin/main.rs"
 
 [dependencies]

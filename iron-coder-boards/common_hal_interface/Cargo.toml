@@ -1,0 +1,17 @@
+[package]
+name = "common_hal_interface"
+version = "0.1.0"
+edition = "2025"
+
+[features]
+default = []
+rp2040 = ["dep:rp2040-hal"]
+arduino = ["dep:arduino-hal"]
+stm32f4 = ["dep:stm32f4xx-hal"]
+esp = ["dep:esp-hal"]
+
+[dependencies]
+rp2040-hal = { version = "0.10", optional = true }
+arduino-hal = { version = "0.1", optional = true }
+stm32f4xx-hal = { version = "0.21", optional = true }
+esp-hal = { version = "0.20", optional = true }

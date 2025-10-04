@@ -30,7 +30,7 @@ static OPENABLE_TABS: &'static [&'static str] = &[
     "Settings",
     "Canvas",
     "File Explorer",
-    "Terminal",
+    "Output",
     "Board Info",
 	"Debug"
 ];
@@ -75,7 +75,7 @@ impl<'a> egui_dock::TabViewer for WindowContext<'a> {
     }
 
     fn closeable(&mut self, _tab: &mut String) -> bool {
-        if _tab == "Canvas" || _tab == "File Explorer" {
+        if _tab == "Canvas" || _tab == "File Explorer" || _tab == "Output" {
             false
         } else {
             true
@@ -107,7 +107,7 @@ impl Default for MainWindow {
 
         let [_, _] = tree
             .main_surface_mut()
-            .split_below(a, 0.7, vec!["Terminal".to_owned()]);
+            .split_below(a, 0.7, vec!["Output".to_owned()]);
 
         let mut tabs: HashMap<String, Box<dyn BaseTab>> = HashMap::new();
 
@@ -118,7 +118,7 @@ impl Default for MainWindow {
             "File Explorer".to_string(),
             Box::new(FileExplorerTab::new()),
         );
-        tabs.insert("Terminal".to_string(), Box::new(TerminalTab::new()));
+        tabs.insert("Output".to_string(), Box::new(TerminalTab::new()));
 
         let state= SharedState::default();
 
@@ -185,7 +185,12 @@ impl MainWindow {
                             }
                         }
                     }
-                });
+
+					if ui.add(egui::SelectableLabel::new(false,"New Terminal")).clicked() {
+						self.add_tab("Terminal".to_string());
+					}
+				});
+
                 ui.menu_button("Build", |ui| {
                     if ui.button("Build Project").clicked() {
 						// self.state.stop_board();
@@ -199,8 +204,8 @@ impl MainWindow {
                     }
                 });
             });
-        });
-    }
+		});
+	}
 
     pub fn add_tab(&mut self, tab_name: String) {
         match tab_name.as_str() {
@@ -511,19 +516,6 @@ impl eframe::App for MainWindow {
         self.state.save_settings();
     }
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Update project terminal output and forward to Terminal tab
-        // self.state.project.update_terminal_output();
-        // let build_output = self.state.project.get_terminal_output();
-        // if !build_output.is_empty() {
-        //     if let Some(terminal_tab) = self.tabs.get_mut("Terminal") {
-        //         if let Some(terminal) = terminal_tab.as_any_mut().downcast_mut::<TerminalTab>() {
-        //             terminal.append_build_output(build_output);
-        //         }
-        //     }
-        //     self.state.project.clear_terminal_output();
-        // }
-
-        
         self.display_menu(ctx, _frame);
 
         if self.show_new_project_dialog {

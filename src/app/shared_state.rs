@@ -68,10 +68,16 @@ impl SharedState {
             syntax_highlighter.set_theme(&theme_name);
         }
 
-		let default_terminal = if cfg!(target_os = "windows") {
-			Some(PathBuf::from("cmd"))
+		// if let Some(default_terminal) = last_settings.default_terminal {
+			
+		// }
+
+		let default_terminal = if let Some(path) = last_settings.default_terminal {
+			path
+		} else if cfg!(target_os = "windows") {
+			PathBuf::from("cmd")
 		} else {
-			Some(PathBuf::from("bash"))
+			PathBuf::from("bash")
 		};
 
         Self {
@@ -83,7 +89,7 @@ impl SharedState {
             requested_file_to_open: None,
             known_boards,
 			output_terminal_backend: None,
-			default_terminal,
+			default_terminal: Some(default_terminal),
         }
     }
 
@@ -135,6 +141,7 @@ impl SharedState {
             colorscheme_file: Some(self.colorschemes.name.clone()),
             last_opened_project: self.project.location.clone(),
             opened_files: Vec::new(), // Future feature
+			default_terminal: self.default_terminal.clone(),
         };
         ide_settings::save_ide_settings(&settings);
     }

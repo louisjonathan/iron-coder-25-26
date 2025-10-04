@@ -37,9 +37,6 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use system::System;
-use std::process::{Child, Stdio};
-use std::sync::mpsc::{self, Sender};
-use std::process::Command;
 
 // use git2::Repository;
 

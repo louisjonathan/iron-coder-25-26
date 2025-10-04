@@ -8,7 +8,6 @@ pub struct IDE_Settings {
     pub syntect_highlighting_file: Option<String>,
     pub last_opened_project: Option<PathBuf>,
     pub opened_files: Vec<PathBuf>,
-    pub terminal_buffer: Option<String>,
 }
 
 pub fn save_ide_settings(settings: &IDE_Settings) {
@@ -33,7 +32,6 @@ impl Default for IDE_Settings {
             colorscheme_file: None,
             last_opened_project: None,
             opened_files: Vec::new(),
-            terminal_buffer: None,
         }
     }
 }   

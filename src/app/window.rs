@@ -188,13 +188,13 @@ impl MainWindow {
                 });
                 ui.menu_button("Build", |ui| {
                     if ui.button("Build Project").clicked() {
-						self.state.stop_board();
+						// self.state.stop_board();
                         self.state.build_project();
                         ui.close_menu();
                     }
                     if ui.button("Flash to Board").clicked() {
-						self.state.stop_board();
-                        self.state.load_to_board();
+						// self.state.stop_board();
+                        self.state.run_project();
                         ui.close_menu();
                     }
                 });

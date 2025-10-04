@@ -11,10 +11,8 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use uuid::Uuid;
-use std::process::{Child, Stdio};
-use std::sync::mpsc::{self, Sender, Receiver};
-use std::process::Command;
 use std::io::BufRead;
+use egui_term::{BackendCommand, TerminalBackend};
 
 use crate::board::Board;
 
@@ -26,10 +24,8 @@ pub struct SharedState {
     pub project: Project,
     pub requested_file_to_open: Option<PathBuf>,
     pub known_boards: Vec<Rc<RefCell<Board>>>,
-    pub terminal_buffer: String,
-    pub tx: Option<Sender<String>>,
-    pub rx: Option<Receiver<String>>,
-    pub child: Option<Child>,
+	pub default_terminal: Option<PathBuf>,
+	pub output_terminal_backend: Option<Rc<RefCell<TerminalBackend>>>
 }
 
 impl SharedState {
@@ -67,11 +63,16 @@ impl SharedState {
                 },
             );
         }
-        let terminal_buffer = last_settings.terminal_buffer.unwrap_or_default();
         let mut syntax_highlighter = SyntaxHighlighter::new();
         if let Some(theme_name) = last_settings.syntect_highlighting_file {
             syntax_highlighter.set_theme(&theme_name);
         }
+
+		let default_terminal = if cfg!(target_os = "windows") {
+			Some(PathBuf::from("cmd"))
+		} else {
+			Some(PathBuf::from("bash"))
+		};
 
         Self {
             did_activate_colorscheme: false,
@@ -81,10 +82,8 @@ impl SharedState {
             project,
             requested_file_to_open: None,
             known_boards,
-            terminal_buffer,
-            tx: None,
-            rx: None,
-            child: None,
+			output_terminal_backend: None,
+			default_terminal,
         }
     }
 
@@ -109,110 +108,26 @@ impl SharedState {
         }
     }
 
-    pub fn build_project(&mut self) {
-        let (tx, rx) = mpsc::channel();
-        if self.child.is_some() {
-            let tx = tx.clone();
-            tx.send("Use Ctrl+C to stop process before flashing again.".to_string()).unwrap();
-            return;
-        }
-        if let Some(path) = &self.project.location {
-            self.terminal_buffer.clear();
-            self.tx = Some(tx.clone());
-            self.rx = Some(rx);
+	pub fn build_project(&mut self) {
+		if let Some(term_ref) = &self.output_terminal_backend {
+			let mut term = term_ref.borrow_mut();
+			term.process_command(BackendCommand::Write("cargo build\n".as_bytes().to_vec()));
+		}
+	}
+	
+	pub fn run_project(&mut self) {
+		if let Some(term_ref) = &self.output_terminal_backend {
+			let mut term = term_ref.borrow_mut();
+			term.process_command(BackendCommand::Write("cargo build\n".as_bytes().to_vec()));
+		}
+	}
 
-            // Spawn cargo run
-            let mut child = Command::new("cargo")
-                .arg("build")
-                .current_dir(path)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
-                .unwrap();
-
-            if let Some(stdout) = child.stdout.take() {
-                let tx = tx.clone();
-                std::thread::spawn(move || {
-                    let reader = std::io::BufReader::new(stdout).lines();
-                    for line in reader {
-                        let line = line.unwrap() + "\n";
-                        tx.send(line).unwrap();
-                    }
-                });
-            }
-            if let Some(stderr) = child.stderr.take() {
-                let tx = tx.clone();
-                std::thread::spawn(move || {
-                    let reader = std::io::BufReader::new(stderr).lines();
-                    for line in reader {
-                        let line = line.unwrap() + "\n";
-                        tx.send(line).unwrap();
-                    }
-                });
-            }
-
-            self.child = Some(child);
-        }
-    }
-
-    pub fn load_to_board(&mut self) {
-        let (tx, rx) = mpsc::channel();
-        if self.child.is_some() {
-            let tx = tx.clone();
-            tx.send("Use Ctrl+C to stop process before flashing again.".to_string()).unwrap();
-            return;
-        }
-        if let Some(path) = &self.project.location {
-            self.terminal_buffer.clear();
-            self.tx = Some(tx.clone());
-            self.rx = Some(rx);
-
-            // Spawn cargo run
-            let mut child = Command::new("cargo")
-                .arg("run")
-                .arg("--quiet")
-                .current_dir(path)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
-                .unwrap();
-
-            if let Some(stdout) = child.stdout.take() {
-                let tx = tx.clone();
-                std::thread::spawn(move || {
-                    let reader = std::io::BufReader::new(stdout).lines();
-                    for line in reader {
-                        let line = line.unwrap() + "\n";
-                        tx.send(line).unwrap();
-                    }
-                });
-            }
-            if let Some(stderr) = child.stderr.take() {
-                let tx = tx.clone();
-                std::thread::spawn(move || {
-                    let reader = std::io::BufReader::new(stderr).lines();
-                    for line in reader {
-                        let line = line.unwrap() + "\n";
-                        tx.send(line).unwrap();
-                    }
-                });
-            }
-
-            self.child = Some(child);
-        }
-    }
-
-    pub fn stop_board(&mut self) {
-        if let Some(mut child) = self.child.take() {
-            let _ = child.kill();
-            let _ = child.wait();
-            self.tx = None;
-            self.rx = None;
-            self.child = None;
-            self.terminal_buffer.clear();
-            self.terminal_buffer.push_str("\nProcess terminated\n");
-        }
-    }
+	pub fn stop_board(&mut self) {
+		if let Some(term_ref) = &self.output_terminal_backend {
+			let mut term = term_ref.borrow_mut();
+			term.process_command(BackendCommand::Write(vec![0x03]));
+		}
+	}
 	
     pub fn save_settings(&self) {
         let settings = IDE_Settings {
@@ -220,7 +135,6 @@ impl SharedState {
             colorscheme_file: Some(self.colorschemes.name.clone()),
             last_opened_project: self.project.location.clone(),
             opened_files: Vec::new(), // Future feature
-            terminal_buffer: Some(self.terminal_buffer.clone()),
         };
         ide_settings::save_ide_settings(&settings);
     }

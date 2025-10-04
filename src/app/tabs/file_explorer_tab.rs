@@ -136,9 +136,10 @@ impl BaseTab for FileExplorerTab {
             };
 
 			ui.label("Sources:");
+			let src_path = _state.project.location.as_ref().unwrap();
 			for entry in &_state.project.source_files {
-				let file_name = entry.file_name().unwrap_or_default().to_string_lossy();
-				if ui.button(format!("{}", file_name)).clicked() {
+				let rel_path = entry.strip_prefix(&src_path).unwrap_or(entry);
+				if ui.button(format!("{}", rel_path.display())).clicked() {
 					file_clicked(entry.clone());
 				}
 			}

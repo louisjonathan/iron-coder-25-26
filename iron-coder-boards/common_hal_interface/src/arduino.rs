@@ -1,51 +1,107 @@
-use arduino_hal as hal;
+use arduino_hal::{
+    hal::port::{PB5, PD2, PD3, PD4},
+    port::{
+        mode::{Input, Output},
+        Pin,
+    },
+    Delay, I2c, Peripherals, Spi,
+};
 
-pub struct CommonHalPin {
-    // Arduino-specific pin fields
+extern crate alloc;
+use alloc::vec::Vec;
+
+pub type Error = ();
+
+pub struct common_general {
+    pub pins: Vec<common_pin>,
+    pub spi: Vec<common_spi>,
+    pub i2c: Vec<common_i2c>,
+    
+    delay: Delay,
+    peripherals: Option<Peripherals>,
 }
 
-impl CommonHalPin {
-    pub fn new(/* arduino-specific params */) -> Self {
-        todo!("Initialize Arduino pin")
+impl common_general {
+    pub fn new() -> Self {
+        let peripherals = Peripherals::take().unwrap();
+        Self {
+            pins: Vec::new(),
+            spi: Vec::new(),
+            i2c: Vec::new(),
+            delay: Delay::new(),
+            peripherals: Some(peripherals),
+        }
     }
     
+    pub fn initialize_pins(&mut self) -> Result<(), Error> {
+
+    }
+    
+    pub fn initialize_spi(&mut self) -> Result<(), Error> {
+
+    }
+    
+    pub fn initialize_i2c(&mut self) -> Result<(), Error> {
+        
+    }
+    
+    pub fn sleep_ms(&mut self, ms: u32) {
+        self.delay.delay_ms(ms as u16);
+    }
+}
+
+pub struct common_pin<M, P> {
+    inner: Pin<M, P>,
+}
+
+impl common_pin {
     pub fn set_high(&mut self) {
-        todo!("Set Arduino pin high")
+        self.inner.set_high();
     }
     
     pub fn set_low(&mut self) {
-        todo!("Set Arduino pin low")
+        self.inner.set_low();
     }
     
     pub fn is_high(&self) -> bool {
-        todo!("Check if Arduino pin is high")
+        self.inner.is_high();
     }
     
     pub fn is_low(&self) -> bool {
-        !self.is_high()
+        self.inner.is_low();
     }
 }
 
-pub struct CommonHalSpi {
-    // Arduino-specific SPI fields
+pub struct common_spi {
+    inner: Spi
 }
 
-impl CommonHalSpi {
-    pub fn new(/* arduino-specific params */) -> Self {
-        todo!("Initialize Arduino SPI")
-    }
+impl common_spi {
+     pub fn write(&mut self, data: &[u8]) -> Result<(), Error> {
+        self.inner.write(data).map_err(|_| ())
+     }
+     pub fn read(&mut self, buffer: &mut [u8]) -> Result<(), Error> {
+        self.inner.read(buffer).map_err(|_| ())
+     }
+     pub fn write_read(&mut self, data: &[u8], buffer: &mut [u8]) -> Result<(), Error> {
+        self.inner.write_read(data, buffer).map_err(|_| ())
+     }
 }
 
-pub struct CommonHalI2c {
-    // Arduino-specific I2C fields
+pub struct common_i2c {
+    inner: I2c,
 }
 
-impl CommonHalI2c {
-    pub fn new(/* arduino-specific params */) -> Self {
-        todo!("Initialize Arduino I2C")
-    }
+impl common_i2c {
+   pub fn write(&mut self, data: &[u8]) -> Result<(), Error> {
+        self.inner.write(data).map_err(|_| ())
+     }
+     pub fn read(&mut self, buffer: &mut [u8]) -> Result<(), Error> {
+        self.inner.read(buffer).map_err(|_| ())
+     }
+     pub fn write_read(&mut self, data: &[u8], buffer: &mut [u8]) -> Result<(), Error> {
+        self.inner.write_read(data, buffer).map_err(|_| ())
+     }
+
 }
 
-pub fn sleep_ms(ms: u32) {
-    todo!("Arduino sleep implementation")
-}

@@ -135,6 +135,16 @@ impl BaseTab for FileExplorerTab {
                 _state.requested_file_to_open = Some(file_path);
             };
 
+			ui.label("Sources:");
+			for entry in &_state.project.source_files {
+				let file_name = entry.file_name().unwrap_or_default().to_string_lossy();
+				if ui.button(format!("{}", file_name)).clicked() {
+					file_clicked(entry.clone());
+				}
+			}
+			ui.separator();
+			ui.label("Project Directory:");
+
             let max_visible = 500;
             let mut visible_count = 0;
             draw_directory(

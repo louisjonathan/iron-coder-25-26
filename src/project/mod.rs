@@ -4,7 +4,7 @@
 use log::{debug, info, warn};
 
 // use std::error::Error;
-use std::fs;
+use std::fs::{self, read_dir, DirEntry};
 use std::io;
 use std::io::BufRead;
 use std::path::{Path, PathBuf};
@@ -65,7 +65,7 @@ pub struct Project {
     pub location: Option<PathBuf>,
     // pub system: System,
     current_view: ProjectViewType,
-
+	pub source_files: Vec<PathBuf>,
 
     #[serde(with = "rc_refcell_option")]
     pub main_board: Option<Rc<RefCell<CanvasBoard>>>,
@@ -198,7 +198,7 @@ impl Project {
         self.peripheral_boards = p.peripheral_boards;
         self.connections = p.connections;
         self.load_board_resources(kb);
-        // self.terminal_buffer.clear();
+		self.find_source_files();
 
         Ok(())
     }
@@ -453,6 +453,46 @@ impl Project {
     // pub fn clear_terminal_output(&mut self) {
     //     self.terminal_buffer.clear();
     // }
+
+	pub fn find_source_files(&mut self) {
+		if let Some(loc) = &self.location {
+			let src_path = loc.join("src");
+			let mut source_files = Vec::new();
+			self.recursive_add_source(&src_path, &mut source_files);
+			self.source_files = source_files;
+		}
+	}
+
+	pub fn recursive_add_source(&mut self, path: &PathBuf, source_files: &mut Vec<PathBuf>) {
+		if !path.exists() {
+			return;
+		}
+
+		if path.is_dir() {
+			match fs::read_dir(path) {
+				Ok(entries) => {
+					for entry in entries {
+						match entry {
+							Ok(entry) => {
+								let child_path = entry.path();
+								self.recursive_add_source(&child_path, source_files);
+							}
+							Err(err) => {
+								eprintln!("Warning: Could not read entry in {:?}: {}", path, err);
+								continue;
+							}
+						}
+					}
+				}
+				Err(err) => {
+					eprintln!("Warning: Could not read directory {:?}: {}", path, err);
+					return;
+				}
+			}
+		} else if path.is_file() && path.extension().map_or(false, |ext| ext == "rs") {
+			source_files.push(path.to_path_buf());
+		}
+	}
 
     pub fn remove_board(&mut self, board: &Rc<RefCell<CanvasBoard>>) {
         if let Some(mb) = &self.main_board {

@@ -1,8 +1,11 @@
 use std::fmt::format;
+use which::which;
 
 use crate::app::colorschemes;
 use crate::app::tabs::base_tab::BaseTab;
 use crate::app::SharedState;
+
+use rfd::FileDialog;
 pub struct SettingsTab {
     pub colorscheme_load_error_value: bool,
 }
@@ -40,30 +43,53 @@ impl BaseTab for SettingsTab {
             
         });
         ui.collapsing("Colors", |ui| {
-            let mut any_changed = false;
-
+			let mut any_changed = false;
+			
             let mut color_edit = |key: &str| {
-                ui.horizontal(|ui| {
-                    ui.label(key);
+				ui.horizontal(|ui| {
+					ui.label(key);
                     let response = ui
-                        .color_edit_button_srgba(state.colorschemes.current.get_mut(key).unwrap());
-                    if response.changed() {
-                        any_changed = true;
-                    }
-                });
-            };
+					.color_edit_button_srgba(state.colorschemes.current.get_mut(key).unwrap());
+				if response.changed() {
+					any_changed = true;
+				}
+			});
+		};
+		
+		color_edit("extreme_bg_color");
+		color_edit("faint_bg_color");
+		color_edit("code_bg_color");
+		color_edit("panel_fill");
+		color_edit("window_fill");
+		
+		if any_changed {
+			colorschemes::set_colorscheme(ui,&state.colorschemes.current);
+		}
+	});
+	ui.separator();
+	ui.collapsing("Terminal", |ui| {
+		let candidates = ["bash", "cmd", "powershell", "sh"];
+		let available_terms: Vec<_> = candidates
+			.iter()
+			.filter_map(|t| which::which(t).ok())
+			.collect();
 
-            color_edit("extreme_bg_color");
-            color_edit("faint_bg_color");
-            color_edit("code_bg_color");
-            color_edit("panel_fill");
-            color_edit("window_fill");
+		for path in &available_terms {
+			if ui.button(format!("Use {}", path.display())).clicked() {
+				state.default_terminal = Some(path.to_path_buf());
+			}
+		}
 
-            if any_changed {
-                colorschemes::set_colorscheme(ui,&state.colorschemes.current);
-            }
-        });
-        ui.separator();
+		if ui.button("Choose Terminal Executable").clicked() {
+			if let Some(picked_path) = rfd::FileDialog::new()
+				.set_title("Select your preferred terminal")
+				.pick_file()
+			{
+				state.default_terminal = Some(picked_path); // Use the PathBuf directly
+			}
+		}
+	});
+	ui.separator();
         ui.horizontal(|ui| {
             ui.label("Syntax Highlighting Theme:");
             let theme_names = state.syntax_highlighter.available_themes();

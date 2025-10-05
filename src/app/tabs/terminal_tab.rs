@@ -31,6 +31,7 @@ impl TerminalTab {
         if let Some(term) = &self.terminal_backend {
             if state.output_terminal_backend.is_none() {
                 state.output_terminal_backend = Some(term.clone());
+				state.term_open_project_dir();
             }
         } else {
             if let Some(default_terminal) = &state.default_terminal {
@@ -46,6 +47,7 @@ impl TerminalTab {
                     )
                     .unwrap(),
                 )));
+				state.term_open_project_dir();
             }
         }
     }

@@ -4,13 +4,14 @@
 use log::{debug, info, warn};
 
 // use std::error::Error;
-use std::fs;
+use std::fs::{self, read_dir, DirEntry, read_to_string, write};
 use std::io;
 use std::io::BufRead;
 use std::path::{Path, PathBuf};
 
 use crate::app::{CanvasBoard, CanvasConnection, SharedState};
-use crate::board::get_boards;
+use crate::board::{get_boards, BoardStandards};
+use crate::board::pinout::InterfaceDirection;
 
 use egui::Context;
 
@@ -37,6 +38,10 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use system::System;
+
+use syn::{File, Item, ItemFn, Stmt};
+use quote::quote;
+use prettyplease;
 
 // use git2::Repository;
 
@@ -65,7 +70,7 @@ pub struct Project {
     pub location: Option<PathBuf>,
     // pub system: System,
     current_view: ProjectViewType,
-
+	pub source_files: Vec<PathBuf>,
 
     #[serde(with = "rc_refcell_option")]
     pub main_board: Option<Rc<RefCell<CanvasBoard>>>,
@@ -198,7 +203,7 @@ impl Project {
         self.peripheral_boards = p.peripheral_boards;
         self.connections = p.connections;
         self.load_board_resources(kb);
-        // self.terminal_buffer.clear();
+		self.find_source_files();
 
         Ok(())
     }
@@ -454,6 +459,46 @@ impl Project {
     //     self.terminal_buffer.clear();
     // }
 
+	pub fn find_source_files(&mut self) {
+		if let Some(loc) = &self.location {
+			let src_path = loc.join("src");
+			let mut source_files = Vec::new();
+			self.recursive_add_source(&src_path, &mut source_files);
+			self.source_files = source_files;
+		}
+	}
+
+	pub fn recursive_add_source(&mut self, path: &PathBuf, source_files: &mut Vec<PathBuf>) {
+		if !path.exists() {
+			return;
+		}
+
+		if path.is_dir() {
+			match fs::read_dir(path) {
+				Ok(entries) => {
+					for entry in entries {
+						match entry {
+							Ok(entry) => {
+								let child_path = entry.path();
+								self.recursive_add_source(&child_path, source_files);
+							}
+							Err(err) => {
+								eprintln!("Warning: Could not read entry in {:?}: {}", path, err);
+								continue;
+							}
+						}
+					}
+				}
+				Err(err) => {
+					eprintln!("Warning: Could not read directory {:?}: {}", path, err);
+					return;
+				}
+			}
+		} else if path.is_file() && path.extension().map_or(false, |ext| ext == "rs") {
+			source_files.push(path.to_path_buf());
+		}
+	}
+
     pub fn remove_board(&mut self, board: &Rc<RefCell<CanvasBoard>>) {
         if let Some(mb) = &self.main_board {
             if Rc::ptr_eq(board, mb) {
@@ -482,7 +527,103 @@ impl Project {
 
     pub fn add_connection(&mut self, c: &Rc<RefCell<CanvasConnection>>) {
         self.connections.push(c.clone());
+
+		let main_file = self.source_files.iter().find(|path| {
+			path.file_name()
+				.map(|name| name == "main.rs")
+				.unwrap_or(false)
+		});
+
+		let conn = c.borrow();
+
+		if let Some(path) = main_file {
+			self.insert_pin_into_source(path, &conn);
+		}
     }
+
+	fn insert_pin_into_source(&self, path: &PathBuf, conn: &CanvasConnection) {
+		let code = read_to_string(&path).unwrap();
+		let mut ast: File = syn::parse_str(&code).unwrap();
+
+		for item in &mut ast.items {
+			if let Item::Fn(ItemFn { sig, block, .. }) = item {
+				if sig.ident == "main" {
+					for (i, stmt_in_block) in block.stmts.iter().enumerate() {
+						let stmt_str = quote!(#stmt_in_block).to_string();
+						if stmt_str.contains("loop") {
+							let new_stmt_str = self.generate_pin_statement(conn);
+							if let Ok(new_stmt) = syn::parse_str::<Stmt>(&new_stmt_str) {
+								block.stmts.insert(i, new_stmt);
+							} else {
+								eprintln!("Failed to parse generated statement: {}", new_stmt_str);
+							}
+							break;
+						}
+					}
+				}
+			}
+		}
+		let new_code = prettyplease::unparse(&ast);
+		write(&path, new_code);
+	}
+
+	fn generate_pin_statement(&self, conn: &CanvasConnection) -> String {
+		let sb_rc = conn.get_start_board();
+		let sb = sb_rc.borrow().board.clone();
+		let eb_rc = conn.get_end_board().unwrap();
+		let eb = eb_rc.borrow().board.clone();
+		
+		let start_pin_name = conn.get_start_pin();
+		let end_pin_name = conn.get_end_pin().unwrap();
+		let pin_type = eb.pinout.iter()
+			.find(|pinout| pinout.pins.iter().any(|p| p == end_pin_name.as_str()))
+			.map(|pinout| pinout.interface.direction.clone());		
+		let var_name = format!("{}_to_{}", start_pin_name, end_pin_name);
+
+		match sb.get_board_standard() {
+			// Some(BoardStandards::Feather) => {
+			// },
+			Some(BoardStandards::Arduino) => {
+				let pin_type_str = match pin_type {
+					Some(InterfaceDirection::Output) => "input",
+					Some(InterfaceDirection::Input) => "output",
+					_ => "input",
+				};
+				let mutability = if pin_type_str == "output" {"mut "} else {""};
+				format!(
+					"let {}pin_{} = pins.{}.into_{}();",
+					mutability, var_name, start_pin_name, pin_type_str
+				)
+			},
+			// Some(BoardStandards::RaspberryPi) => {
+				
+			// },
+			// Some(BoardStandards::ThingPlus) => {
+				
+			// },
+			// Some(BoardStandards::MicroMod) => {
+				
+			// },
+			Some(BoardStandards::ESP32) => {
+				match pin_type {
+					Some(InterfaceDirection::Output) => {
+						format!(
+							"let mut pin_{} = Output::new(_peripherals.GPIO{}, Level::High, OutputConfig::default());",
+							var_name, start_pin_name
+						)
+					}
+					Some(InterfaceDirection::Input) => {
+						format!(
+							"let pin_{} = Input::new(_peripherals.GPIO{}, InputConfig::default().with_pull(Pull::Up));",
+							var_name, start_pin_name
+						)
+					}
+					_ => { "".to_string() }
+				}
+			},
+			_ => "".to_string(),
+		}
+	}
 }
 
 mod rc_refcell_vec {

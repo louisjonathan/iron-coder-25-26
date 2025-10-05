@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 use std::io::BufRead;
 use egui_term::{BackendCommand, TerminalBackend};
+use std::ffi::OsStr;
 
 use crate::board::Board;
 
@@ -37,10 +38,6 @@ impl SharedState {
         let known_boards = board::get_boards(boards_dir);
 
         let mut project = Project::default();
-        // match project.reload() {
-        //     Ok(_) => (),
-        //     Err(e) => println!("error reloading project from disk! {:?}", e),
-        // }
         let last_settings = ide_settings::load_ide_settings();
         if let Some(location) = last_settings.last_opened_project {
             project.location = Some(location.clone());
@@ -68,10 +65,6 @@ impl SharedState {
             syntax_highlighter.set_theme(&theme_name);
         }
 
-		// if let Some(default_terminal) = last_settings.default_terminal {
-			
-		// }
-
 		let default_terminal = if let Some(path) = last_settings.default_terminal {
 			path
 		} else if cfg!(target_os = "windows") {
@@ -80,8 +73,9 @@ impl SharedState {
 			PathBuf::from("bash")
 		};
 
+		
         Self {
-            did_activate_colorscheme: false,
+			did_activate_colorscheme: false,
             keybindings: Keybindings::new(),
             colorschemes,
             syntax_highlighter,
@@ -114,6 +108,25 @@ impl SharedState {
         }
     }
 
+pub fn term_open_project_dir(&mut self) {
+	if let Some(term_ref) = &self.output_terminal_backend {
+        let mut term = term_ref.borrow_mut();
+		println!("has term");
+        if let (Some(def_term), Some(dir)) = (&self.default_terminal, &self.project.location) {
+			println!("RUNNING CD");
+			let term_type = def_term
+                .file_name()
+                .and_then(OsStr::to_str)
+                .unwrap_or("")
+                .to_ascii_lowercase();
+            let path_str = dir.to_string_lossy().replace("\\", "/");
+            term.process_command(BackendCommand::Write(
+				format!("cd {}\n", path_str).as_bytes().to_vec(),
+			));
+        }
+    }
+}
+
 	pub fn build_project(&mut self) {
 		if let Some(term_ref) = &self.output_terminal_backend {
 			let mut term = term_ref.borrow_mut();
@@ -124,7 +137,7 @@ impl SharedState {
 	pub fn run_project(&mut self) {
 		if let Some(term_ref) = &self.output_terminal_backend {
 			let mut term = term_ref.borrow_mut();
-			term.process_command(BackendCommand::Write("cargo build\n".as_bytes().to_vec()));
+			term.process_command(BackendCommand::Write("cargo run\n".as_bytes().to_vec()));
 		}
 	}
 

@@ -133,15 +133,24 @@ impl CanvasConnection {
 		// }
 	}
 
-	pub fn end(&mut self, end_board: Rc<RefCell<CanvasBoard>>, end_pin: String) {
-		self.end_board = Some(end_board.clone());
-		self.end_pin = Some(end_pin.clone());
+	pub fn end(&mut self, board: Rc<RefCell<CanvasBoard>>, pin: String) {
+		let b = board.borrow();
 
-		let sb = self.start_board.borrow();
-		let eb = end_board.borrow();
+		if b.board.is_main_board() {
+			// we need to make start_board the main board to simplify things
+			self.end_board = Some(self.start_board.clone());
+			self.end_pin = Some(self.start_pin.clone());
+			self.end_board_id = self.start_board_id;
 
-		self.end_board_id = eb.id;
-		println!("TODO: GENERATE CODE TO CONNECT {}:{} TO {}:{} BASED ON INTERFACE", sb.board.get_name(), self.start_pin, eb.board.get_name(), end_pin);
+			self.start_board = board.clone();
+			self.start_pin = pin.clone();
+			self.start_board_id = b.id;
+		} else {
+			self.end_board = Some(board.clone());
+			self.end_pin = Some(pin.clone());
+			self.end_board_id = b.id;
+
+		}
 	}
 
 	pub fn draw_ghost(&self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: Pos2)

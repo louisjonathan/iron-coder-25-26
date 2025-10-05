@@ -209,6 +209,10 @@ impl Board {
     pub fn get_template_dir(&self) -> Option<PathBuf> {
         return self.template_dir.clone();
     }
+
+	pub fn get_board_standard(&self) -> Option<BoardStandards> {
+		self.standard.clone()
+	}
 }
 
 /// Iteratively gather the Boards from the filesystem.

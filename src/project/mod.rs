@@ -83,6 +83,9 @@ pub struct Project {
 
     #[serde(skip)]
     pub board_map: HashMap<Uuid, Rc<RefCell<CanvasBoard>>>,
+
+    #[serde(skip)]
+    pub has_unsaved_changes: bool,
 }
 
 // backend functionality for Project struct
@@ -139,6 +142,7 @@ impl Project {
                         let b_ref = Rc::new(RefCell::new(b));
                         self.board_map.insert(b_ref.borrow().id.clone(), b_ref.clone());
                         self.main_board = Some(b_ref);
+                        self.mark_unsaved();
                     }
                 }
             }
@@ -147,6 +151,7 @@ impl Project {
                         let b_ref = Rc::new(RefCell::new(b));
                         self.board_map.insert(b_ref.borrow().id.clone(), b_ref.clone());
                         self.peripheral_boards.push(b_ref);
+                        self.mark_unsaved();
                 }
             }
         }
@@ -202,6 +207,7 @@ impl Project {
         self.main_board = p.main_board;
         self.peripheral_boards = p.peripheral_boards;
         self.connections = p.connections;
+        self.has_unsaved_changes = false; // just loaded from disk therefore no changes
         self.load_board_resources(kb);
 		self.find_source_files();
 
@@ -299,6 +305,8 @@ impl Project {
             match toml::to_string(self) {
                 Ok(contents) => {
                     fs::write(project_file, contents)?;
+                    // Mark as saved
+                    self.has_unsaved_changes = false;
                 }
                 Err(e) => {
                     warn!("couldn't save project to toml file!! {:?}", e);
@@ -308,6 +316,14 @@ impl Project {
             // self.code_editor.save_all().unwrap_or_else(|_| warn!("error saving tabs!"));
             Ok(())
         }
+    }
+
+    pub fn mark_unsaved(&mut self) {
+        self.has_unsaved_changes = true;
+    }
+
+    pub fn has_unsaved_changes(&self) -> bool {
+        self.has_unsaved_changes
     }
 
     // Build the code with Cargo

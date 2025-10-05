@@ -1,0 +1,136 @@
+[config]
+skip_core_tasks = false
+
+# ============================================================================
+# Modify config.toml to inclkude toolchain path
+# ============================================================================
+
+[tasks.modify-config-toml]
+description = "Modify .cargo/config.toml to include toolchain PATH"
+script_runner = "@duckscript"
+script = '''
+# Detect OS and architecture
+os_name = os_family
+arch = uname -m
+
+echo "OS Family: ${os_name}"
+echo "Architecture: ${arch}"
+
+# Determine toolchain OS string
+toolchain_os = set ""
+path_sep = set ""
+
+is_linux = eq ${os_name} "linux"
+is_mac = eq ${os_name} "mac"
+is_windows = eq ${os_name} "windows"
+
+if ${is_linux}
+    toolchain_os = set "linux-x86_64"
+    path_sep = set ":"
+    echo "Detected: Linux"
+elseif ${is_mac}
+    # Check if ARM (Apple Silicon) or Intel
+    is_arm = eq ${arch} "arm64"
+    if ${is_arm}
+        toolchain_os = set "macos-aarch64"
+    else
+        toolchain_os = set "macos-x86_64"
+    end
+    path_sep = set ":"
+    echo "Detected: macOS (${toolchain_os})"
+elseif ${is_windows}
+    toolchain_os = set "windows-x86_64"
+    path_sep = set ";"
+    echo "Detected: Windows"
+else
+    echo "ERROR: Unknown OS family: ${os_name}"
+    exit 1
+end
+
+# Get working directory
+working_dir = get_env CARGO_MAKE_WORKING_DIRECTORY
+
+echo "Working directory: ${working_dir}"
+echo "Toolchain OS: ${toolchain_os}"
+
+# Construct toolchain bin path
+toolchain_bin = concat ${working_dir} "/toolchain/" ${toolchain_os} "/bin"
+
+echo "Toolchain bin: ${toolchain_bin}"
+
+# Construct config.toml path
+config_dir = concat ${working_dir} "/.cargo"
+config_path = concat ${config_dir} "/config.toml"
+
+echo "Config path: ${config_path}"
+
+# Ensure .cargo directory exists
+is_dir = is_path_exists ${config_dir}
+if not ${is_dir}
+    mkdir ${config_dir}
+    echo "Created .cargo directory"
+end
+
+# Check if config.toml exists
+config_exists = is_path_exists ${config_path}
+
+if ${config_exists}
+    # Read existing config
+    config_content = readfile ${config_path}
+    echo "Read existing config.toml"
+    
+    # Check if our target section exists
+    target_section = set "[target.'cfg(target_arch = \"avr\")']"
+    has_target = contains ${config_content} ${target_section}
+    
+    if ${has_target}
+        echo "Target section already exists, checking for PATH..."
+        has_path = contains ${config_content} "PATH ="
+        
+        if ${has_path}
+            echo "PATH already set in config.toml - skipping"
+        else
+            echo "Adding PATH to existing target section..."
+            # Construct the PATH line with properly expanded variable
+            path_line = concat "PATH = \"" ${toolchain_bin} ${path_sep} "$PATH\"\n"
+            appendfile ${config_path} ${path_line}
+            echo "PATH added to config.toml"
+        end
+    else
+        echo "Adding new target section with PATH..."
+        # Construct PATH value with expanded variables
+        path_value = concat ${toolchain_bin} ${path_sep} "$PATH"
+        
+        new_section = set "\n[target.'cfg(target_arch = \"avr\")']\n"
+        path_line = concat "PATH = \"" ${path_value} "\"\n"
+        new_section = concat ${new_section} ${path_line}
+        
+        appendfile ${config_path} ${new_section}
+        echo "Target section added to config.toml"
+    end
+else
+    echo "Creating new config.toml..."
+    # Construct PATH value with expanded variables
+    path_value = concat ${toolchain_bin} ${path_sep} "$PATH"
+    
+    # Create new config.toml with our settings
+    new_config = set "[build]\n"
+    new_config = concat ${new_config} "target = \"avr-atmega328p.json\"\n"
+    new_config = concat ${new_config} "\n"
+    new_config = concat ${new_config} "[target.'cfg(target_arch = \"avr\")']\n"
+    
+    path_line = concat "PATH = \"" ${path_value} "\"\n"
+    new_config = concat ${new_config} ${path_line}
+    
+    new_config = concat ${new_config} "runner = \"ravedude\"\n"
+    new_config = concat ${new_config} "\n"
+    new_config = concat ${new_config} "[unstable]\n"
+    new_config = concat ${new_config} "build-std = [\"core\"]\n"
+    
+    writefile ${config_path} ${new_config}
+    echo "Created config.toml"
+end
+
+echo "Config.toml modification complete!"
+echo "Final PATH value: ${toolchain_bin}${path_sep}$PATH"
+'''

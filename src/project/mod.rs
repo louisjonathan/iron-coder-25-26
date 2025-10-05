@@ -365,8 +365,19 @@ impl Project {
     pub fn generate_cargo_template(&mut self) -> Result {
         if let Some(mb) = &self.main_board {
             if let Some(template_dir) = mb.borrow().board.get_template_dir() {
-                let destination = self.get_location();
                 
+                // if Path::new(&template_dir).join("Makefile.toml").exists(){
+                //     let cmd = duct::cmd!("cargo", "make", "modify-config-toml");
+                //     match cmd.dir(&template_dir).run() {
+                //         Ok(_) => {},
+                //         Err(e) => {
+                //             warn!("Failed to run cargo make modify-config-toml: {:?}", e);
+                //         }
+                //     }
+                // }
+                
+                let destination = self.get_location();
+             
                 let cmd = duct::cmd!(
                     "cargo",
                     "generate",

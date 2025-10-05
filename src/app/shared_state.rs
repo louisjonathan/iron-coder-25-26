@@ -130,14 +130,19 @@ pub fn term_open_project_dir(&mut self) {
 	pub fn build_project(&mut self) {
 		if let Some(term_ref) = &self.output_terminal_backend {
 			let mut term = term_ref.borrow_mut();
-			term.process_command(BackendCommand::Write("cargo build\n".as_bytes().to_vec()));
+            if let Some(project_path) = &self.project.location {
+                if Path::new(project_path).join("Makefile.toml").exists(){
+                    term.process_command(BackendCommand::Write("cargo make modify-config-toml\n".as_bytes().to_vec()));
+                }     
+            }
+			term.process_command(BackendCommand::Write("cargo +nightly build\n".as_bytes().to_vec()));
 		}
 	}
 	
 	pub fn run_project(&mut self) {
 		if let Some(term_ref) = &self.output_terminal_backend {
 			let mut term = term_ref.borrow_mut();
-			term.process_command(BackendCommand::Write("cargo run\n".as_bytes().to_vec()));
+			term.process_command(BackendCommand::Write("cargo +nightly run\n".as_bytes().to_vec()));
 		}
 	}
 

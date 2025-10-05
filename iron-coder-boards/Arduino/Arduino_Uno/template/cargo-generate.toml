@@ -3,5 +3,4 @@ exclude = [
     ".cargo/config.toml",
     "Makefile.toml",
     "common_hal_interface/**",
-    "toolchain/**"
 ]

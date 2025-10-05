@@ -32,6 +32,8 @@ pub mod egui_helpers;
 
 pub mod system;
 
+pub mod toolchain;
+
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;

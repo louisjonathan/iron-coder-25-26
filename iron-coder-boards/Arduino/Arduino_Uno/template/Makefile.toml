@@ -47,10 +47,10 @@ else
     exit 1
 end
 
-# Get working directory
+# Get working directory and its parent
 working_dir = get_env CARGO_MAKE_WORKING_DIRECTORY
+parent_dir = dirname ${working_dir}
 
-echo "Working directory: ${working_dir}"
 echo "Toolchain OS: ${toolchain_os}"
 
 # Construct toolchain bin path
@@ -108,29 +108,7 @@ if ${config_exists}
         appendfile ${config_path} ${new_section}
         echo "Target section added to config.toml"
     end
-else
-    echo "Creating new config.toml..."
-    # Construct PATH value with expanded variables
-    path_value = concat ${toolchain_bin} ${path_sep} "$PATH"
-    
-    # Create new config.toml with our settings
-    new_config = set "[build]\n"
-    new_config = concat ${new_config} "target = \"avr-atmega328p.json\"\n"
-    new_config = concat ${new_config} "\n"
-    new_config = concat ${new_config} "[target.'cfg(target_arch = \"avr\")']\n"
-    
-    path_line = concat "PATH = \"" ${path_value} "\"\n"
-    new_config = concat ${new_config} ${path_line}
-    
-    new_config = concat ${new_config} "runner = \"ravedude\"\n"
-    new_config = concat ${new_config} "\n"
-    new_config = concat ${new_config} "[unstable]\n"
-    new_config = concat ${new_config} "build-std = [\"core\"]\n"
-    
-    writefile ${config_path} ${new_config}
-    echo "Created config.toml"
 end
-
 echo "Config.toml modification complete!"
 echo "Final PATH value: ${toolchain_bin}${path_sep}$PATH"
 '''

@@ -1,17 +1,33 @@
 [package]
 name = "common_hal_interface"
 version = "0.1.0"
-edition = "2025"
-
+edition = "2024"
 [features]
 default = []
+
+arduino = []
+arduino-uno = ["arduino", "arduino-hal/arduino-uno"]
+arduino-mega2560 = ["arduino", "arduino-hal/arduino-mega2560"]
+arduino-leonardo = ["arduino", "arduino-hal/arduino-leonardo"]
+arduino-nano = ["arduino", "arduino-hal/arduino-nano"]
+sparkfun-promicro = ["arduino", "arduino-hal/sparkfun-promicro"]
+sparkfun-promini-3v3 = ["arduino", "arduino-hal/sparkfun-promini-3v3"]
+sparkfun-promini-5v = ["arduino", "arduino-hal/sparkfun-promini-5v"]
+trinket = ["arduino", "arduino-hal/trinket"]
+trinket-pro = ["arduino", "arduino-hal/trinket-pro"]
+
 rp2040 = ["dep:rp2040-hal"]
-arduino = ["dep:arduino-hal"]
 stm32f4 = ["dep:stm32f4xx-hal"]
 esp = ["dep:esp-hal"]
 
 [dependencies]
 rp2040-hal = { version = "0.10", optional = true }
-arduino-hal = { version = "0.1", optional = true }
 stm32f4xx-hal = { version = "0.21", optional = true }
 esp-hal = { version = "0.20", optional = true }
+
+
+[dependencies.arduino-hal]
+git = "https://github.com/rahix/avr-hal"
+rev = "fafaf587a32a4500239fd073f89d1b9c36b48092"
+optional = true
+

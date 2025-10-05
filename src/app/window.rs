@@ -120,7 +120,7 @@ impl Default for MainWindow {
         );
         tabs.insert("Output".to_string(), Box::new(TerminalTab::new()));
 
-        let state= SharedState::default();
+        let mut state= SharedState::default();
 
         Self {
             tree: tree,
@@ -150,6 +150,7 @@ impl MainWindow {
                     if ui.button("Open Project").clicked() {
 						self.state.stop_board();
 						self.open_project();
+						self.state.term_open_project_dir();
                         ui.close_menu();
                     }
                     if ui.button("Save Project").clicked() {

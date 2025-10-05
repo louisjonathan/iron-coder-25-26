@@ -151,6 +151,7 @@ impl MainWindow {
 						self.state.stop_board();
 						self.open_project();
 						self.state.term_open_project_dir();
+						self.state.reset_canvas = true;
                         ui.close_menu();
                     }
                     if ui.button("Save Project").clicked() {
@@ -422,6 +423,7 @@ impl MainWindow {
             
         if should_create_project {
             self.create_new_project();
+			self.state.term_open_project_dir();
         }
         
         if should_close_dialog {

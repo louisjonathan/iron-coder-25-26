@@ -31,6 +31,8 @@ pub struct CanvasBoard {
 	#[serde(skip)]
 	pub connections: Vec<Rc<RefCell<CanvasConnection>>>,
 	connection_ids: Vec<Uuid>,
+	#[serde(skip)]
+	canvas_rect: Rect,
 }
 
 impl Default for CanvasBoard {
@@ -45,6 +47,7 @@ impl Default for CanvasBoard {
 			canvas_pos: Vec2::ZERO,
 			connection_ids: Vec::new(),
 			connections: Vec::new(),
+			canvas_rect: Rect::ZERO,
 		}
 	}
 }
@@ -64,6 +67,8 @@ impl CanvasBoard {
 				pin_locations.push((pin_name.clone(), pin_rect));
 			}
 
+			let canvas_rect = Rect::ZERO;
+
 			Some(Self {
 				id: Uuid::new_v4(),
 				board: board.clone(),
@@ -74,6 +79,7 @@ impl CanvasBoard {
 				canvas_pos: Vec2::new(0.0, 0.0),
 				connections: Vec::new(),
 				connection_ids: Vec::new(),
+				canvas_rect,
 			})
 		} else {
 			None
@@ -107,6 +113,7 @@ impl CanvasBoard {
 	}
 
 	pub fn draw(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2) {
+		self.canvas_update(to_screen);
 		if self.texture_handle.is_none() {
 			if let Some(svg_board_info) = &self.board.svg_board_info {
 				self.texture_handle = Some(ui.ctx().load_texture(self.board.get_name(), svg_board_info.image.clone(), Default::default()));
@@ -114,11 +121,9 @@ impl CanvasBoard {
 		}
 
 		if let Some(texture) = &self.texture_handle {
-			let canvas_rect = self.image_rect.translate(self.canvas_pos);
-			let transformed_rect = to_screen.transform_rect(canvas_rect);
 			ui.painter().image(
 				texture.id(),
-				transformed_rect,
+				self.canvas_rect,
 				egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
 				egui::Color32::WHITE,
 			);
@@ -137,10 +142,8 @@ impl CanvasBoard {
 	}
 
 	pub fn highlight(&self, ui: &mut egui::Ui, to_screen: &RectTransform) {
-		let canvas_rect = self.image_rect.translate(self.canvas_pos);
-		let transformed_rect = to_screen.transform_rect(canvas_rect);
 		ui.painter().rect(
-			transformed_rect,
+			self.canvas_rect,
 			10,
 			Color32::from_rgba_unmultiplied(0, 0, 127, 63),
 			egui::Stroke::new(2.0, Color32::from_rgba_unmultiplied(255, 255, 255, 63)),
@@ -169,20 +172,19 @@ impl CanvasBoard {
 		);
 	}
 
-	pub fn contains(&self, to_screen: &RectTransform, mouse_pos: &Pos2) -> bool {
+	pub fn canvas_update(&mut self, to_screen: &RectTransform) {
 		let canvas_rect = self.image_rect.translate(self.canvas_pos);
-		let transformed_rect = to_screen.transform_rect(canvas_rect);
+		self.canvas_rect = to_screen.transform_rect(canvas_rect);
+	}
 
-		if (transformed_rect.contains(*mouse_pos)) {
+	pub fn contains(&self, to_screen: &RectTransform, mouse_pos: &Pos2) -> bool {
+		if (self.canvas_rect.contains(*mouse_pos)) {
 			return true;
 		}
 		return false;
 	}
 
 	pub fn interact(&mut self, to_screen: &RectTransform, zoom: &f32, response: &Response, mouse_pos: &Pos2) -> bool {
-		let canvas_rect = self.image_rect.translate(self.canvas_pos);
-		let transformed_rect = to_screen.transform_rect(canvas_rect);
-
 		if self.contains(to_screen, mouse_pos) {
 			if response.clicked() {
 				return true;

@@ -23,6 +23,8 @@ fn main() -> ! {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let _peripherals = esp_hal::init(config);
 
+	// PIN_DEFINITIONS
+
     loop {
         blocking_delay(Duration::from_millis(100));
     }

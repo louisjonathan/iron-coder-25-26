@@ -1,0 +1,9 @@
+name = "LED"
+board_type = "Peripheral"
+
+related_crates = ["embedded-hal"]
+
+# Single pin for the LED (other end assumed connected to ground through resistor)
+[[pinout]]
+pins = ["anode"]
+interface = { iface_type = "NONE", direction = "Input" }

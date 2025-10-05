@@ -21,12 +21,9 @@ fn main() -> ! {
      * examples available.
      */
 
-    let mut internal_led = pins.d13.into_output();
-
+	// PIN_DEFINITIONS
+    
     loop {
         arduino_hal::delay_ms(100);
-        internal_led.toggle();
-        arduino_hal::delay_ms(500);
-        internal_led.toggle();
     }
 }

@@ -1,0 +1,11 @@
+name = "Push Button"
+board_type = "Peripheral"
+
+related_crates = ["embedded-hal"]
+
+bsp = "iron-coder-pushbutton-bsp"
+
+# Single pin for the button (other end assumed connected to ground/vcc)
+[[pinout]]
+pins = ["signal"]
+interface = { iface_type = "NONE", direction = "Output" }

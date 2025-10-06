@@ -61,10 +61,10 @@ impl CanvasBoard {
 
 			let mut pin_locations = Vec::new();
 
-			for (pin_name, mut pin_rect) in &svg_board_info.pin_rects {
+			for (pin_name, pin_rect) in &svg_board_info.pin_rects {
 				// translate the rects so they are in absolute coordinates
-				pin_rect = pin_rect.translate(image_rect.left_top().to_vec2());
-				pin_locations.push((pin_name.clone(), pin_rect));
+				let pin_rect = &pin_rect.translate(image_rect.left_top().to_vec2());
+				pin_locations.push((pin_name.clone(), pin_rect.clone()));
 			}
 
 			let canvas_rect = Rect::ZERO;

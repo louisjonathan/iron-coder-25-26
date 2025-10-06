@@ -16,9 +16,6 @@ use crate::board::pinout::InterfaceDirection;
 
 use egui::Context;
 
-#[cfg(target_arch = "wasm32")]
-use rfd::AsyncFileDialog;
-#[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
 
 use serde::{Deserialize, Serialize};
@@ -205,7 +202,6 @@ impl Project {
 	}
 
 	/// Prompt the user to select project directory to open
-	#[cfg(not(target_arch = "wasm32"))]
 	pub fn open(&mut self, kb: &Vec<Rc<RefCell<Board>>>) -> Result {
 		if let Some(project_directory) = FileDialog::new().pick_folder() {
 			self.load_from(&project_directory, kb)
@@ -217,7 +213,6 @@ impl Project {
 
 	/// Open a file dialog to select a project folder, and then call the save method
 	/// TODO - make file dialog have default directory
-	#[cfg(not(target_arch = "wasm32"))]
 	pub fn save_as(&mut self, create_containing_folder: bool) -> io::Result<()> {
 		if let Some(mut project_folder) = FileDialog::new().pick_folder() {
 			// if indicated, create a new folder for the project (with same name as project)
@@ -243,14 +238,6 @@ impl Project {
 			));
 		}
 		self.save()
-	}
-	#[cfg(target_arch = "wasm32")]
-	pub fn save_as(&mut self, create_containing_folder: bool) -> io::Result<()> {
-		info!("not yet supported!!");
-		return Err(std::io::Error::new(
-			std::io::ErrorKind::Other,
-			"not yet supported!!!",
-		));
 	}
 
 	// TODO - have this save all project files, maybe, except the target directory -- FIXED (note: currently only saves all open tabs)

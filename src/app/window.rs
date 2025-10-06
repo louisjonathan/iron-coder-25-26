@@ -9,7 +9,6 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::fs;
 
-#[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
 
 #[derive(Default)]
@@ -289,7 +288,6 @@ impl MainWindow {
         self.active_tab.clone()
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     fn open_file_dialog(&mut self) {
         // list of allowable files to open
         if let Some(file_path) = FileDialog::new()
@@ -301,11 +299,6 @@ impl MainWindow {
         {
             self.open_file(&file_path);
         }
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    fn open_file_dialog(&mut self) {
-        println!("Blocking file opening because of wasm.");
     }
 
     fn open_project(&mut self) {
@@ -411,17 +404,10 @@ impl MainWindow {
                     ui.label("Project Path:");
                     ui.text_edit_singleline(&mut self.new_project_dialog.path);
                     
-                    #[cfg(not(target_arch = "wasm32"))]
                     if ui.button("Browse...").clicked() {
                         if let Some(folder) = FileDialog::new().pick_folder() {
                             self.new_project_dialog.path = folder.display().to_string();
                         }
-                    }
-                    
-                    #[cfg(target_arch = "wasm32")]
-                    if ui.button("Browse...").clicked() {
-                        // TODO: Add wasm32 support for folder picking
-                        ui.label("Folder picking not supported in web version");
                     }
                 });
                 

@@ -26,7 +26,8 @@ pub struct SharedState {
     pub requested_file_to_open: Option<PathBuf>,
     pub known_boards: Vec<Rc<RefCell<Board>>>,
 	pub default_terminal: Option<PathBuf>,
-	pub output_terminal_backend: Option<Rc<RefCell<TerminalBackend>>>
+	pub output_terminal_backend: Option<Rc<RefCell<TerminalBackend>>>,
+	pub reset_canvas: bool,
 }
 
 impl SharedState {
@@ -84,6 +85,7 @@ impl SharedState {
             known_boards,
 			output_terminal_backend: None,
 			default_terminal: Some(default_terminal),
+			reset_canvas: false,
         }
     }
 

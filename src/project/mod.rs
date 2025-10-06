@@ -83,6 +83,9 @@ pub struct Project {
 
     #[serde(skip)]
     pub board_map: HashMap<Uuid, Rc<RefCell<CanvasBoard>>>,
+
+    #[serde(skip)]
+    pub has_unsaved_changes: bool,
 }
 
 // backend functionality for Project struct
@@ -139,6 +142,7 @@ impl Project {
                         let b_ref = Rc::new(RefCell::new(b));
                         self.board_map.insert(b_ref.borrow().id.clone(), b_ref.clone());
                         self.main_board = Some(b_ref);
+                        self.mark_unsaved();
                     }
                 }
             }
@@ -147,6 +151,7 @@ impl Project {
                         let b_ref = Rc::new(RefCell::new(b));
                         self.board_map.insert(b_ref.borrow().id.clone(), b_ref.clone());
                         self.peripheral_boards.push(b_ref);
+                        self.mark_unsaved();
                 }
             }
         }
@@ -202,6 +207,7 @@ impl Project {
         self.main_board = p.main_board;
         self.peripheral_boards = p.peripheral_boards;
         self.connections = p.connections;
+        self.has_unsaved_changes = false; // just loaded from disk therefore no changes
         self.load_board_resources(kb);
 		self.find_source_files();
 
@@ -299,6 +305,8 @@ impl Project {
             match toml::to_string(self) {
                 Ok(contents) => {
                     fs::write(project_file, contents)?;
+                    // Mark as saved
+                    self.has_unsaved_changes = false;
                 }
                 Err(e) => {
                     warn!("couldn't save project to toml file!! {:?}", e);
@@ -308,6 +316,14 @@ impl Project {
             // self.code_editor.save_all().unwrap_or_else(|_| warn!("error saving tabs!"));
             Ok(())
         }
+    }
+
+    pub fn mark_unsaved(&mut self) {
+        self.has_unsaved_changes = true;
+    }
+
+    pub fn has_unsaved_changes(&self) -> bool {
+        self.has_unsaved_changes
     }
 
     // Build the code with Cargo
@@ -542,29 +558,49 @@ impl Project {
     }
 
 	fn insert_pin_into_source(&self, path: &PathBuf, conn: &CanvasConnection) {
+		let marker = "PIN_DEFINITIONS".to_string();
+		
 		let code = read_to_string(&path).unwrap();
-		let mut ast: File = syn::parse_str(&code).unwrap();
+		let mut output = Vec::new();
+		let mut inserted = false;
 
-		for item in &mut ast.items {
-			if let Item::Fn(ItemFn { sig, block, .. }) = item {
-				if sig.ident == "main" {
-					for (i, stmt_in_block) in block.stmts.iter().enumerate() {
-						let stmt_str = quote!(#stmt_in_block).to_string();
-						if stmt_str.contains("loop") {
-							let new_stmt_str = self.generate_pin_statement(conn);
-							if let Ok(new_stmt) = syn::parse_str::<Stmt>(&new_stmt_str) {
-								block.stmts.insert(i, new_stmt);
-							} else {
-								eprintln!("Failed to parse generated statement: {}", new_stmt_str);
-							}
-							break;
-						}
-					}
-				}
+		let new_stmt_str = self.generate_pin_statement(conn);
+
+		for line in code.lines() {
+			output.push(line.to_string());
+
+			if !inserted && line.contains(&marker) {
+				let indent = line.chars()
+					.take_while(|c| c.is_whitespace())
+					.collect::<String>();
+				output.push(format!("{}{}", indent, new_stmt_str));
+				inserted = true;
 			}
 		}
-		let new_code = prettyplease::unparse(&ast);
-		write(&path, new_code);
+		let code = output.join("\n");
+		write(path, code);
+
+
+		// for item in &mut ast.items {
+		// 	if let Item::Fn(ItemFn { sig, block, .. }) = item {
+		// 		if sig.ident == "main" {
+		// 			for (i, stmt_in_block) in block.stmts.iter().enumerate() {
+		// 				let stmt_str = quote!(#stmt_in_block).to_string();
+		// 				if stmt_str.contains("PIN_DEFINITIONS") {
+		// 					let new_stmt_str = self.generate_pin_statement(conn);
+		// 					if let Ok(new_stmt) = syn::parse_str::<Stmt>(&new_stmt_str) {
+		// 						block.stmts.insert(i, new_stmt);
+		// 					} else {
+		// 						eprintln!("Failed to parse generated statement: {}", new_stmt_str);
+		// 					}
+		// 					break;
+		// 				}
+		// 			}
+		// 		}
+		// 	}
+		// }
+		// let new_code = prettyplease::unparse(&ast);
+		// write(&path, new_code);
 	}
 
 	fn generate_pin_statement(&self, conn: &CanvasConnection) -> String {
@@ -581,29 +617,6 @@ impl Project {
 		let var_name = format!("{}_to_{}", start_pin_name, end_pin_name);
 
 		match sb.get_board_standard() {
-			// Some(BoardStandards::Feather) => {
-			// },
-			Some(BoardStandards::Arduino) => {
-				let pin_type_str = match pin_type {
-					Some(InterfaceDirection::Output) => "input",
-					Some(InterfaceDirection::Input) => "output",
-					_ => "input",
-				};
-				let mutability = if pin_type_str == "output" {"mut "} else {""};
-				format!(
-					"let {}pin_{} = pins.{}.into_{}();",
-					mutability, var_name, start_pin_name, pin_type_str
-				)
-			},
-			// Some(BoardStandards::RaspberryPi) => {
-				
-			// },
-			// Some(BoardStandards::ThingPlus) => {
-				
-			// },
-			// Some(BoardStandards::MicroMod) => {
-				
-			// },
 			Some(BoardStandards::ESP32) => {
 				match pin_type {
 					Some(InterfaceDirection::Output) => {
@@ -621,7 +634,18 @@ impl Project {
 					_ => { "".to_string() }
 				}
 			},
-			_ => "".to_string(),
+			Some(BoardStandards::Arduino) | _ => {
+				let pin_type_str = match pin_type {
+					Some(InterfaceDirection::Output) => "output",
+					Some(InterfaceDirection::Input) => "input",
+					_ => "input",
+				};
+				let mutability = if pin_type_str == "output" {"mut "} else {""};
+				format!(
+					"let {}pin_{} = pins.{}.into_{}();",
+					mutability, var_name, start_pin_name, pin_type_str
+				)
+			},
 		}
 	}
 }

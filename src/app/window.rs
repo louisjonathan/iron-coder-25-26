@@ -1,6 +1,7 @@
 use crate::app::SharedState;
 use crate::board::{Board, get_boards};
 use super::tabs::*;
+use super::tabs::file_tab::FileTab;
 use crate::app::colorschemes::colorscheme;
 use eframe::egui::{Ui};
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
@@ -90,6 +91,16 @@ pub struct MainWindow {
     active_tab: Option<String>,
     show_new_project_dialog: bool,
     new_project_dialog: NewProjectDialog,
+    show_save_prompt: bool,
+    pending_action: Option<PendingAction>,
+    should_exit: bool,
+}
+
+#[derive(Debug, Clone)]
+enum PendingAction {
+    OpenProject,
+    NewProject,
+    Exit,
 }
 
 impl Default for MainWindow {
@@ -129,6 +140,9 @@ impl Default for MainWindow {
             active_tab: None,
             show_new_project_dialog: false,
             new_project_dialog: NewProjectDialog::default(),
+            show_save_prompt: false,
+            pending_action: None,
+            should_exit: false,
         }
     }
 }
@@ -144,13 +158,14 @@ impl MainWindow {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("New Project").clicked() {
-                        self.show_new_project_dialog = true;
+                        self.prompt_save_if_needed(PendingAction::NewProject);
                         ui.close_menu();
                     }
                     if ui.button("Open Project").clicked() {
 						self.state.stop_board();
-						self.open_project();
+						self.prompt_save_if_needed(PendingAction::OpenProject);
 						self.state.term_open_project_dir();
+						self.state.reset_canvas = true;
                         ui.close_menu();
                     }
                     if ui.button("Save Project").clicked() {
@@ -171,6 +186,11 @@ impl MainWindow {
                     }
                     ui.separator();
                     if ui.button("Settings").clicked() {
+                        ui.close_menu();
+                    }
+                    ui.separator();
+                    if ui.button("Exit").clicked() {
+                        self.prompt_save_if_needed(PendingAction::Exit);
                         ui.close_menu();
                     }
                 });
@@ -289,15 +309,7 @@ impl MainWindow {
     }
 
     fn open_project(&mut self) {
-        match self.state.project.open(&self.state.known_boards) {
-            Ok(()) => {
-                self.refocus_file_explorer_to_project();
-                println!("Project opened successfully.");
-            }
-            Err(e) => {
-                println!("Failed to open project.");
-            }
-        }
+        self.prompt_save_if_needed(PendingAction::OpenProject);
     }
 
     fn open_file(&mut self, file_path: &Path) {
@@ -323,8 +335,37 @@ impl MainWindow {
         }
     }
 
+    fn find_canvas_node(&self) -> Option<NodeIndex> {
+        let tree = self.tree.main_surface();
+        
+        // try all possible node indices to find Canvas
+        for i in 0..tree.len() {
+            let node_index = NodeIndex(i);
+            
+            let node = &tree[node_index];
+            if let egui_dock::Node::Leaf { tabs, .. } = node {
+                if tabs.contains(&"Canvas".to_string()) {
+                    return Some(node_index);
+                }
+            }
+        }
+        None
+    }
+
     fn add_file_tab_intelligently(&mut self, tab_name: String) {
-        self.tree.push_to_focused_leaf(tab_name);
+        // Find the node that contains Canvas
+        let canvas_node = self.find_canvas_node();
+        
+        if let Some(node_index) = canvas_node {
+            let tree = self.tree.main_surface_mut();
+            if let egui_dock::Node::Leaf { tabs, active, .. } = &mut tree[node_index] {
+                tabs.push(tab_name);
+                *active = egui_dock::TabIndex(tabs.len() - 1); // Make the new tab active
+            }
+        } else {
+            // Open in focused method as fallback
+            self.tree.push_to_focused_leaf(tab_name);
+        }
     }
 
     fn is_file_tab(&self, tab_name: &str) -> bool {
@@ -422,6 +463,8 @@ impl MainWindow {
             
         if should_create_project {
             self.create_new_project();
+			self.state.term_open_project_dir();
+			self.state.reset_canvas = true;
         }
         
         if should_close_dialog {
@@ -507,6 +550,127 @@ impl MainWindow {
         }
     }
 
+    fn has_unsaved_changes(&self) -> bool {
+        // Check if project has unsaved changes
+        if self.state.project.has_unsaved_changes() {
+            return true;
+        }
+
+        // check if any open file tabs have unsaved changes
+        for (_, tab) in &self.tabs {
+            if let Some(file_tab) = tab.as_any().downcast_ref::<FileTab>() {
+                if !file_tab.is_synced() {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    fn display_save_prompt(&mut self, ctx: &egui::Context) {
+        let mut should_save = false;
+        let mut should_dont_save = false;
+        let mut should_cancel = false;
+
+        egui::Window::new("Unsaved Changes")
+            .open(&mut self.show_save_prompt)
+            .collapsible(false)
+            .resizable(false)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                ui.label("You have unsaved changes.");
+                ui.label("Would you like to save before continuing?");
+                ui.separator();
+                
+                ui.horizontal(|ui| {
+                    if ui.button("Yes").clicked() {
+                        should_save = true;
+                    }
+                    
+                    if ui.button("No").clicked() {
+                        should_dont_save = true;
+                    }
+                    
+                    if ui.button("Cancel").clicked() {
+                        should_cancel = true;
+                    }
+                });
+            });
+
+        if should_save {
+            self.save_project_and_files();
+            self.execute_pending_action();
+            self.show_save_prompt = false;
+        } else if should_dont_save {
+            self.execute_pending_action();
+            self.show_save_prompt = false;
+        } else if should_cancel {
+            self.pending_action = None;
+            self.show_save_prompt = false;
+        }
+    }
+
+    fn save_project_and_files(&mut self) {
+        // Save the project
+        match self.state.project.save() {
+            Ok(_) => println!("Project saved successfully."),
+            Err(e) => println!("Error saving project: {}", e),
+        }
+
+        // Save all open file tabs
+        for (tab_name, tab) in &mut self.tabs {
+            if let Some(file_tab) = tab.as_any_mut().downcast_mut::<FileTab>() {
+                if !file_tab.is_synced() {
+                    match file_tab.save() {
+                        Ok(_) => println!("File '{}' saved successfully.", tab_name),
+                        Err(e) => println!("Error saving file '{}': {}", tab_name, e),
+                    }
+                }
+            }
+        }
+    }
+
+    fn execute_pending_action(&mut self) {
+        if let Some(action) = self.pending_action.clone() {
+            match action {
+                PendingAction::OpenProject => {
+                    self.open_project_immediately();
+                }
+                PendingAction::NewProject => {
+                    self.show_new_project_dialog = true;
+                }
+                PendingAction::Exit => {
+                    self.should_exit = true;
+                }
+            }
+            self.pending_action = None;
+        }
+    }
+
+    // deciding if we should open a project while a project is already open
+    fn open_project_immediately(&mut self) {
+        match self.state.project.open(&self.state.known_boards) {
+            Ok(()) => {
+                self.refocus_file_explorer_to_project();
+                println!("Project opened successfully.");
+            }
+            Err(e) => {
+                println!("Failed to open project.");
+            }
+        }
+    }
+
+    fn prompt_save_if_needed(&mut self, action: PendingAction) {
+        if self.has_unsaved_changes() {
+            self.pending_action = Some(action);
+            self.show_save_prompt = true;
+        } else {
+            self.pending_action = Some(action);
+            self.execute_pending_action();
+        }
+    }
+
     
 
 }
@@ -516,11 +680,31 @@ impl eframe::App for MainWindow {
         println!("Exiting application, saving settings...");
         self.state.save_settings();
     }
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.display_menu(ctx, _frame);
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        // Check for close request
+        if ctx.input(|i| i.viewport().close_requested()) {
+            if self.has_unsaved_changes() && !self.show_save_prompt {
+                // Show the save prompt and prevent closing for now
+                self.pending_action = Some(PendingAction::Exit);
+                self.show_save_prompt = true;
+                ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            }
+        }
+
+        // Check if we should exit after save prompt
+        if self.should_exit {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            return;
+        }
+
+        self.display_menu(ctx, frame);
 
         if self.show_new_project_dialog {
             self.display_new_project_dialog(ctx);
+        }
+
+        if self.show_save_prompt {
+            self.display_save_prompt(ctx);
         }
 
         if self.state.keybindings.is_pressed(ctx, "save_file") {

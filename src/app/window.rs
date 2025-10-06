@@ -334,8 +334,37 @@ impl MainWindow {
         }
     }
 
+    fn find_canvas_node(&self) -> Option<NodeIndex> {
+        let tree = self.tree.main_surface();
+        
+        // try all possible node indices to find Canvas
+        for i in 0..tree.len() {
+            let node_index = NodeIndex(i);
+            
+            let node = &tree[node_index];
+            if let egui_dock::Node::Leaf { tabs, .. } = node {
+                if tabs.contains(&"Canvas".to_string()) {
+                    return Some(node_index);
+                }
+            }
+        }
+        None
+    }
+
     fn add_file_tab_intelligently(&mut self, tab_name: String) {
-        self.tree.push_to_focused_leaf(tab_name);
+        // Find the node that contains Canvas
+        let canvas_node = self.find_canvas_node();
+        
+        if let Some(node_index) = canvas_node {
+            let tree = self.tree.main_surface_mut();
+            if let egui_dock::Node::Leaf { tabs, active, .. } = &mut tree[node_index] {
+                tabs.push(tab_name);
+                *active = egui_dock::TabIndex(tabs.len() - 1); // Make the new tab active
+            }
+        } else {
+            // Open in focused method as fallback
+            self.tree.push_to_focused_leaf(tab_name);
+        }
     }
 
     fn is_file_tab(&self, tab_name: &str) -> bool {

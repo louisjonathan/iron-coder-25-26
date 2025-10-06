@@ -149,7 +149,6 @@ impl CanvasConnection {
 			self.end_board = Some(board.clone());
 			self.end_pin = Some(pin.clone());
 			self.end_board_id = b.id;
-
 		}
 	}
 

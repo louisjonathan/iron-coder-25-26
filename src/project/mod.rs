@@ -2,6 +2,7 @@
 //! Description: This module contains the Project struct and its associated functionality.
 #![allow(warnings)]
 use log::{debug, info, warn};
+use proc_macro2::extra;
 
 // use std::error::Error;
 use std::fs::{self, read_dir, DirEntry, read_to_string, write};
@@ -131,30 +132,35 @@ impl Project {
         self.location.is_some()
     }
 
-    pub fn add_board(&mut self, board: &Rc<RefCell<Board>>) {
+    pub fn add_board(&mut self, board: &Rc<RefCell<Board>>) -> Option<Rc<RefCell<CanvasBoard>>> {
         match board.borrow().is_main_board() {
             true => {
                 if self.has_main_board() {
                     info!("project already contains a main board! aborting.");
-                    return;
+                    return None;
                 } else {
                     if let Some(b) = CanvasBoard::new(&board.borrow()) {
                         let b_ref = Rc::new(RefCell::new(b));
+						let extra_ref = b_ref.clone();
                         self.board_map.insert(b_ref.borrow().id.clone(), b_ref.clone());
                         self.main_board = Some(b_ref);
                         self.mark_unsaved();
+						return Some(extra_ref);
                     }
                 }
             }
             false => {
                 if let Some(b) = CanvasBoard::new(&board.borrow()) {
                         let b_ref = Rc::new(RefCell::new(b));
-                        self.board_map.insert(b_ref.borrow().id.clone(), b_ref.clone());
-                        self.peripheral_boards.push(b_ref);
-                        self.mark_unsaved();
+						let extra_ref = b_ref.clone();
+						self.board_map.insert(b_ref.borrow().id.clone(), b_ref.clone());
+						self.peripheral_boards.push(b_ref);
+						self.mark_unsaved();
+						return Some(extra_ref);
                 }
             }
         }
+		return None;
     }
 
     /// Populate the project board list via the app-wide 'known boards' list
@@ -516,12 +522,13 @@ impl Project {
 	}
 
     pub fn remove_board(&mut self, board: &Rc<RefCell<CanvasBoard>>) {
-        if let Some(mb) = &self.main_board {
-            if Rc::ptr_eq(board, mb) {
-                self.main_board = None;
-                return;
-            }
-        }
+		let b = board.borrow_mut();
+		if b.board.is_main_board() {
+			return;
+		}
+		for c in &b.connections {
+			self.remove_connection(c);
+		}
         self.peripheral_boards.retain(|c| !Rc::ptr_eq(c, board));
     }
 
@@ -659,7 +666,6 @@ mod rc_refcell_vec {
         T: Clone + Serialize,
         S: Serializer,
     {
-        // Create a temporary Vec of plain T for serialization
         let plain: Vec<T> = v.iter().map(|c| c.borrow().clone()).collect();
         plain.serialize(serializer)
     }
@@ -669,9 +675,7 @@ mod rc_refcell_vec {
         T: Deserialize<'de>,
         D: Deserializer<'de>,
     {
-        // Deserialize plain Vec<T>
         let plain: Vec<T> = Vec::deserialize(deserializer)?;
-        // Wrap each element in Rc<RefCell>
         Ok(plain.into_iter().map(|c| Rc::new(RefCell::new(c))).collect())
     }
 }

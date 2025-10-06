@@ -113,9 +113,7 @@ impl SharedState {
 pub fn term_open_project_dir(&mut self) {
 	if let Some(term_ref) = &self.output_terminal_backend {
         let mut term = term_ref.borrow_mut();
-		println!("has term");
         if let (Some(def_term), Some(dir)) = (&self.default_terminal, &self.project.location) {
-			println!("RUNNING CD");
 			let term_type = def_term
                 .file_name()
                 .and_then(OsStr::to_str)

@@ -28,6 +28,7 @@ pub struct SharedState {
 	pub default_terminal: Option<PathBuf>,
 	pub output_terminal_backend: Option<Rc<RefCell<TerminalBackend>>>,
 	pub reset_canvas: bool,
+	pub sync_file_explorer: bool,
 }
 
 impl SharedState {
@@ -85,6 +86,7 @@ impl SharedState {
 			output_terminal_backend: None,
 			default_terminal: Some(default_terminal),
 			reset_canvas: false,
+			sync_file_explorer: false,
         }
     }
 
@@ -103,6 +105,7 @@ impl SharedState {
 				));
 			}
 		}
+		self.sync_file_explorer = true;
 	}
 
 	pub fn build_project(&mut self) {

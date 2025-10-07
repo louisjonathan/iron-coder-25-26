@@ -48,9 +48,15 @@ impl<'a> egui_dock::TabViewer for WindowContext<'a> {
         // Is FileTab? and change s made?
         if let Some(file_tab) = self.tabs.get(tab) {
             if let Some(file_tab) = file_tab.as_any().downcast_ref::<FileTab>() {
-                if !file_tab.is_synced() {
-                    return format!("● {}", tab).into();
+                let path = Path::new(tab);
+				let display_name = match path.file_name() {
+					Some(name) => name.to_string_lossy().to_string(),
+					None => path.to_string_lossy().to_string(),
+            	};
+				if !file_tab.is_synced() {
+                    return format!("● {}", display_name).into();
                 }
+				return display_name.into();
             }
         }
         tab.as_str().into()

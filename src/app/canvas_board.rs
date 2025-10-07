@@ -149,7 +149,7 @@ impl CanvasBoard {
 	}
 
 	pub fn draw_pin(&self, ui: &mut egui::Ui, pin_name: &String, pin_rect: &Rect) {
-		let pin_name_color = Color32::from_rgba_unmultiplied(0, 255, 0, 63);
+		let pin_name_color = Color32::from_rgba_unmultiplied(0, 255, 0, 255);
 		let pin_color = Color32::from_rgba_unmultiplied(0, 255, 0, 255);
 
 		let pin_r = pin_rect.height() / 2.0;

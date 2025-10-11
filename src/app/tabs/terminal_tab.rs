@@ -60,6 +60,7 @@ impl BaseTab for TerminalTab {
             ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
             return;
         }
+
 		if let Some(term_ref) = self.terminal_backend.as_ref() {
 			let mut term = term_ref.borrow_mut();
 			let tab_rect = ui.max_rect();

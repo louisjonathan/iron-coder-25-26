@@ -47,6 +47,10 @@ impl FileExplorerTab {
 
 impl BaseTab for FileExplorerTab {
     fn draw(&mut self, ui: &mut egui::Ui, _state: &mut SharedState) {
+		if _state.sync_file_explorer {
+			self.set_root_dir(_state.project.location.clone().unwrap());
+			_state.sync_file_explorer = false;
+		}
         egui::ScrollArea::vertical().show(ui, |ui| {
             fn draw_directory(
                 ui: &mut egui::Ui,

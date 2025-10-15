@@ -148,10 +148,10 @@ impl BaseTab for CanvasTab {
 
         // CONNECTIONS
         for c in state.project.connections_iter() {
-            c.borrow().draw(ui, &to_screen, mouse_canvas);
+            c.borrow_mut().draw(ui, &to_screen, mouse_canvas);
         }
         if let Some(c) = &self.connection_in_progress {
-            c.borrow().draw(ui, &to_screen, mouse_canvas);
+            c.borrow_mut().draw(ui, &to_screen, mouse_canvas);
         }
 
         // PINS
@@ -212,6 +212,7 @@ impl BaseTab for CanvasTab {
 
                         if let Some(pin_location) = pin_location_opt {
                             connection.add_end_point(&mouse_canvas, pin_location);
+							connection.show_popup = true;
                         }
 
                         connection.get_start_board().borrow_mut().connections.push(conn_clone.clone());

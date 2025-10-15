@@ -315,6 +315,10 @@ impl BaseTab for CanvasTab {
             if clicked_pin == None && !ignore_canvas {
                 if response.dragged() {
                     self.canvas_offset += response.drag_delta();
+					for b_ref in state.project.boards_iter() {
+						let mut b = b_ref.borrow_mut();
+						b.canvas_update(&to_screen);
+					}
                 }
 
                 if response.clicked() {

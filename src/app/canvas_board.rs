@@ -61,10 +61,10 @@ impl CanvasBoard {
 
 			let mut pin_locations = Vec::new();
 
-			for (pin_name, mut pin_rect) in &svg_board_info.pin_rects {
+			for (pin_name, pin_rect) in &svg_board_info.pin_rects {
 				// translate the rects so they are in absolute coordinates
-				pin_rect = pin_rect.translate(image_rect.left_top().to_vec2());
-				pin_locations.push((pin_name.clone(), pin_rect));
+				let pin_rect = &pin_rect.translate(image_rect.left_top().to_vec2());
+				pin_locations.push((pin_name.clone(), pin_rect.clone()));
 			}
 
 			let canvas_rect = Rect::ZERO;
@@ -95,7 +95,6 @@ impl CanvasBoard {
 		}
 
 		if let Some(svg_board_info) = &self.board.svg_board_info {
-			println!("found board svg info on load");
 			let display_size = svg_board_info.physical_size;
 			let image_origin = egui::pos2(0.0, 0.0);
 			self.image_rect = Rect::from_min_size(image_origin, display_size);
@@ -108,8 +107,6 @@ impl CanvasBoard {
 					.map(|c| c.clone())
 			})
 			.collect();
-
-		println!("populated board {} with {} connections", self.board.get_name(), self.connections.len());
 	}
 
 	pub fn draw(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2) {
@@ -152,7 +149,7 @@ impl CanvasBoard {
 	}
 
 	pub fn draw_pin(&self, ui: &mut egui::Ui, pin_name: &String, pin_rect: &Rect) {
-		let pin_name_color = Color32::from_rgba_unmultiplied(0, 255, 0, 63);
+		let pin_name_color = Color32::from_rgba_unmultiplied(0, 255, 0, 255);
 		let pin_color = Color32::from_rgba_unmultiplied(0, 255, 0, 255);
 
 		let pin_r = pin_rect.height() / 2.0;

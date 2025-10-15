@@ -136,7 +136,6 @@ impl BaseTab for CanvasTab {
         let quit_connection = ui.input(|i| i.key_pressed(Key::Escape));
         if quit_connection {
             if self.connection_in_progress.is_some() {
-                state.project.connections.pop();
                 self.connection_in_progress = None;
             }
         }

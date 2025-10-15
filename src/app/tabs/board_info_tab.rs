@@ -38,6 +38,12 @@ impl BaseTab for BoardInfoTab {
             ui.label("or select a board from the list below");
             ui.columns(num_cols, |columns| {
                 for (i, b) in state.known_boards.clone().into_iter().enumerate() {
+					if state.project.has_main_board() {
+						let board = b.borrow();
+						if board.is_main_board() {
+							continue;
+						}
+					}
                     let col = i % num_cols;
                     // When a board is clicked, add it to the new project
                     ///@TODO  BoardSelectorWidget

@@ -69,22 +69,6 @@ impl Widget for Board {
                             self.manufacturer.as_str(),
                             ui.style().visuals.window_stroke.color,
                         ));
-                        // TODO -- make the manufacturer logos an app-wide resource
-                        // let p = Path::new("./assets/images/Adafruit_logo_small.png");
-                        // let image = image::io::Reader::open(p).unwrap().decode().unwrap();
-                        // let size = [image.width() as _, image.height() as _];
-                        // let image_buffer = image.to_rgba8();
-                        // let pixels = image_buffer.as_flat_samples();
-                        // let color_image = egui::ColorImage::from_rgba_unmultiplied(
-                        //     size,
-                        //     pixels.as_slice(),
-                        // );
-                        // let ri = egui_extras::RetainedImage::from_color_image("logo", color_image);
-                        // let image = egui::widgets::Image::new(
-                        //     ri.texture_id(ui.ctx()),
-                        //     egui::Vec2::new(47.0, 16.0)
-                        // ).tint(egui::Color32::GREEN);   // TODO: replace with a val from current colorscheme
-                        // ui.add(image);
                     });
                     ui.horizontal(|ui| {
                         ui.label("Ecosystem: ");

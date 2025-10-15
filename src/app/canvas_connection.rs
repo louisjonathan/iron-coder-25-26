@@ -149,7 +149,6 @@ impl CanvasConnection {
 			self.end_board = Some(board.clone());
 			self.end_pin = Some(pin.clone());
 			self.end_board_id = b.id;
-
 		}
 	}
 
@@ -157,9 +156,7 @@ impl CanvasConnection {
 	{
 		let mut p = mouse_pos;
 		let len = self.points.len();
-		if len == 1 {
-			p.y = self.points[0].y;
-		} else if len > 1 {
+		if len > 1 {
 			let lastp = self.points[len - 1];
 
 			let dx = p.x - lastp.x;

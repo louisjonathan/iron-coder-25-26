@@ -28,10 +28,10 @@ pub struct SharedState {
 	pub default_terminal: Option<PathBuf>,
 	pub output_terminal_backend: Option<Rc<RefCell<TerminalBackend>>>,
 	pub reset_canvas: bool,
+	pub sync_file_explorer: bool,
 }
 
 impl SharedState {
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn default() -> Self {
         use egui::epaint::color;
 
@@ -86,60 +86,44 @@ impl SharedState {
 			output_terminal_backend: None,
 			default_terminal: Some(default_terminal),
 			reset_canvas: false,
+			sync_file_explorer: false,
         }
     }
 
-    #[cfg(target_arch = "wasm32")]
-    fn default() -> Self {
-        let boards: Vec<board::Board> = vec![board::Board::default()];
-
-        #[cfg(target_arch = "wasm32")]
-        let boards: Vec<board::Board> = vec![board::Board::default()];
-
-        let mut project = Project::default();
-        project.add_board(boards[0].clone());
-        let boards_used = project.system.get_all_boards();
-        Self {
-            keybindings: Keybindings::new(),
-            colorschemes: colorscheme::colorschemes::default(),
-            syntax_highlighter: SyntaxHighlighter::new(),
-            project: project,
-            boards: boards,
-            boards_used,
-            requested_file_to_open: None,
-        }
-    }
-
-pub fn term_open_project_dir(&mut self) {
-	if let Some(term_ref) = &self.output_terminal_backend {
-        let mut term = term_ref.borrow_mut();
-		println!("has term");
-        if let (Some(def_term), Some(dir)) = (&self.default_terminal, &self.project.location) {
-			println!("RUNNING CD");
-			let term_type = def_term
-                .file_name()
-                .and_then(OsStr::to_str)
-                .unwrap_or("")
-                .to_ascii_lowercase();
-            let path_str = dir.to_string_lossy().replace("\\", "/");
-            term.process_command(BackendCommand::Write(
-				format!("cd {}\n", path_str).as_bytes().to_vec(),
-			));
-        }
-    }
-}
+	pub fn term_open_project_dir(&mut self) {
+		if let Some(term_ref) = &self.output_terminal_backend {
+			let mut term = term_ref.borrow_mut();
+			if let (Some(def_term), Some(dir)) = (&self.default_terminal, &self.project.location) {
+				let term_type = def_term
+					.file_name()
+					.and_then(OsStr::to_str)
+					.unwrap_or("")
+					.to_ascii_lowercase();
+				let path_str = dir.to_string_lossy().replace("\\", "/");
+				term.process_command(BackendCommand::Write(
+					format!("cd {}\n", path_str).as_bytes().to_vec(),
+				));
+			}
+		}
+		self.sync_file_explorer = true;
+	}
 
 	pub fn build_project(&mut self) {
 		if let Some(term_ref) = &self.output_terminal_backend {
 			let mut term = term_ref.borrow_mut();
-			term.process_command(BackendCommand::Write("cargo build\n".as_bytes().to_vec()));
+            if let Some(project_path) = &self.project.location {
+                if Path::new(project_path).join("Makefile.toml").exists(){
+                    term.process_command(BackendCommand::Write("cargo make modify-config-toml\n".as_bytes().to_vec()));
+                }     
+            }
+			term.process_command(BackendCommand::Write("cargo +nightly build\n".as_bytes().to_vec()));
 		}
 	}
 	
 	pub fn run_project(&mut self) {
 		if let Some(term_ref) = &self.output_terminal_backend {
 			let mut term = term_ref.borrow_mut();
-			term.process_command(BackendCommand::Write("cargo run\n".as_bytes().to_vec()));
+			term.process_command(BackendCommand::Write("cargo +nightly run\n".as_bytes().to_vec()));
 		}
 	}
 

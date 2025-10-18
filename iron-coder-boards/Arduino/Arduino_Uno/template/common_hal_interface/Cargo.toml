@@ -1,7 +1,15 @@
 [package]
 name = "common_hal_interface"
-version = "0.1.0"
+version = "1.0.0-alpha"
+description = "A common interface between Rust HALs, for use in the Iron Coder IDE"
+license = "MIT"
+readme = "README.md"
+authors = ["jonathanlouis@ufl.edu"]
+categories = ["embedded", "development-tools", "hardware-support", "rust-patterns", "no-std"]
+keywords = ["embedded", "hal", "macro", "compatibility"]
 edition = "2024"
+
+
 [features]
 default = []
 
@@ -27,6 +35,7 @@ esp-hal = { version = "0.20", optional = true }
 
 
 [dependencies.arduino-hal]
+version = "0.1"
 git = "https://github.com/rahix/avr-hal"
 rev = "fafaf587a32a4500239fd073f89d1b9c36b48092"
 optional = true

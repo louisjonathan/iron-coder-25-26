@@ -12,17 +12,17 @@ edition = "2024"
 
 [features]
 default = []
-
+# Arduino features. They cannot specify features of arduino-hal directly but they can still be used as if the user specified the feature for arduino-hal, as long as both feature selections match. This may need to be left to the user, or it may be possible to configure it in the template for each board.
 arduino = []
-arduino-uno = ["arduino", "arduino-hal/arduino-uno"]
-arduino-mega2560 = ["arduino", "arduino-hal/arduino-mega2560"]
-arduino-leonardo = ["arduino", "arduino-hal/arduino-leonardo"]
-arduino-nano = ["arduino", "arduino-hal/arduino-nano"]
-sparkfun-promicro = ["arduino", "arduino-hal/sparkfun-promicro"]
-sparkfun-promini-3v3 = ["arduino", "arduino-hal/sparkfun-promini-3v3"]
-sparkfun-promini-5v = ["arduino", "arduino-hal/sparkfun-promini-5v"]
-trinket = ["arduino", "arduino-hal/trinket"]
-trinket-pro = ["arduino", "arduino-hal/trinket-pro"]
+arduino-uno = ["arduino"]
+arduino-mega2560 = ["arduino"]
+arduino-leonardo = ["arduino"]
+arduino-nano = ["arduino"]
+sparkfun-promicro = ["arduino"]
+sparkfun-promini-3v3 = ["arduino"]
+sparkfun-promini-5v = ["arduino"]
+trinket = ["arduino"]
+trinket-pro = ["arduino"]
 
 rp2040 = ["dep:rp2040-hal"]
 stm32f4 = ["dep:stm32f4xx-hal"]
@@ -33,10 +33,4 @@ rp2040-hal = { version = "0.10", optional = true }
 stm32f4xx-hal = { version = "0.21", optional = true }
 esp-hal = { version = "0.20", optional = true }
 
-
-[dependencies.arduino-hal]
-version = "0.1"
-git = "https://github.com/rahix/avr-hal"
-rev = "fafaf587a32a4500239fd073f89d1b9c36b48092"
-optional = true
 

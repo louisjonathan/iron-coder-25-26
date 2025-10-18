@@ -3,7 +3,18 @@
 
 ### This is a common interface between major Rust HALs such as arduino-hal, rp-hal, and esp-hal. It functions primarily as a macro-based compatibility layer between boards to make programming in Rust across boards slightly more uniform.
 
-### An example macro is as follows:
+
+# Usage:
+## To use common-hal-interface, simply include the crate as a dependency in Cargo.toml, and specify one HAL/board specific feature to use. 
+### Example:
+`common_hal_interface = {version="*", features= ["arduino-uno"]}`
+
+or, for an example with espressif's hal:
+
+`common_hal_interface = {version="*", features= ["esp"]}`
+
+
+## An example of a macro in this crate is as follows:
 
 ```Rust
 #[macro_export]
@@ -18,7 +29,7 @@ macro_rules! arduino_setup {
 
 #### This macro takes in four parameters and uses them to store important objects such as `dp` and `pins` for arduino, also setting up the serial communication and returning that to `serial`
 
-### An example of its use is as follows:
+## An example of its use is as follows:
 
 
 ```Rust
@@ -45,4 +56,3 @@ fn main() -> ! {
 ```
 
 #### As you can see, this simple interface allows novice Rust users to program in embedded rust more easily by abstracting away language and package specific differences. The pins, dp, and serial parameters to arduino_setup can be used as if the user set them up in the manner intended by the arduino-hal package creator (more verbose, confusing, package specific) without the confusion present in the intended method.
-

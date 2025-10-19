@@ -66,7 +66,7 @@ pub struct Board {
     is_main_board: bool,
     /// A possible form factor that the board adheres to
     standard: Option<BoardStandards>,
-    cpu: Option<String>,
+    pub cpu: Option<String>,
     ram: Option<isize>,
     flash: Option<isize>,
     /// A list of the interfaces available on the board

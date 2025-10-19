@@ -36,6 +36,11 @@ impl CanvasTab {
 
 impl BaseTab for CanvasTab {
     fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
+		if state.reset_canvas {
+			self.reset_canvas();
+			state.reset_canvas = false;
+		}
+
         // grab mouse location
         let mouse_screen = ui.input(|i| i.pointer.hover_pos()).unwrap_or_default();
 
@@ -114,24 +119,23 @@ impl BaseTab for CanvasTab {
         let draw_all_pins = ui.input(|i| i.modifiers.alt);
 
         if ui.input(|i| i.key_pressed(Key::Delete)) {
-            if let Some(s) = self.selection.take() {
-                match s {
-                    CanvasSelection::Board(board) => {
-                        self.selection = None;
+			if let Some(s) = self.selection.take() {
+				match s {
+					CanvasSelection::Board(board) => {
+						self.selection = None;
                         state.project.remove_board(&board);
                     }
                     CanvasSelection::Connection(connection) => {
-                        self.selection = None;
+						self.selection = None;
                         state.project.remove_connection(&connection);
                     }
                 }
-        }
+        	}
         }
 
         let quit_connection = ui.input(|i| i.key_pressed(Key::Escape));
         if quit_connection {
             if self.connection_in_progress.is_some() {
-                state.project.connections.pop();
                 self.connection_in_progress = None;
             }
         }
@@ -394,13 +398,23 @@ impl CanvasTab {
         return false;
     }
 
-    // pub fn reload(&mut self, state: &mut SharedState) {
-    //     self.canvas_zoom = 5.0;
-    //     self.canvas_offset = Vec2::new(0.0, 0.0);
-    //     self.connection_in_progress = None;
-    //     self.selection = None;
+	pub fn fit_to_screen(&mut self, state: &mut SharedState, screen_rect: &Rect) {
+		let mut min = Vec2::splat(f32::INFINITY);
+    	let mut max = Vec2::splat(f32::NEG_INFINITY);
 
-    //     state.boards_used.clear();
-    //     state.connections.clear();
-    // }
+		for b_ref in state.project.boards_iter() {
+			let b = b_ref.borrow();
+			let p = b.get_canvas_position();
+
+			min = min.min(p);
+			max = max.max(p);
+		}
+	}
+
+    pub fn reset_canvas(&mut self) {
+        self.canvas_zoom = 5.0;
+        self.canvas_offset = Vec2::new(0.0, 0.0);
+        self.connection_in_progress = None;
+        self.selection = None;
+    }
 }

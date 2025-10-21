@@ -138,7 +138,7 @@ impl Default for MainWindow {
 
         let mut state= SharedState::default();
 
-        Self {
+        let mut window = Self {
             tree: tree,
             tabs: tabs,
             state: SharedState::default(),
@@ -148,7 +148,14 @@ impl Default for MainWindow {
             show_save_prompt: false,
             pending_action: None,
             should_exit: false,
+        };
+
+        // open main.rs during startup project open
+        if window.state.project.location.is_some() {
+            window.auto_open_main_rs();
         }
+
+        window
     }
 }
 
@@ -525,6 +532,9 @@ impl MainWindow {
                                 let project_name = self.new_project_dialog.name.clone();
                                 self.new_project_dialog.reset();
                                 println!("Project '{}' created and opened.", project_name);
+                                
+                                // open main.rs during new project open
+                                self.auto_open_main_rs();
                             }
                             Err(e) => {
                                 println!("Project created but failed to open: {:?}", e);
@@ -646,6 +656,9 @@ impl MainWindow {
             Ok(()) => {
                 self.refocus_file_explorer_to_project();
                 println!("Project opened successfully.");
+                
+                // open main.rs during project open
+                self.auto_open_main_rs();
             }
             Err(e) => {
                 println!("Failed to open project.");
@@ -663,7 +676,18 @@ impl MainWindow {
         }
     }
 
-    
+    fn auto_open_main_rs(&mut self) {
+        let main_rs_path = self.state.project.source_files.iter()
+            .find(|path| path.file_name().map_or(false, |name| name == "main.rs"))
+            .cloned();
+        
+        if let Some(main_rs_path) = main_rs_path {
+            let tab_name = main_rs_path.display().to_string();
+            if !self.tabs.contains_key(&tab_name) {
+                self.open_file(&main_rs_path);
+            }
+        }
+    }
 
 }
 

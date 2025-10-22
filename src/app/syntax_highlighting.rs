@@ -7,6 +7,8 @@ use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style, ThemeSet};
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
+use syntect::highlighting::Theme;
+use std::io::BufReader;
 
 // simple implementation of syntax highlighting with syntect ymmv
 pub struct SyntaxHighlighter {
@@ -112,5 +114,17 @@ impl SyntaxHighlighter {
         }
 
         job
+    }
+    pub fn try_add_file_else_update(&mut self, file: fs::File){
+        let mut reader = BufReader::new(file);
+        match ThemeSet::load_from_reader(&mut reader) {
+            Ok(new_theme) => {
+            self.theme_set.themes.insert(self.current_theme.clone(), new_theme);
+            }
+            Err(e) => {
+            eprintln!("Failed to load theme: {}", e);
+            }
+        }
+        
     }
 }

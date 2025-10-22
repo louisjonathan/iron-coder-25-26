@@ -1188,6 +1188,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-dropdown"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82d277c6c1f49e4e227344e920132d2d22a51810296b5c78f90e6aef4eed63ea"
+dependencies = [
+ "egui",
+]
+
+[[package]]
 name = "egui-wgpu"
 version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2177,6 +2186,7 @@ dependencies = [
  "duct",
  "eframe",
  "egui",
+ "egui-dropdown",
  "egui_dock",
  "egui_extras",
  "egui_term",
@@ -2189,7 +2199,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "ra_ap_ide",
- "rand 0.8.5",
+ "rand 0.9.2",
  "rfd",
  "serde",
  "serde_json",

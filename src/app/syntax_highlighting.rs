@@ -12,7 +12,7 @@ use syntect::util::LinesWithEndings;
 pub struct SyntaxHighlighter {
     syntax_set: SyntaxSet,
     theme_set: ThemeSet,
-    current_theme: String,
+    pub current_theme: String,
     // lut: HashMap<PathBuf, SystemTime>,
 }
 
@@ -32,9 +32,12 @@ impl SyntaxHighlighter {
         Self::default()
     }
 
-    pub fn set_theme(&mut self, theme_name: &str) {
+    pub fn set_theme(&mut self, theme_name: &str) -> bool{
         if self.theme_set.themes.contains_key(theme_name) {
             self.current_theme = theme_name.to_string();
+            return true;
+        }else{
+            return false;
         }
     }
     pub fn get_current_theme(&self) -> &str {

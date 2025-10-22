@@ -4,15 +4,21 @@ use which::which;
 use crate::app::colorschemes;
 use crate::app::tabs::base_tab::BaseTab;
 use crate::app::SharedState;
-
+use egui_dropdown::DropDownBox;
 use rfd::FileDialog;
 pub struct SettingsTab {
+    pub current_syntax_search: String,
+    pub current_colorscheme_search: String,
     pub colorscheme_load_error_value: bool,
+    pub syntax_theme_load_error_value: bool,
 }
 impl SettingsTab {
     pub fn new() -> Self {
         SettingsTab {
+            current_colorscheme_search: String::new(),
+            current_syntax_search: String::new(),
             colorscheme_load_error_value: false,
+            syntax_theme_load_error_value: false,
         }
     }
 }
@@ -24,14 +30,22 @@ impl BaseTab for SettingsTab {
         ui.separator();
         ui.heading("Colorschemes");
         ui.horizontal(|ui|{
-            ui.label("Current Colorscheme:  ");
-            ui.text_edit_singleline(&mut state.colorschemes.name);
+            ui.label("Current:");
+            let colorscheme_filenames = &state.colorschemes.all_names;
+            ui.add(
+                DropDownBox::from_iter(
+                    colorscheme_filenames,
+                    "Select colorscheme",
+                    &mut self.current_colorscheme_search,
+                    |ui, text| ui.selectable_label(false, text),
+                )
+            );
             if ui.button("Save").clicked(){
-                colorschemes::create_or_modify_colorscheme(&state.colorschemes.name, &state.colorschemes.current);
+                colorschemes::create_or_modify_colorscheme(&self.current_colorscheme_search, &state.colorschemes.current);
                 self.colorscheme_load_error_value=false;
             }
             if ui.button("Load").clicked(){
-                if(!state.colorschemes.try_use_colorscheme(ui, &state.colorschemes.name.clone())){
+                if(!state.colorschemes.try_use_colorscheme(ui, &self.current_colorscheme_search)){
                     self.colorscheme_load_error_value=true;        
                 }else{
                     self.colorscheme_load_error_value=false;        
@@ -92,19 +106,28 @@ impl BaseTab for SettingsTab {
 	ui.separator();
         ui.horizontal(|ui| {
             ui.label("Syntax Highlighting Theme:");
-            let theme_names = state.syntax_highlighter.available_themes();
-            let mut selected_theme = state.syntax_highlighter.get_current_theme().to_string();
-            egui::ComboBox::from_id_source("syntax_theme_combo")
-            .selected_text(&selected_theme)
-            .show_ui(ui, |ui| {
-                for theme in theme_names {
-                ui.selectable_value(&mut selected_theme, theme.clone(),theme);
-                }
-            });
-            if selected_theme != state.syntax_highlighter.get_current_theme() {
-            state.syntax_highlighter.set_theme(&selected_theme);
-            }
+            let theme_names = state.syntax_highlighter.available_themes().clone();
+            
+            ui.add(
+                DropDownBox::from_iter(
+                    theme_names,
+                    "Select theme",
+                    &mut self.current_syntax_search,
+                    |ui, text| ui.selectable_label(false, text),
+                )
+            );
+            // if self.current_syntax_search != state.syntax_highlighter.current_theme {
+            //     state.syntax_highlighter.set_theme(&self.current_syntax_search);
+            // }
+            if ui.button("Load").clicked(){
+                if(!state.syntax_highlighter.set_theme(&self.current_syntax_search)){
+                    self.syntax_theme_load_error_value=true;        
+                }else{
+                    self.syntax_theme_load_error_value=false;        
+                };
+            };
         });
+         
         ui.separator();
         if ui.button("Set example colorscheme").clicked() {
             state

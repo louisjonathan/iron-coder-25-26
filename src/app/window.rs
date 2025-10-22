@@ -4,6 +4,7 @@ use super::tabs::*;
 use super::tabs::file_tab::FileTab;
 use crate::app::colorschemes::colorscheme;
 use eframe::egui::{Ui};
+use egui::util::undoer::Settings;
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -110,6 +111,7 @@ enum PendingAction {
 
 impl Default for MainWindow {
     fn default() -> Self {
+        let mut state= SharedState::default();
         let mut tree = DockState::new(vec![
             "Canvas".to_owned(),
             "Settings".to_owned(),
@@ -129,19 +131,25 @@ impl Default for MainWindow {
 
         tabs.insert("Board Info".to_string(), Box::new(BoardInfoTab::new()));
         tabs.insert("Canvas".to_string(), Box::new(CanvasTab::new()));
-        tabs.insert("Settings".to_string(), Box::new(SettingsTab::new()));
+        // tabs.insert("Settings".to_string(), Box::new(SettingsTab::new()));
+        tabs.insert("Settings".to_string(), Box::new({
+            let mut temp = SettingsTab::new();
+            temp.current_colorscheme_search=state.colorschemes.name.clone();
+            temp.current_syntax_search=state.syntax_highlighter.get_current_theme().to_string();
+            temp
+            }));
         tabs.insert(
             "File Explorer".to_string(),
             Box::new(FileExplorerTab::new()),
         );
         tabs.insert("Output".to_string(), Box::new(TerminalTab::new()));
 
-        let mut state= SharedState::default();
+        
 
         Self {
             tree: tree,
             tabs: tabs,
-            state: SharedState::default(),
+            state: state,
             active_tab: None,
             show_new_project_dialog: false,
             new_project_dialog: NewProjectDialog::default(),

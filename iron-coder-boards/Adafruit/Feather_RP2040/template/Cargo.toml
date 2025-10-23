@@ -14,3 +14,4 @@ adafruit-feather-rp2040 = "0.7.0"
 usbd-serial             = "0.1.1"
 usb-device              = "0.2.9"
 critical-section        = "1.1.2"
+common_hal_interface = {path="./common_hal_interface", features= ["rp2040"]}

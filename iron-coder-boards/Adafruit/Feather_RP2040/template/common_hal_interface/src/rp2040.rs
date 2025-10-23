@@ -13,7 +13,7 @@ macro_rules! rp2040_setup {
         //
         // The default is to generate a 125 MHz system clock
         let clocks = hal::clocks::init_clocks_and_plls(
-            XTAL_FREQ_HZ,
+            hal::XTAL_FREQ_HZ,
             pac.XOSC,
             pac.CLOCKS,
             pac.PLL_SYS,

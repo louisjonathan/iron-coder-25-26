@@ -1,16 +1,17 @@
 // keyboard shortcut support
 
 use eframe::egui::Key;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Keybinding {
-    id: String,
-    key: String,
-    ctrl: bool,
-    alt: bool,
+    pub id: String,
+    pub key: String,
+    pub ctrl: bool,
+    pub alt: bool,
+    pub description: String,
 }
 
 impl Keybinding {
@@ -52,5 +53,49 @@ impl Keybindings {
         } else {
             false
         }
+    }
+
+    pub fn get_all_keybindings(&self) -> Vec<&Keybinding> {
+        self.bindings.values().collect()
+    }
+
+    pub fn get_all_keybindings_mut(&mut self) -> Vec<&mut Keybinding> {
+        self.bindings.values_mut().collect()
+    }
+
+    pub fn get_keybinding(&self, id: &str) -> Option<&Keybinding> {
+        self.bindings.get(id)
+    }
+
+    pub fn get_keybinding_mut(&mut self, id: &str) -> Option<&mut Keybinding> {
+        self.bindings.get_mut(id)
+    }
+
+    pub fn add_keybinding(&mut self, keybinding: Keybinding) {
+        self.bindings.insert(keybinding.id.clone(), keybinding);
+    }
+
+    pub fn remove_keybinding(&mut self, id: &str) -> Option<Keybinding> {
+        self.bindings.remove(id)
+    }
+
+    pub fn save_to_file(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let mut bindings: Vec<&Keybinding> = self.bindings.values().collect();
+        bindings.sort_by(|a, b| a.id.cmp(&b.id));
+        
+        let json = serde_json::to_string_pretty(&bindings)?;
+        fs::write("resources/keybindings.json", json)?;
+        Ok(())
+    }
+
+    pub fn reload_from_file(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let file_content = fs::read_to_string("resources/keybindings.json")?;
+        let bindings: Vec<Keybinding> = serde_json::from_str(&file_content)?;
+        
+        self.bindings.clear();
+        for binding in bindings {
+            self.bindings.insert(binding.id.clone(), binding);
+        }
+        Ok(())
     }
 }

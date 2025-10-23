@@ -56,6 +56,7 @@ impl SharedState {
                     colorscheme::default()
                 },
                 |scheme| colorscheme {
+                    all_names: colorschemes::get_colorscheme_filenames(),
                     current: scheme,
                     name: scheme_name.clone(),
                 },
@@ -111,11 +112,7 @@ impl SharedState {
 	pub fn build_project(&mut self) {
 		if let Some(term_ref) = &self.output_terminal_backend {
 			let mut term = term_ref.borrow_mut();
-            if let Some(project_path) = &self.project.location {
-                if Path::new(project_path).join("Makefile.toml").exists(){
-                    term.process_command(BackendCommand::Write("cargo make modify-config-toml\n".as_bytes().to_vec()));
-                }     
-            }
+            self.project.update_toolchain_location();
 			term.process_command(BackendCommand::Write("cargo +nightly build\n".as_bytes().to_vec()));
 		}
 	}
@@ -143,5 +140,17 @@ impl SharedState {
 			default_terminal: self.default_terminal.clone(),
         };
         ide_settings::save_ide_settings(&settings);
+    }
+    pub fn get_ide_installation_path() -> PathBuf {
+        if let Some(proj_dir) = std::env::current_exe().ok().and_then(|p| p.parent().map(|p| p.to_path_buf())) {
+            if proj_dir.ends_with("debug") || proj_dir.ends_with("release") {
+                if let Some(parent) = proj_dir.parent() {
+                    return parent.to_path_buf();
+                }
+            } else {
+                return proj_dir;
+            }
+        }
+        PathBuf::from(".")
     }
 }

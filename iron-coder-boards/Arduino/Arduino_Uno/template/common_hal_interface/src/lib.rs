@@ -20,10 +20,10 @@ mod esp;
 #[cfg(feature = "esp")]
 pub use esp::*;
 
-
-// Ensure exactly one feature is enabled
-#[cfg(not(any(feature = "rp2040", feature = "arduino", feature = "stm32f4", feature = "esp")))]
-compile_error!("You must enable exactly one HAL feature: rp2040, arduino, stm32f4, or esp");
+/// Can't publish to crates.io if no features are enabled, so remove this requirement and explain in README
+// // Ensure exactly one feature is enabled
+// #[cfg(not(any(feature = "rp2040", feature = "arduino", feature = "stm32f4", feature = "esp")))]
+// compile_error!("You must enable exactly one HAL feature: rp2040, arduino, stm32f4, or esp");
 
 #[cfg(any(
     all(feature = "rp2040", feature = "arduino"),

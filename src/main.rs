@@ -1,4 +1,5 @@
 #![allow(warnings)]
+use egui::FontDefinitions;
 use iron_coder::MainWindow;
 use egui_extras::install_image_loaders;
 

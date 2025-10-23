@@ -99,18 +99,20 @@ impl SyntaxHighlighter {
             self.syntax_set.find_syntax_plain_text()
         };
 
-        let theme = &self.theme_set.themes[&self.current_theme];
-        let mut highlighter = HighlightLines::new(syntax, theme);
-
-        for line in LinesWithEndings::from(code) {
-            let ranges = highlighter
-                .highlight_line(line, &self.syntax_set)
-                .unwrap_or_else(|_| vec![(syntect::highlighting::Style::default(), line)]);
-
-            for (style, text) in ranges {
-                let format = self.style_to_text_format(&style);
-                job.append(text, 0.0, format);
+        if let Some(theme) = self.theme_set.themes.get(&self.current_theme) {
+            let mut highlighter = HighlightLines::new(syntax, theme);
+    
+            for line in LinesWithEndings::from(code) {
+                let ranges = highlighter
+                    .highlight_line(line, &self.syntax_set)
+                    .unwrap_or_else(|_| vec![(syntect::highlighting::Style::default(), line)]);
+    
+                for (style, text) in ranges {
+                    let format = self.style_to_text_format(&style);
+                    job.append(text, 0.0, format);
+                }
             }
+
         }
 
         job

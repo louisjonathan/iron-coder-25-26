@@ -1,112 +1,3 @@
-// /// This module defines interfaces that a development board has
-// use enum_iterator::Sequence;
-
-// use syn;
-
-// use serde::{Serialize, Deserialize};
-// use std::fmt;
-
-// #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Sequence)]
-// #[non_exhaustive]
-// pub enum InterfaceDirection {
-//     Unknown,
-//     Input,
-//     Output,
-//     Bidirectional,
-// }
-
-// impl fmt::Display for InterfaceDirection {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         write!(f, "{:?}", self)
-//     }
-// }
-
-// #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, Sequence)]
-// #[non_exhaustive]
-// /// The various types of electrical interfaces we use with dev boards
-// pub enum InterfaceType {
-//     NONE,
-//     GPIO,
-//     ADC,
-//     PWM,
-//     UART,
-//     I2C,
-//     SPI,
-// }
-
-// impl fmt::Display for InterfaceType {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         write!(f, "{:?}", self)
-//     }
-// }
-
-// #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Sequence)]
-// pub struct Interface {
-//     pub iface_type: InterfaceType,
-//     pub direction: InterfaceDirection,
-// }
-
-// impl fmt::Display for Interface {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         write!(f, "{:?}", self)
-//     }
-// }
-
-// impl Default for Interface {
-//     fn default() -> Self {
-//         Self {
-//             iface_type: InterfaceType::NONE,
-//             direction: InterfaceDirection::Unknown,
-//         }
-//     }
-// }
-
-// /// And InterfaceMapping is a map of an Interface to a set of pins on the Board.
-// /// TODO: I think a "pin" should be able to be referenced by multiple different criteria,
-// /// such as the "silkscreen labal", the physical pin number (i.e. counting around the board),
-// /// the logical pin number, or possibly some other criteria.
-// #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-// #[serde(default)]
-// pub struct InterfaceMapping {
-//     pub interface: Interface,
-//     pub pins: Vec<String>,
-//     #[serde(skip)]
-//     pub bsp_field: Option<syn::Field>,
-// }
-
-// impl Default for InterfaceMapping {
-//     fn default() -> Self {
-//         Self {
-//             interface: Interface::default(),
-//             pins: Vec::new(),
-//             bsp_field: None,
-//         }
-//     }
-// }
-
-// /// A Pinout is a description of the available interfaces on a Board
-// // #[derive(Serialize, Deserialize, Clone, Debug)]
-// // pub struct Pinout {
-// //     pinout: Vec<InterfaceMapping>,
-// // }
-
-// pub type Pinout = Vec<InterfaceMapping>;
-
-// // impl Default for Pinout {
-// //     fn default() -> Self {
-// //         Self {
-// //             pinout: Vec::new(),
-// //         }
-// //     }
-// // }
-
-// // impl Iterator for Pinout {
-// //     type Item = InterfaceMapping;
-// //     fn next(&self) -> Option<Self::Item> {
-// //         self.pinout.next();
-// //     }
-// // }
-
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::DerefMut;
@@ -121,14 +12,12 @@ pub struct Pinout {
     #[serde(default)]
     pub pin_block: Option<PinBlock>,
     
-    // Runtime computed fields (not in TOML)
     #[serde(skip)]
     pub pins: HashMap<u32, Rc<RefCell<Pin>>>,
     #[serde(skip)]
     pub interface_ref_map: HashMap<String, Rc<RefCell<Interface>>>,
 }
 
-// Implement Default for Pinout
 impl Default for Pinout {
     fn default() -> Self {
         Self {
@@ -149,16 +38,6 @@ pub struct Interface {
     #[serde(default)]
     pub bus: bool,
 }
-
-// impl Default for Interface {
-//     fn default() -> Self {
-//         Self {
-//             name: String::new(),
-//             roles: Vec::new(),
-//             bus: false,
-//         }
-//     }
-// }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PinAssignment {
@@ -278,9 +157,10 @@ impl Pinout {
                         role: None, 
                         interface_ref: interface_ref.clone() 
                     });
+                    println!("pin{} interface{}", pin_num, interface_name);
                 }
             }
-
+            
             for role_name in &assignment.roles {
                 if let Some(interface_ref) = self.interface_ref_map.get(role_name) {
                     pin.interfaces.push(InterfaceRef { 
@@ -288,6 +168,7 @@ impl Pinout {
                         role: Some(role_name.clone()), 
                         interface_ref: interface_ref.clone() 
                     });
+                    println!("pin{} role{}", pin_num, role_name);
                 }
             }
 

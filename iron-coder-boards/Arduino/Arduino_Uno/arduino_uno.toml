@@ -36,31 +36,3 @@ assignments = [
 	{numbers = [18], roles = ["SDA"]},
 	{numbers = [19], roles = ["SCL"]},
 ]
-
-
-# interfaces = [
-# 	{name = "GPIO", roles = ["Digital", "Analog", "Port"]},
-# 	{name = "I2C", roles = [ "SDA", "SCL"], bus = true},
-# 	{name = "SPI", roles = ["SCK", "MISO", "MOSI", "SS"], bus = true},
-# 	{name = "UART", roles = ["TX", "RX"], bus = true}
-# ]
-
-# [pin_block]
-# ranges = [
-# 	{start = 0,	end = 7, roles = ["Port"], alias_fmts = ["PD{}"]},
-# 	{start = 14, end = 19, roles = ["Analog", "Port"], alias_fmts = ["A{}", "PC{}"]},
-# 	{start = 8, end = 13, roles = ["Port"], alias_fmts = ["PB{}"]},
-# 	{start = 0, end = 19, roles = ["Digital"], alias_fmts = ["D{}"]},
-# ]
-# assignments = [
-# 	{numbers=[0], roles=["RX"]},
-# 	{numbers=[1], roles=["TX"]},
-
-# 	{numbers=[10], roles=["SS"]},
-# 	{numbers=[11], roles=["MOSI"]},
-# 	{numbers=[12], roles=["MISO"]},
-# 	{numbers=[13], roles=["SCK"]},
-
-# 	{numbers=[18], roles=["SDA"]},
-# 	{numbers=[19], roles=["SCL"]},
-# ]

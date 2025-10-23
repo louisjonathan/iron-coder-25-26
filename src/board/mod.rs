@@ -290,6 +290,7 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Rc<RefCell<Board>>> {
                                         board.name.clone()
                                     );
                                 }
+                                board.pinout.process_config();
                                 r.push(Rc::new(RefCell::new(board)));
                             }
                             Err(e) => {

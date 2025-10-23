@@ -1,10 +1,10 @@
 [package]
 name = "common_hal_interface"
-version = "1.0.0-alpha"
+version = "1.0.1-alpha"
 description = "A common interface between Rust HALs, for use in the Iron Coder IDE"
 license = "MIT"
 readme = "README.md"
-authors = ["jonathanlouis@ufl.edu"]
+authors = ["jonathanlouis@ufl.edu","jbryan2@ufl.edu","evanpurutcuoglu@ufl.edu"]
 categories = ["embedded", "development-tools", "hardware-support", "rust-patterns", "no-std"]
 keywords = ["embedded", "hal", "macro", "compatibility"]
 edition = "2024"

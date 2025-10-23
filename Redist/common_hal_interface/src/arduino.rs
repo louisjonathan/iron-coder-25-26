@@ -3,7 +3,6 @@ macro_rules! arduino_setup {
     ($dp:ident, $pins:ident) => {
         let $dp = arduino_hal::Peripherals::take().unwrap();
         let $pins = arduino_hal::pins!($dp);
-        let mut $serial = arduino_hal::default_serial!($dp, $pins, $baud_rate);
     };
 }
 #[macro_export]

@@ -34,11 +34,11 @@ macro_rules! rp2040_setup {
 }
 #[macro_export]
 macro_rules! new_delay {
-    ($core:expr, $clocks:expr, $delay:ident) => {
-		let mut $delay = cortex_m::delay::Delay::new(
+    ($core:expr, $clocks:expr) => {
+		cortex_m::delay::Delay::new(
             $core.SYST,
             $clocks.system_clock.freq().to_Hz()
-        );
+        )
     };
 }
 #[macro_export]

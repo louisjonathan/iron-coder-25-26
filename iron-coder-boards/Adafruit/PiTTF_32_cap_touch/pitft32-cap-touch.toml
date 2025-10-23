@@ -8,7 +8,7 @@ related_crates = ["ili9341", "embedded-graphics"]
 bsp = "iron-coder-pitft-32-cap-touch-bsp"
 
 # Each element of the Pinout Vec should be prefaced with [[pinout]]
-[[pinout]]
-pins = ["pin", "out"]
-interface = { iface_type = "SPI", direction = "Input" }
-ident = "Display"
+# [[pinout]]
+# pins = ["pin", "out"]
+# interface = { iface_type = "SPI", direction = "Input" }
+# ident = "Display"

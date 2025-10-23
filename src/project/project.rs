@@ -11,7 +11,6 @@ use std::io::BufRead;
 use std::path::{Path, PathBuf};
 
 use crate::app::{CanvasBoard, CanvasConnection, SharedState};
-use crate::board::pinout::InterfaceDirection;
 use crate::board::{BoardStandards, get_boards};
 
 use egui::Context;
@@ -539,42 +538,43 @@ impl Project {
 
         let start_pin_name = conn.get_start_pin();
         let end_pin_name = conn.get_end_pin().unwrap();
-        let pin_type = eb
-            .pinout
-            .iter()
-            .find(|pinout| pinout.pins.iter().any(|p| p == end_pin_name.as_str()))
-            .map(|pinout| pinout.interface.direction.clone());
+        // let pin_type = eb
+        //     .pinout
+        //     .iter()
+        //     .find(|pinout| pinout.pins.iter().any(|p| p == end_pin_name.as_str()))
+        //     .map(|pinout| pinout.interface.direction.clone());
         let var_name = format!("{}_to_{}", start_pin_name, end_pin_name);
 
-        match sb.get_board_standard() {
-            Some(BoardStandards::ESP32) => match pin_type {
-                Some(InterfaceDirection::Output) => {
-                    format!(
-                        "let mut pin_{} = Output::new(_peripherals.GPIO{}, Level::High, OutputConfig::default());",
-                        var_name, start_pin_name
-                    )
-                }
-                Some(InterfaceDirection::Input) => {
-                    format!(
-                        "let pin_{} = Input::new(_peripherals.GPIO{}, InputConfig::default().with_pull(Pull::Up));",
-                        var_name, start_pin_name
-                    )
-                }
-                _ => "".to_string(),
-            },
-            Some(BoardStandards::Arduino) | _ => {
-                let pin_type_str = match pin_type {
-                    Some(InterfaceDirection::Output) => "output",
-                    Some(InterfaceDirection::Input) => "input",
-                    _ => "input",
-                };
-                let mutability = if pin_type_str == "output" { "mut " } else { "" };
-                format!(
-                    "let {}pin_{} = pins.{}.into_{}();",
-                    mutability, var_name, start_pin_name, pin_type_str
-                )
-            }
-        }
+        // match sb.get_board_standard() {
+        //     Some(BoardStandards::ESP32) => match pin_type {
+        //         Some(InterfaceDirection::Output) => {
+        //             format!(
+        //                 "let mut pin_{} = Output::new(_peripherals.GPIO{}, Level::High, OutputConfig::default());",
+        //                 var_name, start_pin_name
+        //             )
+        //         }
+        //         Some(InterfaceDirection::Input) => {
+        //             format!(
+        //                 "let pin_{} = Input::new(_peripherals.GPIO{}, InputConfig::default().with_pull(Pull::Up));",
+        //                 var_name, start_pin_name
+        //             )
+        //         }
+        //         _ => "".to_string(),
+        //     },
+        //     Some(BoardStandards::Arduino) | _ => {
+        //         let pin_type_str = match pin_type {
+        //             Some(InterfaceDirection::Output) => "output",
+        //             Some(InterfaceDirection::Input) => "input",
+        //             _ => "input",
+        //         };
+        //         let mutability = if pin_type_str == "output" { "mut " } else { "" };
+        //         format!(
+        //             "let {}pin_{} = pins.{}.into_{}();",
+        //             mutability, var_name, start_pin_name, pin_type_str
+        //         )
+        //     }
+        // }
+        format!("let pin_{} = None;", var_name)
     }
 }
 

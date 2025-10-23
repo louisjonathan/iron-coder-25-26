@@ -9,17 +9,58 @@ flash = 32
 required_crates = ["avrdude", "avr-libc", "ravedude", "avr-gcc", "ufmt", "nb", "embedded-hal", "embedded-time", "panic-halt"]
 related_crates = ["smart-leds", "ws2812-pio"]
 
-bsp = "iron-coder-uno-bsp"
+[pinout]
+interfaces = [
+	{name = "GPIO", roles = ["Digital", "Analog", "Port"]},
+	{name = "I2C", roles = [ "SDA", "SCL"], bus = true},
+	{name = "SPI", roles = ["SCK", "MISO", "MOSI", "SS"], bus = true},
+	{name = "UART", roles = ["TX", "RX"], bus = true}
+]
 
-# Each element of the Pinout Vec should be prefaced with [[pinout]]
-[[pinout]]
-pins = ["rx", "tx"]
-interface = { iface_type = "UART", direction = "Bidirectional" }
+[pinout.pin_block]
+ranges = [
+	{start = 0, end = 7, roles = ["Port"], alias_fmts = ["PD{}"]},
+	{start = 14, end = 19, roles = ["Analog", "Port"], alias_fmts = ["A{}", "PC{}"]},
+	{start = 8, end = 13, roles = ["Port"], alias_fmts = ["PB{}"]},
+	{start = 0, end = 19, roles = ["Digital"], alias_fmts = ["D{}"]},
+]
+assignments = [
+	{numbers = [0], roles = ["RX"]},
+	{numbers = [1], roles = ["TX"]},
 
-[[pinout]]
-pins = ["scl", "sda"]
-interface = { iface_type = "I2C", direction = "Output" }
+	{numbers = [10], roles = ["SS"]},
+	{numbers = [11], roles = ["MOSI"]},
+	{numbers = [12], roles = ["MISO"]},
+	{numbers = [13], roles = ["SCK"]},
 
-[[pinout]]
-pins = ["mosi", "miso", "sclk"]
-interface = { iface_type = "SPI", direction = "Output" }
+	{numbers = [18], roles = ["SDA"]},
+	{numbers = [19], roles = ["SCL"]},
+]
+
+
+# interfaces = [
+# 	{name = "GPIO", roles = ["Digital", "Analog", "Port"]},
+# 	{name = "I2C", roles = [ "SDA", "SCL"], bus = true},
+# 	{name = "SPI", roles = ["SCK", "MISO", "MOSI", "SS"], bus = true},
+# 	{name = "UART", roles = ["TX", "RX"], bus = true}
+# ]
+
+# [pin_block]
+# ranges = [
+# 	{start = 0,	end = 7, roles = ["Port"], alias_fmts = ["PD{}"]},
+# 	{start = 14, end = 19, roles = ["Analog", "Port"], alias_fmts = ["A{}", "PC{}"]},
+# 	{start = 8, end = 13, roles = ["Port"], alias_fmts = ["PB{}"]},
+# 	{start = 0, end = 19, roles = ["Digital"], alias_fmts = ["D{}"]},
+# ]
+# assignments = [
+# 	{numbers=[0], roles=["RX"]},
+# 	{numbers=[1], roles=["TX"]},
+
+# 	{numbers=[10], roles=["SS"]},
+# 	{numbers=[11], roles=["MOSI"]},
+# 	{numbers=[12], roles=["MISO"]},
+# 	{numbers=[13], roles=["SCK"]},
+
+# 	{numbers=[18], roles=["SDA"]},
+# 	{numbers=[19], roles=["SCL"]},
+# ]

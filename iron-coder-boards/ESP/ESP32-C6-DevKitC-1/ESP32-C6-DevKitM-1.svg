@@ -28,181 +28,181 @@
        x="0"
        y="0" />
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="3V3"
        cx="10"
        cy="13.8"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="RST"
        cx="10"
        cy="16.4"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="2"
        cx="10"
        cy="19"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="3"
        cx="10"
        cy="21.6"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="4"
        cx="10"
        cy="24.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="5"
        cx="10"
        cy="26.8"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
-       id="0/N"
+       style="fill:#ff00ff"
+       id="0"
        cx="10"
        cy="29.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
-       id="1/N"
+       style="fill:#ff00ff"
+       id="1"
        cx="10"
        cy="32"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="8"
        cx="10"
        cy="34.6"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="6"
        cx="10"
        cy="37.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="7"
        cx="10"
        cy="39.9"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="14"
        cx="10"
        cy="42.6"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="GND"
        cx="10"
        cy="45.1"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="5V"
        cx="10"
        cy="47.7"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="GND"
        cx="10"
        cy="50.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="GND"
        cx="30.2"
        cy="13.8"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="TX"
        cx="30.2"
        cy="16.4"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="RX"
        cx="30.2"
        cy="19"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="23"
        cx="30.2"
        cy="21.6"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="22"
        cx="30.2"
        cy="24.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="21"
        cx="30.2"
        cy="26.8"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="20"
        cx="30.2"
        cy="29.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="19"
        cx="30.2"
        cy="32"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="18"
        cx="30.2"
        cy="34.6"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="15"
        cx="30.2"
        cy="37.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="9"
        cx="30.2"
        cy="39.9"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="GND"
        cx="30.2"
        cy="42.6"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="13"
        cx="30.2"
        cy="45.1"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="12"
        cx="30.2"
        cy="47.7"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff;fill-opacity:0.75"
+       style="fill:#ff00ff"
        id="GND"
        cx="30.2"
        cy="50.3"

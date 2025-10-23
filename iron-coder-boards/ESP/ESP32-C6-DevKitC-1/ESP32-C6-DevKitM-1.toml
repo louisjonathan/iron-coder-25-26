@@ -8,17 +8,38 @@ flash = 32
 required_crates = ["ufmt", "nb", "embedded-hal", "embedded-time", "panic-halt"]
 related_crates = ["smart-leds", "ws2812-pio"]
 
-bsp = "iron-coder-uno-bsp"
+[pinout]
+interfaces = [
+	{name = "GPIO"},
+	{name = "I2C", roles = [ "SDA", "SCL"], bus = true},
+	{name = "SPI", roles = ["SCK", "MISO", "MOSI"], bus = true},
+	{name = "UART", roles = ["TX", "RX"], bus = true},
+]
 
-# Each element of the Pinout Vec should be prefaced with [[pinout]]
-[[pinout]]
-pins = ["rx", "tx"]
-interface = { iface_type = "UART", direction = "Bidirectional" }
+[pinout.pin_block]
+ranges = [
+	{start = 0, end = 23, exclude = [10, 11, 12, 13], interfaces = ["GPIO", "I2C", "SPI", "UART"], alias_fmts = ["GPIO{}"]},
+	{start = 4, end = 7, note = "P3 - JTAG interface"},
+]
+assignments = [
+	{numbers = [4, 5, 8, 9, 15], notes = "P3 - Strapping pins"},
+	{numbers = [16, 17], notes = "P3 - UART0 interface"},
+]
 
-[[pinout]]
-pins = ["scl", "sda"]
-interface = { iface_type = "I2C", direction = "Output" }
 
-[[pinout]]
-pins = ["mosi", "miso", "sclk"]
-interface = { iface_type = "SPI", direction = "Output" }
+# interfaces = [
+# 	{name = "GPIO"},
+# 	{name = "I2C", roles = [ "SDA", "SCL"], bus = true},
+# 	{name = "SPI", roles = ["SCK", "MISO", "MOSI", "SS"], bus = true},
+# 	{name = "UART", roles = ["TX", "RX"], bus = true},
+# ]
+
+# [pin_block]
+# ranges = [
+# 	{start = 0, end = 23, exclude = [10, 11, 12, 13], interfaces = ["GPIO", "I2C", "SPI", "UART"], alias_fmts = ["GPIO{}"]},
+# 	{start = 4, end = 7, note = "P3 - JTAG interface"},
+# ]
+# assignments = [
+# 	{numbers = [4, 5, 8, 9, 15], notes = "P3 - Strapping pins"},
+# 	{numbers = [16, 17], notes = "P3 - UART0 interface"},
+# ]

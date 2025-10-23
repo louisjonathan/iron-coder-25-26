@@ -15,7 +15,7 @@
        id="image1" />
 	<circle
        style="fill:#ff00ff;fill-opacity:0.75"
-       id="signal"
+       id="0"
        cx="7.5"
        cy="15"
        r="0.85"/>

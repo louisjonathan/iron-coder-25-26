@@ -59,7 +59,7 @@ impl fmt::Display for BoardStandards {
 #[serde(default)]
 pub struct Board {
     /// The name of the board
-    name: String,
+    pub name: String,
     /// The board manufacturer
     manufacturer: String,
     /// Whether or not the board has a processor that can run code

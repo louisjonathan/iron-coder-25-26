@@ -56,6 +56,7 @@ impl SharedState {
                     colorscheme::default()
                 },
                 |scheme| colorscheme {
+                    all_names: colorschemes::get_colorscheme_filenames(),
                     current: scheme,
                     name: scheme_name.clone(),
                 },

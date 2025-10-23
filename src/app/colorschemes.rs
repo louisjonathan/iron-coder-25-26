@@ -1,6 +1,6 @@
 use egui::{ahash::random_state, text_selection::visuals, Color32, Stroke};
 // https://github.com/Experience-Monks/nice-color-palettes/tree/master
-use rand::prelude::*;
+use rand::{prelude::*, thread_rng};
 use std::{collections::HashMap, io::Write};
 use std::{
     fs,
@@ -9,6 +9,7 @@ use std::{
 use syntect::highlighting::Color;
 use toml;
 pub struct colorscheme {
+    pub all_names: Vec<String>,
     pub current: HashMap<String, Color32>,
     pub name: String,
 }
@@ -28,12 +29,23 @@ impl Default for colorscheme {
             ("error_fg_color".to_string(), Color32::from_hex("#839496").unwrap()),
             ]);
         Self {
+           all_names: get_colorscheme_filenames(),
            current,
            name: "default".to_string(),
         }
     }
 }
-
+pub fn get_colorscheme_filenames() -> Vec<String> {
+    let entries = fs::read_dir("./resources/colorschemes").unwrap();
+    let files: Vec<String> = entries
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .filter(|p| p.is_file())
+        .filter(|p| p.extension().map_or(false, |ext| ext == "toml"))
+        .map(|p| p.file_name().expect(&format!("failed to get filename for colorscheme {}", p.display())).to_string_lossy().into_owned())
+        .collect();
+    files
+}
 pub fn get_random_colorscheme() -> HashMap<String, Color32> {
     let entries = fs::read_dir("./resources/colorschemes").unwrap();
     let files: Vec<PathBuf> = entries

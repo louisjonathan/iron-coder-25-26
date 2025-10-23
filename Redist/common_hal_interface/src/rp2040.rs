@@ -1,5 +1,3 @@
-use rp2040_hal;
-
 #[macro_export]
 macro_rules! rp2040_setup {
     ($pac:ident, $core:ident, $clocks:ident, $sio:ident, $pins:ident) => {

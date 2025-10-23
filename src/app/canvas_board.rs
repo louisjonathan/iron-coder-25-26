@@ -48,7 +48,6 @@ impl Default for CanvasBoard {
 			connection_ids: Vec::new(),
 			connections: Vec::new(),
 			canvas_rect: Rect::ZERO,
-			canvas_rect: Rect::ZERO,
 		}
 	}
 }
@@ -82,7 +81,6 @@ impl CanvasBoard {
 				canvas_pos: Vec2::new(0.0, 0.0),
 				connections: Vec::new(),
 				connection_ids: Vec::new(),
-				canvas_rect,
 				canvas_rect,
 			})
 		} else {
@@ -125,7 +123,6 @@ impl CanvasBoard {
 			ui.painter().image(
 				texture.id(),
 				self.canvas_rect,
-				self.canvas_rect,
 				egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
 				egui::Color32::WHITE,
 			);
@@ -145,7 +142,6 @@ impl CanvasBoard {
 
 	pub fn highlight(&self, ui: &mut egui::Ui, to_screen: &RectTransform) {
 		ui.painter().rect(
-			self.canvas_rect,
 			self.canvas_rect,
 			10,
 			Color32::from_rgba_unmultiplied(0, 0, 127, 63),
@@ -180,13 +176,7 @@ impl CanvasBoard {
 		self.canvas_rect = to_screen.transform_rect(canvas_rect);
 	}
 
-	pub fn canvas_update(&mut self, to_screen: &RectTransform) {
-		let canvas_rect = self.image_rect.translate(self.canvas_pos);
-		self.canvas_rect = to_screen.transform_rect(canvas_rect);
-	}
-
 	pub fn contains(&self, to_screen: &RectTransform, mouse_pos: &Pos2) -> bool {
-		if (self.canvas_rect.contains(*mouse_pos)) {
 		if (self.canvas_rect.contains(*mouse_pos)) {
 			return true;
 		}

@@ -159,9 +159,11 @@ impl BaseTab for SettingsTab {
             state
                 .colorschemes
                 .try_use_colorscheme(ui, &"example_colorscheme.toml".to_string());
+            self.current_colorscheme_search="example_colorscheme.toml".to_string();
         }
         if ui.button("Set random colorscheme").clicked() {
             state.colorschemes.use_random_colorscheme(ui);
+            self.current_colorscheme_search=state.colorschemes.name.clone();
         }
         if ui.button("Save settings").clicked() {
             state.save_settings();

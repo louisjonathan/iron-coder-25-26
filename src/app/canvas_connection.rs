@@ -11,6 +11,8 @@ use crate::project::Project;
 use std::rc::Rc;
 use std::cell::RefCell;
 
+use crate::board::Pin;
+
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(default)]
 pub struct CanvasConnection {
@@ -158,11 +160,11 @@ impl CanvasConnection {
 			self.end_board_id = self.start_board_id;
 			
 			self.start_board = board.clone();
-			self.start_pin = pin.clone();
+			self.start_pin = pin;
 			self.start_board_id = b.id;
 		} else {
 			self.end_board = Some(board.clone());
-			self.end_pin = Some(pin.clone());
+			self.end_pin = Some(pin);
 			self.end_board_id = b.id;
 		}
 		self.name = format!("{}_to_{}", self.start_pin, self.end_pin.clone().unwrap());

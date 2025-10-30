@@ -20,6 +20,7 @@ pub mod display;
 
 pub mod pinout;
 use pinout::Pinout;
+pub use pinout::Pin;
 
 pub mod parsing;
 

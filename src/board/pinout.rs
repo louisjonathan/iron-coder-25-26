@@ -8,9 +8,9 @@ use std::cell::RefCell;
 #[serde(default)]
 pub struct Pinout {
     #[serde(default)]
-    pub interfaces: Vec<Interface>,
+    interfaces: Vec<Interface>,
     #[serde(default)]
-    pub pin_block: Option<PinBlock>,
+    pin_block: Option<PinBlock>,
     
     #[serde(skip)]
     pub pins: HashMap<u32, Rc<RefCell<Pin>>>,
@@ -79,9 +79,9 @@ pub struct InterfaceRef {
 #[derive(Debug, Clone)]
 pub struct Pin {
     pub number: u32,
-    pub interfaces: Vec<InterfaceRef>,
     pub notes: Vec<String>,
     pub aliases: Vec<String>,
+    pub interfaces: Vec<InterfaceRef>,
 }
 
 impl PinAssignment {

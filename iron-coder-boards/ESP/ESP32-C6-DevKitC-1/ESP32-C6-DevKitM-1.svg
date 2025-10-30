@@ -28,182 +28,152 @@
        x="0"
        y="0" />
     <circle
-       style="fill:#ff00ff"
-       id="3V3"
+       id="0"
        cx="10"
        cy="13.8"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="RST"
+       id="1"
        cx="10"
        cy="16.4"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
        id="2"
        cx="10"
        cy="19"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
        id="3"
        cx="10"
        cy="21.6"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
        id="4"
        cx="10"
        cy="24.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
        id="5"
        cx="10"
        cy="26.8"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="0"
+       id="6"
        cx="10"
        cy="29.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="1"
+       id="7"
        cx="10"
        cy="32"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
        id="8"
        cx="10"
        cy="34.6"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="6"
+       id="9"
        cx="10"
        cy="37.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="7"
+       id="10"
        cx="10"
        cy="39.9"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="14"
+       id="11"
        cx="10"
        cy="42.6"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="GND"
+       id="12"
        cx="10"
        cy="45.1"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="5V"
+       id="13"
        cx="10"
        cy="47.7"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="GND"
+       id="14"
        cx="10"
        cy="50.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="GND"
+       id="15"
        cx="30.2"
        cy="13.8"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="TX"
+       id="16"
        cx="30.2"
        cy="16.4"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="RX"
+       id="17"
        cx="30.2"
        cy="19"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="23"
+       id="18"
        cx="30.2"
        cy="21.6"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="22"
+       id="19"
        cx="30.2"
        cy="24.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="21"
+       id="20"
        cx="30.2"
        cy="26.8"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="20"
+       id="21"
        cx="30.2"
        cy="29.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="19"
+       id="22"
        cx="30.2"
        cy="32"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="18"
+       id="23"
        cx="30.2"
        cy="34.6"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="15"
+       id="24"
        cx="30.2"
        cy="37.3"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="9"
+       id="25"
        cx="30.2"
        cy="39.9"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="GND"
+       id="26"
        cx="30.2"
        cy="42.6"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="13"
+       id="27"
        cx="30.2"
        cy="45.1"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="12"
+       id="28"
        cx="30.2"
        cy="47.7"
        r="0.85"/>
     <circle
-       style="fill:#ff00ff"
-       id="GND"
+       id="29"
        cx="30.2"
        cy="50.3"
        r="0.85"/>

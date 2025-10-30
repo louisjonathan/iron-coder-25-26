@@ -19,20 +19,20 @@ interfaces = [
 
 [pinout.pin_block]
 ranges = [
-	{start = 0, end = 7, roles = ["Port"], alias_fmts = ["PD{}"]},
-	{start = 14, end = 19, roles = ["Analog", "Port"], alias_fmts = ["A{}", "PC{}"]},
+	{start = 24, end = 31, roles = ["Port"], alias_fmts = ["PD{}"]},
+	{start = 8, end = 13, roles = ["Analog", "Port"], alias_fmts = ["A{}", "PC{}"]},
 	{start = 8, end = 13, roles = ["Port"], alias_fmts = ["PB{}"]},
-	{start = 0, end = 19, roles = ["Digital"], alias_fmts = ["D{}"]},
+	{start = 8, end = 31, exclude = [14, 15, 16, 17], roles = ["Digital"], alias_fmts = ["D{}"]},
 ]
 assignments = [
-	{numbers = [0], roles = ["RX"]},
-	{numbers = [1], roles = ["TX"]},
+	{numbers = [31], roles = ["RX"]},
+	{numbers = [30], roles = ["TX"]},
 
-	{numbers = [10], roles = ["SS"]},
-	{numbers = [11], roles = ["MOSI"]},
-	{numbers = [12], roles = ["MISO"]},
-	{numbers = [13], roles = ["SCK"]},
+	{numbers = [21], roles = ["SS"]},
+	{numbers = [20], roles = ["MOSI"]},
+	{numbers = [19], roles = ["MISO"]},
+	{numbers = [18], roles = ["SCK"]},
 
-	{numbers = [18], roles = ["SDA"]},
-	{numbers = [19], roles = ["SCL"]},
+	{numbers = [12], roles = ["SDA"]},
+	{numbers = [13], roles = ["SCL"]},
 ]

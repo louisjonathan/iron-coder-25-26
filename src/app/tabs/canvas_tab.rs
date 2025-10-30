@@ -15,7 +15,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use egui_extras::RetainedImage;
 
-
 pub struct CanvasTab {
     canvas_zoom: f32,
     canvas_offset: Vec2,

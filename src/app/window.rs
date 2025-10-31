@@ -146,7 +146,7 @@ impl Default for MainWindow {
 
         
 
-        Self {
+        let mut window = Self {
             tree: tree,
             tabs: tabs,
             state: state,
@@ -156,7 +156,14 @@ impl Default for MainWindow {
             show_save_prompt: false,
             pending_action: None,
             should_exit: false,
+        };
+
+        // open main.rs during startup project open
+        if window.state.project.location.is_some() {
+            window.auto_open_main_rs();
         }
+
+        window
     }
 }
 
@@ -533,6 +540,9 @@ impl MainWindow {
                                 let project_name = self.new_project_dialog.name.clone();
                                 self.new_project_dialog.reset();
                                 println!("Project '{}' created and opened.", project_name);
+                                
+                                // open main.rs during new project open
+                                self.auto_open_main_rs();
                             }
                             Err(e) => {
                                 println!("Project created but failed to open: {:?}", e);
@@ -654,6 +664,9 @@ impl MainWindow {
             Ok(()) => {
                 self.refocus_file_explorer_to_project();
                 println!("Project opened successfully.");
+                
+                // open main.rs during project open
+                self.auto_open_main_rs();
             }
             Err(e) => {
                 println!("Failed to open project.");
@@ -671,7 +684,28 @@ impl MainWindow {
         }
     }
 
-    
+    fn auto_open_main_rs(&mut self) {
+        let main_rs_path = self.state.project.source_files.iter()
+            .find(|path| path.file_name().map_or(false, |name| name == "main.rs"))
+            .cloned();
+        
+        if let Some(main_rs_path) = main_rs_path {
+            let tab_name = main_rs_path.display().to_string();
+            if !self.tabs.contains_key(&tab_name) {
+                self.open_file(&main_rs_path);
+            }
+        }
+    }
+
+    fn is_terminal_tab_active(&self) -> bool {
+        if let Some(active_tab_name) = &self.active_tab {
+            active_tab_name == "Output" || 
+            active_tab_name == "Terminal" || 
+            active_tab_name.starts_with("Terminal")
+        } else {
+            false
+        }
+    }
 
 }
 
@@ -707,13 +741,16 @@ impl eframe::App for MainWindow {
             self.display_save_prompt(ctx);
         }
 
-        if self.state.keybindings.is_pressed(ctx, "save_file") {
-            self.save_current_file();
-        }
+        // process keybindings only when terminal is not active
+        if !self.is_terminal_tab_active() {
+            if self.state.keybindings.is_pressed(ctx, "save_file") {
+                self.save_current_file();
+            }
 
-        if self.state.keybindings.is_pressed(ctx, "close_tab") {
-            // close tab keybind for Jon... (once I figure out how to reliably find the current tab)
-            println!("Close tab bind pressed...");
+            if self.state.keybindings.is_pressed(ctx, "close_tab") {
+                // close tab keybind for Jon... (once I figure out how to reliably find the current tab)
+                println!("Close tab bind pressed...");
+            }
         }
 
         // wait for file picker

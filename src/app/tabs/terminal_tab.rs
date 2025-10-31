@@ -62,31 +62,30 @@ impl BaseTab for TerminalTab {
         }
 
 		if let Some(term_ref) = self.terminal_backend.as_ref() {
-			let mut term = term_ref.borrow_mut();
-			let tab_rect = ui.max_rect();
+            let mut term = term_ref.borrow_mut();
+            let tab_rect = ui.max_rect();
 
-			ui.allocate_ui_at_rect(tab_rect, |ui| {
-			egui::Frame::none()
-				.fill(ui.visuals().panel_fill)
-				.show(ui, |ui| {
-				let response = ui.interact(
-					ui.max_rect(),
-					ui.id().with("terminal"),
-					egui::Sense::click_and_drag(),
-				);
+            ui.allocate_ui_at_rect(tab_rect, |ui| {
+                egui::Frame::none()
+                    .fill(ui.visuals().panel_fill)
+                    .show(ui, |ui| {
+                        // Check for focus before adding the terminal using ui.max_rect to recieve input instead
+                        let terminal_rect = ui.max_rect();
+                        let terminal_id = ui.id().with("terminal");
+                        let should_focus = ui.ctx().input(|i| {
+                            if let Some(pos) = i.pointer.interact_pos() {
+                                terminal_rect.contains(pos)
+                            } else {
+                                false
+                            }
+                        });
+                        let terminal = TerminalView::new(ui, &mut *term)
+                            .set_focus(should_focus);
 
-				// Only focus when hovered and not clicked or dragging
-				let focus = response.hovered()
-					&& !response.clicked()
-					&& !response.dragged();
-
-				let terminal = TerminalView::new(ui, &mut *term)
-					.set_focus(focus);
-
-				ui.add(terminal);
-				});
-			});
-		}
+                        ui.add(terminal);
+                    });
+            });
+        }
     }
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {

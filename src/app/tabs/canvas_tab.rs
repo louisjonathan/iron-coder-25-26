@@ -277,7 +277,7 @@ impl BaseTab for CanvasTab {
                 }
             }
 
-            if response.clicked() {
+            if response.clicked_by(egui::PointerButton::Primary) {
                 // 3
                 let mut connection_clicked = false;
                 for c in state.project.connections_iter() {
@@ -312,7 +312,7 @@ impl BaseTab for CanvasTab {
 
             // 5
             if clicked_pin == None && !ignore_canvas {
-                if response.dragged() {
+                if response.dragged_by(egui::PointerButton::Secondary) {
                     self.canvas_offset += response.drag_delta();
                 }
 

@@ -182,18 +182,20 @@ impl CanvasBoard {
 	}
 
 	pub fn interact(&mut self, to_screen: &RectTransform, zoom: &f32, response: &Response, mouse_pos: &Pos2) -> bool {
-		if self.contains(to_screen, mouse_pos) {
-			if response.clicked() {
-				return true;
-			}
-	
-			if response.dragged() {
+		if response.dragged() {
 				if !self.connections.is_empty() {
 					return false;
 				}
 				self.canvas_pos += response.drag_delta() / *zoom;
+				let canvas_rect = self.image_rect.translate(self.canvas_pos);
+				
+				self.canvas_rect = to_screen.transform_rect(canvas_rect);
 				return true;
 			}
+		if self.contains(to_screen, mouse_pos) {
+			if response.clicked() {
+				return true;
+			}	
 		}
 		return false;
 	}

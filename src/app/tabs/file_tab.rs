@@ -193,8 +193,8 @@ impl BaseTab for FileTab {
 				)
 			};
 
-			// Store cursor position whenever the text edit loses focus
-			if response.lost_focus() {
+			// Store cursor position whenever the text edit has focus
+			if response.has_focus() {
 				if let Some(mut state) = egui::TextEdit::load_state(ui.ctx(), response.id) {
 					if let Some(cursor_range) = state.cursor.char_range() {
 						self.last_cursor_range = Some(cursor_range);

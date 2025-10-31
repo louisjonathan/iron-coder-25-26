@@ -1,0 +1,30 @@
+[
+    {
+        "id": "save_file",
+        "key": "S",
+        "ctrl": true,
+        "alt": false,
+        "description": "Save the current file."
+    },
+    {
+        "id": "test_a",
+        "key": "A",
+        "ctrl": false,
+        "alt": true,
+        "description": "Print test message."
+    },
+    {
+        "id": "test_b",
+        "key": "B",
+        "ctrl": true,
+        "alt": true,
+        "description": "Print test message."
+    },
+    {
+        "id": "close_tab",
+        "key": "W",
+        "ctrl": true,
+        "alt": false,
+        "description": "Close the currently selected tab."
+    }
+]

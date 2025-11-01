@@ -157,6 +157,12 @@ impl BaseTab for CanvasTab {
             b.borrow_mut().draw_pins(ui, &to_screen, &mouse_screen, draw_all_pins);
         }
 
+        if ui.input(|i| i.key_down(Key::Num1)) {
+            for b in state.project.boards_iter() {
+                b.borrow().draw_pins_from_role(ui, &to_screen, "Analog".to_string());
+            }
+        }
+
         // Keybind text
         // TODO: bind to keybinds backend
         let mut offset = 0.0;
@@ -255,11 +261,6 @@ impl BaseTab for CanvasTab {
                         clicked_pin = Some(pin);
                         if self.check_pin_use(canvas_board_rc, &pin, &state.project.connections) {
                             break;
-                        }
-
-                        if let Some(board) = &canvas_board_rc.borrow().board {
-                            let pin_obj = board.get_pin(&pin);
-                            println!("{:?}", pin_obj);
                         }
                         
                         let mut conn = Rc::new(RefCell::new(CanvasConnection::new(canvas_board_rc.clone(), pin.clone())));

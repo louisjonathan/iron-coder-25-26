@@ -236,7 +236,7 @@ impl Project {
                     .as_ref()
                     .and_then(|b| {
                         let b = b.borrow();
-                        b.board.as_ref().and_then(|board| board.cpu.clone())
+                        b.board.cpu.clone()
                     })
                 {
                     if cpu_name != "Microchip AVR" {
@@ -395,7 +395,7 @@ impl Project {
 
     pub fn generate_cargo_template(&mut self) -> Result {
         if let Some(mb) = &self.main_board {
-            if let Some(template_dir) = mb.borrow().board.as_ref().unwrap().get_template_dir() {
+            if let Some(template_dir) = mb.borrow().board.get_template_dir() {
                 let destination = self.get_location();
 
                 let cmd = duct::cmd!(
@@ -464,7 +464,7 @@ impl Project {
 
     pub fn remove_board(&mut self, board: &Rc<RefCell<CanvasBoard>>) {
         let b = board.borrow_mut();
-        if b.board.as_ref().unwrap().is_main_board() {
+        if b.board.is_main_board() {
             return;
         }
         for c in &b.connections {

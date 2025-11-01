@@ -153,7 +153,7 @@ impl CanvasConnection {
 	pub fn end(&mut self, board: Rc<RefCell<CanvasBoard>>, pin: u32) {
 		let b = board.borrow();
 		
-		if b.board.as_ref().unwrap().is_main_board() {
+		if b.board.is_main_board() {
 			// we need to make start_board the main board to simplify things
 			self.end_board = Some(self.start_board.clone());
 			self.end_pin = Some(self.start_pin.clone());

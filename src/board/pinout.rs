@@ -13,7 +13,7 @@ pub struct Pinout {
     #[serde(skip)]
     silkscreen_map: HashMap<u32, String>,
     #[serde(skip)]
-    pin_interface_map: HashMap<String, Vec<u32>>,
+    interface_to_pins: HashMap<String, Vec<u32>>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -25,7 +25,7 @@ pub struct Pin {
     #[serde(default)]
     pub roles: Vec<RoleAssignment>,
     #[serde(skip)]
-    pub aliases: Vec<String>,
+    pub aliases: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -63,6 +63,14 @@ impl Pinout {
         }
     }
 
+    fn populate_interface_to_pins_map(&mut self) {
+        for pin in &self.pins {
+            for role in &pin.roles {
+                self.interface_to_pins.entry(role.name.clone()).or_default().push(pin.physical);
+            }
+        }
+    }
+
     fn populate_alias_map(&mut self) {
         for interface in &self.interfaces {
             if let Some(fmt) = &interface.alias_fmt {
@@ -84,9 +92,9 @@ impl Pinout {
                     let id = role.id.or(pin.logical).unwrap_or_else(|| {
                         panic!("Neither role.id nor pin.logical exists for pin {:?} at role {:?}", pin, role);
                     });
-                    pin.aliases.push(fmt.replace("{}", &id.to_string()));
+                    pin.aliases.insert(role.name.clone(), fmt.replace("{}", &id.to_string()));
                 } else {
-                    pin.aliases.push(role.name.clone());
+                    pin.aliases.insert(role.name.clone(), role.name.clone());
                 }
 
             }
@@ -97,10 +105,15 @@ impl Pinout {
     {
         self.populate_silkscreen_map();
         self.populate_pin_aliases();
+        self.populate_interface_to_pins_map();
     }
 
     pub fn get_pin_name(&self, physical: &u32) -> Option<&String> {
         self.silkscreen_map.get(&physical)
+    }
+
+    pub fn get_pins_from_role(&self, role: &String) -> Option<&Vec<u32>> {
+        self.interface_to_pins.get(role)
     }
 }
 

@@ -22,7 +22,7 @@ pub struct CanvasBoard {
 	pub id: Uuid,
 	board_name: String,
 	#[serde(skip)]
-	pub board: Option<Rc<Board>>,
+	pub board: Rc<Board>,
 	#[serde(skip)]
 	texture_handle: Option<TextureHandle>,
 	#[serde(skip)]
@@ -30,7 +30,7 @@ pub struct CanvasBoard {
 	#[serde(skip)]
 	image_rect: Rect,
 	#[serde(skip)]
-	pin_locations: Vec<(u32, Rect)>,
+	pin_locations: HashMap<u32, Rect>,
 	canvas_pos: Vec2,
 	#[serde(skip)]
 	pub connections: Vec<Rc<RefCell<CanvasConnection>>>,
@@ -44,11 +44,11 @@ impl Default for CanvasBoard {
 		Self {
 			id: Uuid::default(),
 			board_name: String::new(),
-			board: None,
+			board: Rc::new(Board::default()),
 			texture_handle: None,
 			display_size: Vec2::ZERO,
 			image_rect: Rect::ZERO,
-			pin_locations: Vec::new(),
+			pin_locations: HashMap::new(),
 			canvas_pos: Vec2::ZERO,
 			connection_ids: Vec::new(),
 			connections: Vec::new(),
@@ -64,13 +64,13 @@ impl CanvasBoard {
 			let image_origin = egui::pos2(0.0, 0.0);
 			let image_rect = Rect::from_min_size(image_origin, display_size);
 
-			let mut pin_locations = Vec::new();
+			let mut pin_locations = HashMap::new();
 
 			for (pin_name, pin_rect) in &svg_board_info.pin_rects {
 				if let Some(pin_num) = pin_name.parse::<u32>().ok() {
 					// translate the rects so they are in absolute coordinates
 					let pin_rect = &pin_rect.translate(image_rect.left_top().to_vec2());
-					pin_locations.push((pin_num, pin_rect.clone()));
+					pin_locations.insert(pin_num, pin_rect.clone());
 				}
 			}
 
@@ -81,7 +81,7 @@ impl CanvasBoard {
 			Some(Self {
 				id: Uuid::new_v4(),
 				board_name: board.name.clone(),
-				board: Some(board.clone()),
+				board: board.clone(),
 				texture_handle: None,
 				display_size,
 				image_rect,
@@ -97,14 +97,12 @@ impl CanvasBoard {
 	}
 
 	fn init_pins(&mut self) {
-		if let Some(board) = &self.board {
-			if let Some(svg_board_info) = &board.svg_board_info {
-				for (pin_name, pin_rect) in &svg_board_info.pin_rects {
-					if let Some(pin_num) = pin_name.parse::<u32>().ok() {
-						// translate the rects so they are in absolute coordinates
-						let pin_rect = &pin_rect.translate(self.image_rect.left_top().to_vec2());
-						self.pin_locations.push((pin_num, pin_rect.clone()));
-					}
+		if let Some(svg_board_info) = &self.board.svg_board_info {
+			for (pin_name, pin_rect) in &svg_board_info.pin_rects {
+				if let Some(pin_num) = pin_name.parse::<u32>().ok() {
+					// translate the rects so they are in absolute coordinates
+					let pin_rect = &pin_rect.translate(self.image_rect.left_top().to_vec2());
+					self.pin_locations.insert(pin_num, pin_rect.clone());
 				}
 			}
 		}
@@ -118,12 +116,12 @@ impl CanvasBoard {
 		if let Some(kb_board) = kb.iter().find(|b| {
 			b.get_name() == self.board_name
 		}) {
-			self.board = Some(kb_board.clone());
+			self.board = kb_board.clone();
 		}
 
 		self.init_pins();
 
-		if let Some(svg_board_info) = &self.board.as_ref().unwrap().svg_board_info {
+		if let Some(svg_board_info) = &self.board.svg_board_info {
 			let display_size = svg_board_info.physical_size;
 			let image_origin = egui::pos2(0.0, 0.0);
 			self.image_rect = Rect::from_min_size(image_origin, display_size);
@@ -141,10 +139,8 @@ impl CanvasBoard {
 	pub fn draw(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2) {
 		self.canvas_update(to_screen);
 		if self.texture_handle.is_none() {
-			if let Some(board) = self.board.as_ref() {
-				if let Some(svg_board_info) = &board.svg_board_info {
-					self.texture_handle = Some(ui.ctx().load_texture(self.board.as_ref().unwrap().get_name(), svg_board_info.image.clone(), Default::default()));
-				}
+			if let Some(svg_board_info) = &self.board.svg_board_info {
+				self.texture_handle = Some(ui.ctx().load_texture(self.board.get_name(), svg_board_info.image.clone(), Default::default()));
 			}
 		}
 
@@ -160,12 +156,11 @@ impl CanvasBoard {
 
 	pub fn draw_pins(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2, draw_all_pins: bool) {
 		for ((pin, pin_rect)) in self.pin_locations.iter() {
-			let canvas_pin_rect = (*pin_rect).translate(self.canvas_pos);
-			let transformed_pin_rect = to_screen.transform_rect(canvas_pin_rect);
-			if draw_all_pins || transformed_pin_rect.contains(*mouse_pos)
+			let t_rect = self.to_canvas(to_screen, pin_rect);
+			if draw_all_pins || t_rect.contains(*mouse_pos)
 			{
-				if let Some(name) = self.board.as_ref().unwrap().pinout.get_pin_name(pin) {
-					self.draw_pin(ui, name, &transformed_pin_rect);
+				if let Some(name) = self.board.pinout.get_pin_name(pin) {
+					self.draw_pin(ui, name, &t_rect);
 				}
 			}
 		}
@@ -181,7 +176,7 @@ impl CanvasBoard {
 		);
 	}
 
-	pub fn draw_pin(&self, ui: &mut egui::Ui, pin_name: &String, pin_rect: &Rect) {
+	pub fn draw_pin(&self, ui: &mut egui::Ui, pin_name: &str, pin_rect: &Rect) {
 		let pin_name_color = Color32::from_rgba_unmultiplied(0, 255, 0, 255);
 		let pin_color = Color32::from_rgba_unmultiplied(0, 255, 0, 255);
 
@@ -203,8 +198,7 @@ impl CanvasBoard {
 	}
 
 	pub fn canvas_update(&mut self, to_screen: &RectTransform) {
-		let canvas_rect = self.image_rect.translate(self.canvas_pos);
-		self.canvas_rect = to_screen.transform_rect(canvas_rect);
+		self.canvas_rect = self.to_canvas(to_screen, &self.image_rect);
 	}
 
 	pub fn contains(&self, to_screen: &RectTransform, mouse_pos: &Pos2) -> bool {
@@ -237,9 +231,7 @@ impl CanvasBoard {
 		}
 
 		for ((pin_name, pin_rect)) in self.pin_locations.iter() {
-			let canvas_pin_rect = (*pin_rect).translate(self.canvas_pos);
-			let transformed_pin_rect = to_screen.transform_rect(canvas_pin_rect);
-			if transformed_pin_rect.contains(*mouse_pos) {
+			if self.to_canvas(to_screen, pin_rect).contains(*mouse_pos) {
 				return Some(*pin_name);
 			}
 		}
@@ -247,10 +239,7 @@ impl CanvasBoard {
 	}
 
 	pub fn get_pin_location(&self, pin_num: &u32) -> Option<Pos2> {
-		self.pin_locations
-			.iter()
-			.find(|(num, _rect)| num == pin_num)
-			.map(|(_name, rect)| rect.center())
+		self.pin_locations.get(pin_num).map(|rect| rect.center())
 	}
 
 	pub fn get_canvas_position(&self) -> Vec2 {
@@ -269,5 +258,21 @@ impl CanvasBoard {
 	pub fn add_connection(&mut self, r: &Rc<RefCell<CanvasConnection>>) {
 		self.connection_ids.push(r.borrow().id);
 		self.connections.push(r.clone());
+	}
+
+	pub fn draw_pins_from_role(&self, ui: &mut egui::Ui, to_screen: &RectTransform, role: String) {
+		if let Some(pins) = self.board.pinout.get_pins_from_role(&role) {
+			for p in pins {
+				let rect = self.pin_locations.get(p).unwrap();
+				let pin_obj = self.board.get_pin(p).unwrap();
+				let pin_str = pin_obj.aliases.get(&role).unwrap();
+				self.draw_pin(ui, pin_str, &self.to_canvas(to_screen, rect));
+			}
+		}
+	}
+
+	fn to_canvas(&self, to_screen: &RectTransform, rect: &Rect) -> Rect {
+		let rect = (*rect).translate(self.canvas_pos);
+		to_screen.transform_rect(rect)
 	}
 }

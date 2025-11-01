@@ -24,12 +24,12 @@ pub struct CanvasConnection {
 	#[serde(skip)]
 	start_board: Rc<RefCell<CanvasBoard>>,
 	start_board_id: Uuid,
-	start_pin: String,
+	start_pin: u32,
 
 	#[serde(skip)]
 	end_board: Option<Rc<RefCell<CanvasBoard>>>,
 	end_board_id: Uuid,
-	end_pin: Option<String>,
+	end_pin: Option<u32>,
 
 	#[serde(skip)]
 	temp_name: String,
@@ -38,7 +38,7 @@ pub struct CanvasConnection {
 }
 
 impl CanvasConnection {
-	pub fn new(start_board: Rc<RefCell<CanvasBoard>>, start_pin: String) -> Self {
+	pub fn new(start_board: Rc<RefCell<CanvasBoard>>, start_pin: u32) -> Self {
 		let color = egui::Color32::RED;
 		let points = Vec::<Pos2>::new();
 
@@ -150,7 +150,7 @@ impl CanvasConnection {
 		// }
 	}
 
-	pub fn end(&mut self, board: Rc<RefCell<CanvasBoard>>, pin: String) {
+	pub fn end(&mut self, board: Rc<RefCell<CanvasBoard>>, pin: u32) {
 		let b = board.borrow();
 		
 		if b.board.as_ref().unwrap().is_main_board() {
@@ -300,11 +300,11 @@ impl CanvasConnection {
 		return self.start_board.clone();
 	}
 
-	pub fn get_start_pin(&self) -> String {
+	pub fn get_start_pin(&self) -> u32 {
 		return self.start_pin.clone();
 	}
 
-	pub fn get_end_pin(&self) -> Option<String> {
+	pub fn get_end_pin(&self) -> Option<u32> {
 		return self.end_pin.clone();
 	}
 

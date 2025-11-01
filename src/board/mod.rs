@@ -189,14 +189,8 @@ impl Board {
 		self.standard.clone()
 	}
 
-    pub fn get_pin(&self, physical: &str) -> Option<&Pin> {
-        let pin_num = physical.parse::<u32>().ok()?;
-        self.pinout.pins.iter().find(|p| p.physical == pin_num)
-    }
-
-    pub fn get_pin_name(&self, physical: &str) -> Option<&String> {
-        let pin_num = physical.parse::<u32>().ok()?;
-        self.pinout.get_pin_name(pin_num)
+    pub fn get_pin(&self, physical: &u32) -> Option<&Pin> {
+        self.pinout.pins.iter().find(|p| p.physical == *physical)
     }
 }
 

@@ -12,6 +12,8 @@ pub struct Pinout {
     alias_map: HashMap<String, String>,
     #[serde(skip)]
     silkscreen_map: HashMap<u32, String>,
+    #[serde(skip)]
+    pin_interface_map: HashMap<String, Vec<u32>>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -55,13 +57,6 @@ pub struct InterfaceRole {
 }
 
 impl Pinout {
-    pub fn populate_pins(&mut self)
-    {
-        self.populate_silkscreen_map();
-        self.populate_pin_aliases();
-        
-    }
-
     fn populate_silkscreen_map(&mut self) {
         for pin in &self.pins {
             self.silkscreen_map.insert(pin.physical, pin.silkscreen.clone());
@@ -98,7 +93,13 @@ impl Pinout {
         }
     }
 
-    pub fn get_pin_name(&self, physical: u32) -> Option<&String> {
+    pub fn populate_pins(&mut self)
+    {
+        self.populate_silkscreen_map();
+        self.populate_pin_aliases();
+    }
+
+    pub fn get_pin_name(&self, physical: &u32) -> Option<&String> {
         self.silkscreen_map.get(&physical)
     }
 }

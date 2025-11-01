@@ -183,7 +183,7 @@ impl BaseTab for CanvasTab {
 
         // 1
         if let Some(mut conn) = self.connection_in_progress.take() {
-            let mut clicked_pin: Option<String> = None;
+            let mut clicked_pin: Option<u32> = None;
             let boards: Vec<_> = state.project.boards_iter().cloned().collect();
             for canvas_board_rc in &boards {
                 let pin_opt = {
@@ -196,7 +196,7 @@ impl BaseTab for CanvasTab {
                 };
 
                 if let Some(pin) = pin_opt {
-                    clicked_pin = Some(pin.clone());
+                    clicked_pin = Some(pin);
 
                     let conn_clone = conn.clone();
                     {
@@ -239,7 +239,7 @@ impl BaseTab for CanvasTab {
             }            
         } else {
 
-            let mut clicked_pin: Option<String> = None;
+            let mut clicked_pin: Option<u32> = None;
             let mut ignore_canvas = false;
 
             // 2
@@ -252,7 +252,7 @@ impl BaseTab for CanvasTab {
                     };
                     
                     if let Some(pin) = pin_opt {
-                        clicked_pin = Some(pin.clone());
+                        clicked_pin = Some(pin);
                         if self.check_pin_use(canvas_board_rc, &pin, &state.project.connections) {
                             break;
                         }
@@ -392,14 +392,14 @@ impl CanvasTab {
         }
     }
 
-    fn check_pin_use(&self, board: &Rc<RefCell<CanvasBoard>>, pin_name: &String, connections: &Vec<Rc<RefCell<CanvasConnection>>>) -> bool {
+    fn check_pin_use(&self, board: &Rc<RefCell<CanvasBoard>>, pin_num: &u32, connections: &Vec<Rc<RefCell<CanvasConnection>>>) -> bool {
         for c in connections {
             let connection = c.borrow();
-            if Rc::ptr_eq(&connection.get_start_board(), board) && pin_name.eq(&connection.get_start_pin()) {
+            if Rc::ptr_eq(&connection.get_start_board(), board) && pin_num.eq(&connection.get_start_pin()) {
                 return true;
             }
             if let Some(eb) = connection.get_end_board() {
-                if Rc::ptr_eq(&eb, board) && pin_name.eq(&connection.get_end_pin().unwrap()) {
+                if Rc::ptr_eq(&eb, board) && pin_num.eq(&connection.get_end_pin().unwrap()) {
                     return true;
                 }
             }

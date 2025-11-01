@@ -139,12 +139,14 @@ impl CanvasBoard {
 	}
 
 	pub fn draw_pins(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2, draw_all_pins: bool) {
-		for ((pin_name, pin_rect)) in self.pin_locations.iter() {
+		for ((pin, pin_rect)) in self.pin_locations.iter() {
 			let canvas_pin_rect = (*pin_rect).translate(self.canvas_pos);
 			let transformed_pin_rect = to_screen.transform_rect(canvas_pin_rect);
 			if draw_all_pins || transformed_pin_rect.contains(*mouse_pos)
 			{
-				self.draw_pin(ui, pin_name, &transformed_pin_rect);
+				if let Some(name) = self.board.as_ref().unwrap().get_pin_name(pin) {
+					self.draw_pin(ui, name, &transformed_pin_rect);
+				}
 			}
 		}
 	}

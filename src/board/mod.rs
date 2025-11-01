@@ -193,6 +193,11 @@ impl Board {
         let pin_num = physical.parse::<u32>().ok()?;
         self.pinout.pins.iter().find(|p| p.physical == pin_num)
     }
+
+    pub fn get_pin_name(&self, physical: &str) -> Option<&String> {
+        let pin_num = physical.parse::<u32>().ok()?;
+        self.pinout.get_pin_name(pin_num)
+    }
 }
 
 /// Iteratively gather the Boards from the filesystem.
@@ -248,7 +253,7 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Rc<Board>> {
                                         board.name.clone()
                                     );
                                 }
-                                board.pinout.populate_pin_aliases();
+                                board.pinout.populate_pins();
                                 r.push(Rc::new(board));
                             }
                             Err(e) => {

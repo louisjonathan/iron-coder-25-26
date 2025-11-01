@@ -1,6 +1,7 @@
 //! This module provides functionality for development boards
 #![allow(warnings)]
 use log::{debug, info, warn};
+use uuid::Uuid;
 
 use std::cmp;
 use std::fmt;
@@ -21,10 +22,6 @@ pub mod display;
 pub mod pinout;
 use pinout::Pinout;
 pub use pinout::Pin;
-
-pub mod parsing;
-
-use parsing::BspParseInfo;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -50,13 +47,13 @@ impl fmt::Display for BoardStandards {
             BoardStandards::ThingPlus => write!(f, "ThingPlus"),
             BoardStandards::MicroMod => write!(f, "MicroMod"),
             BoardStandards::ESP32 => write!(f, "ESP32"),
-            // _ => write!(f, "Unknown Dev Board Standard"),
+            _ => write!(f, "Unknown Dev Board Standard"),
         }
     }
 }
 
 /// The board struct defines a board type
-#[derive(Serialize, Deserialize, Clone, Default)]
+#[derive(Deserialize, Clone, Default)]
 #[serde(default)]
 pub struct Board {
     /// The name of the board
@@ -81,14 +78,6 @@ pub struct Board {
     /// An local path of a project template
     #[serde(skip)]
     template_dir: Option<PathBuf>,
-    /// The name of a BSP crate
-    pub bsp: Option<String>,
-    /// An optional path to a local BSP (if None, means the BSP should be on crates.io)
-    #[serde(skip)]
-    pub bsp_path: Option<PathBuf>,
-    /// A syntax tree representation of the BSP
-    #[serde(skip)]
-    pub bsp_parse_info: Option<BspParseInfo>,
     /// Possible image loaded from an SVG file, along with size info and pin locations
     #[serde(skip)]
     pub svg_board_info: Option<SvgBoardInfo>,
@@ -115,13 +104,6 @@ impl fmt::Debug for Board {
         )?;
         write!(f, "  has svg info: {}\n", self.svg_board_info.is_some())?;
         write!(f, "  has template: {}\n", self.template_dir.is_some())?;
-        write!(f, "  bsp crate name: {:?}\n", self.bsp)?;
-        write!(f, "  has local bsp: {:?}\n", self.bsp_path)?;
-        write!(
-            f,
-            "  has some syntax loaded: {:?}\n",
-            self.bsp_parse_info.is_some()
-        )?;
         Ok(())
     }
 }
@@ -147,12 +129,8 @@ impl Board {
     /// Loads a board from its toml description
     fn load_from_toml(path: &Path) -> std::io::Result<Self> {
         let toml_str = fs::read_to_string(path)?;
-        let mut b: Board = match toml::from_str(&toml_str) {
-            Ok(b) => b,
-            Err(_) => {
-                return Err(std::io::Error::other("load from toml failed"));
-            }
-        };
+        let mut b: Board = toml::from_str(&toml_str)
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
 
         // See if there is an image
         if let Ok(pic_path) = path.with_extension("svg").canonicalize() {
@@ -191,10 +169,6 @@ impl Board {
         self.name.as_str()
     }
 
-    pub fn get_pinout(&self) -> Pinout {
-        self.pinout.clone()
-    }
-
     pub fn required_crates(&self) -> Option<Vec<String>> {
         self.required_crates.clone()
     }
@@ -214,11 +188,16 @@ impl Board {
 	pub fn get_board_standard(&self) -> Option<BoardStandards> {
 		self.standard.clone()
 	}
+
+    pub fn get_pin(&self, physical: &str) -> Option<&Pin> {
+        let pin_num = physical.parse::<u32>().ok()?;
+        self.pinout.pins.iter().find(|p| p.physical == pin_num)
+    }
 }
 
 /// Iteratively gather the Boards from the filesystem.
-pub fn get_boards(boards_dir: &Path) -> Vec<Rc<RefCell<Board>>> {
-    let mut r = Vec::<Rc<RefCell<Board>>>::new();
+pub fn get_boards(boards_dir: &Path) -> Vec<Rc<Board>> {
+    let mut r = Vec::<Rc<Board>>::new();
     if let Ok(manufacturers) = fs::read_dir(boards_dir) {
         // first tier of organization is by manufacturer
         for manufacturer in manufacturers {
@@ -252,7 +231,7 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Rc<RefCell<Board>>> {
                                 // look for a template directory
                                 let template_dir = parent.join("template");
                                 if let Ok(true) = template_dir.try_exists() {
-                                    debug!(
+                                    warn!(
                                         "found template dir for board <{}> at {:?}",
                                         board.name.clone(),
                                         file.path()
@@ -264,38 +243,16 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Rc<RefCell<Board>>> {
                                     );
                                     board.template_dir = Some(template_dir);
                                 } else {
-                                    debug!(
+                                    warn!(
                                         "no template directory found for board <{}>",
                                         board.name.clone()
                                     );
                                 }
-                                // look for a local BSP, and do things related to it if needed
-                                let bsp_dir = parent.join("bsp");
-                                if let Ok(true) = bsp_dir.try_exists() {
-                                    info!("found local bsp crate for board {}", board.name.clone());
-                                    board.bsp_path = Some(bsp_dir.clone());
-                                    // let bsp_string = fs::read_to_string(bsp_dir.join("src/lib.rs")).unwrap();
-                                    // let (analysis, fid) = ra_ap_ide::Analysis::from_single_file(bsp_string);
-                                    // board.ra_values = analysis.file_structure(fid).unwrap();
-                                    match board.load_bsp_info() {
-                                        Ok(_) => (),
-                                        Err(e) => warn!(
-                                            "error parsing BSP for board {}: {:?}",
-                                            board.get_name(),
-                                            e
-                                        ),
-                                    };
-                                } else {
-                                    debug!(
-                                        "no bsp directory found for board <{}>",
-                                        board.name.clone()
-                                    );
-                                }
-                                board.pinout.process_config();
-                                r.push(Rc::new(RefCell::new(board)));
+                                board.pinout.populate_pin_aliases();
+                                r.push(Rc::new(board));
                             }
                             Err(e) => {
-                                warn!(
+                                println!(
                                     "error loading board from {}: {:?}",
                                     file.path().display().to_string(),
                                     e

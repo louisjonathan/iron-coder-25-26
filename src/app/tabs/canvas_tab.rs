@@ -256,6 +256,11 @@ impl BaseTab for CanvasTab {
                         if self.check_pin_use(canvas_board_rc, &pin, &state.project.connections) {
                             break;
                         }
+
+                        if let Some(board) = &canvas_board_rc.borrow().board {
+                            let pin_obj = board.get_pin(&pin);
+                            println!("{:?}", pin_obj);
+                        }
                         
                         let mut conn = Rc::new(RefCell::new(CanvasConnection::new(canvas_board_rc.clone(), pin.clone())));
                         {

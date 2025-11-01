@@ -21,8 +21,8 @@ mod tests {
 		let mut project = Project::default();
 
 		// board rcs
-		let b1_rc = Rc::new(RefCell::new(Board::dummy_svg()));
-		let b2_rc = Rc::new(RefCell::new(Board::dummy_svg()));
+		let b1_rc = Rc::new(Board::dummy_svg());
+		let b2_rc = Rc::new(Board::dummy_svg());
 		let kb = vec![b1_rc.clone(), b2_rc.clone()];
 		
 		// canvas board rcs

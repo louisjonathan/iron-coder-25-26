@@ -24,7 +24,7 @@ pub struct SharedState {
     pub syntax_highlighter: SyntaxHighlighter,
     pub project: Project,
     pub requested_file_to_open: Option<PathBuf>,
-    pub known_boards: Vec<Rc<RefCell<Board>>>,
+    pub known_boards: Vec<Rc<Board>>,
 	pub default_terminal: Option<PathBuf>,
 	pub output_terminal_backend: Option<Rc<RefCell<TerminalBackend>>>,
 	pub reset_canvas: bool,

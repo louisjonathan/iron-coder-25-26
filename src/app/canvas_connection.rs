@@ -62,7 +62,7 @@ impl CanvasConnection {
 		}
 	}
 
-	pub fn init_refs(&mut self, kb: &Vec<Rc<RefCell<Board>>>, p: &Project) {
+	pub fn init_refs(&mut self, kb: &Vec<Rc<Board>>, p: &Project) {
 		if let Some(s_b) = p.board_map.get(&self.start_board_id) {
 			let id_copy = s_b.borrow().id;
 			self.start_board = s_b.clone();
@@ -153,7 +153,7 @@ impl CanvasConnection {
 	pub fn end(&mut self, board: Rc<RefCell<CanvasBoard>>, pin: String) {
 		let b = board.borrow();
 		
-		if b.board.is_main_board() {
+		if b.board.as_ref().unwrap().is_main_board() {
 			// we need to make start_board the main board to simplify things
 			self.end_board = Some(self.start_board.clone());
 			self.end_pin = Some(self.start_pin.clone());

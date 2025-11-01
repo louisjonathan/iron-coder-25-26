@@ -1,7 +1,7 @@
 name = "Arduino Uno"
 manufacturer = "Arduino"
 is_main_board = true
-board_type = "Main"
+board_role = "Main"
 standard = "Arduino"
 cpu = "Microchip AVR"
 ram = 2
@@ -11,28 +11,103 @@ related_crates = ["smart-leds", "ws2812-pio"]
 
 [pinout]
 interfaces = [
-	{name = "GPIO", roles = ["Digital", "Analog", "Port"]},
-	{name = "I2C", roles = [ "SDA", "SCL"], bus = true},
-	{name = "SPI", roles = ["SCK", "MISO", "MOSI", "SS"], bus = true},
-	{name = "UART", roles = ["TX", "RX"], bus = true}
+	{ name = "GPIO", roles = [{name = "Digital", alias_fmt = "D{}"}, {name = "Analog", alias_fmt = "A{}"}] },
+	{ name = "I2C", bus = true, roles = [{name = "SDA"}, {name = "SCL"}] },
+	{ name = "SPI", bus = true, roles = [{name = "SCK"}, {name = "MISO"}, {name = "MOSI"}, {name = "SS"}] },
+	{ name = "UART", bus = true, roles = [{name = "TX"}, {name = "RX"}] },
 ]
+pins = [
+	# power & control
+	{ physical = 0,  silkscreen = "" },
+	{ physical = 1,  silkscreen = "IOREF" },
+	{ physical = 2,  silkscreen = "RESET" },
+	{ physical = 3,  silkscreen = "3V3" },
+	{ physical = 4,  silkscreen = "5V" },
+	{ physical = 5,  silkscreen = "GND" },
+	{ physical = 6,  silkscreen = "GND" },
+	{ physical = 7,  silkscreen = "Vin" },
 
-[pinout.pin_block]
-ranges = [
-	{start = 24, end = 31, roles = ["Port"], alias_fmts = ["PD{}"]},
-	{start = 8, end = 13, roles = ["Analog", "Port"], alias_fmts = ["A{}", "PC{}"]},
-	{start = 8, end = 13, roles = ["Port"], alias_fmts = ["PB{}"]},
-	{start = 8, end = 31, exclude = [14, 15, 16, 17], roles = ["Digital"], alias_fmts = ["D{}"]},
-]
-assignments = [
-	{numbers = [31], roles = ["RX"]},
-	{numbers = [30], roles = ["TX"]},
+	# analog header
+	{ physical = 8,  silkscreen = "A0", roles = [
+		{ name = "Digital", id = 14 },
+		{ name = "Analog",  id = 0 },
+	]},
+	{ physical = 9,  silkscreen = "A1", roles = [
+		{ name = "Digital", id = 15 },
+		{ name = "Analog",  id = 1 },
+	]},
+	{ physical = 10, silkscreen = "A2", roles = [
+		{ name = "Digital", id = 16 },
+		{ name = "Analog",  id = 2 },
+	]},
+	{ physical = 11, silkscreen = "A3", roles = [
+		{ name = "Digital", id = 17 },
+		{ name = "Analog",  id = 3 },
+	]},
+	{ physical = 12, silkscreen = "A4", roles = [
+		{ name = "Digital", id = 18 },
+		{ name = "Analog",  id = 4 },
+		{ name = "SDA" }
+	]},
+	{ physical = 13, silkscreen = "A5", roles = [
+		{ name = "Digital", id = 19 },
+		{ name = "Analog",  id = 5 },
+		{ name = "SCL" }
+	]},
 
-	{numbers = [21], roles = ["SS"]},
-	{numbers = [20], roles = ["MOSI"]},
-	{numbers = [19], roles = ["MISO"]},
-	{numbers = [18], roles = ["SCK"]},
+	# power & control
+	{ physical = 14, silkscreen = "" },
+	{ physical = 15, silkscreen = "" },
+	{ physical = 16, silkscreen = "AREF" },
+	{ physical = 17, silkscreen = "GND" },
 
-	{numbers = [12], roles = ["SDA"]},
-	{numbers = [13], roles = ["SCL"]},
+	# digital header
+	{ physical = 18, silkscreen = "13", roles = [
+		{ name = "Digital", id = 13 },
+		{ name = "SCK" }
+	]},
+	{ physical = 19, silkscreen = "12", roles = [
+		{ name = "Digital", id = 12 },
+		{ name = "MISO" }
+	]},
+	{ physical = 20, silkscreen = "11", roles = [
+		{ name = "Digital", id = 11 },
+		{ name = "MOSI" }
+	]},
+	{ physical = 21, silkscreen = "10", roles = [
+		{ name = "Digital", id = 10 },
+		{ name = "SS" }
+	]},
+	{ physical = 22, silkscreen = "9", roles = [
+		{ name = "Digital", id = 9 },
+	]},
+	{ physical = 23, silkscreen = "8", roles = [
+		{ name = "Digital", id = 8 },
+	]},
+	{ physical = 24, silkscreen = "7", roles = [
+		{ name = "Digital", id = 7 },
+	]},
+	{ physical = 25, silkscreen = "6", roles = [
+		{ name = "Digital", id = 6 },
+	]},
+	{ physical = 26, silkscreen = "5", roles = [
+		{ name = "Digital", id = 5 },
+	]},
+	{ physical = 27, silkscreen = "4", roles = [
+		{ name = "Digital", id = 4 },
+	]},
+	{ physical = 28, silkscreen = "3", roles = [
+		{ name = "Digital", id = 3 },
+	]},
+	{ physical = 29, silkscreen = "2", roles = [
+		{ name = "Digital", id = 2 },
+	]},
+	{ physical = 30, silkscreen = "1", roles = [
+		{ name = "Digital", id = 1 },
+		{ name = "TX" }
+	]},
+	{ physical = 31, silkscreen = "0", roles = [
+		{ name = "Digital", id = 0 },
+		{ name = "RX" },
+	]},
 ]

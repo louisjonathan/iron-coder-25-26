@@ -113,14 +113,14 @@ impl Project {
         self.location.is_some()
     }
 
-    pub fn add_board(&mut self, board: &Rc<RefCell<Board>>) -> Option<Rc<RefCell<CanvasBoard>>> {
-        match board.borrow().is_main_board() {
+    pub fn add_board(&mut self, board: &Rc<Board>) -> Option<Rc<RefCell<CanvasBoard>>> {
+        match board.is_main_board() {
             true => {
                 if self.has_main_board() {
                     info!("project already contains a main board! aborting.");
                     return None;
                 } else {
-                    if let Some(b) = CanvasBoard::new(&board.borrow()) {
+                    if let Some(b) = CanvasBoard::new(&board) {
                         let b_ref = Rc::new(RefCell::new(b));
                         let extra_ref = b_ref.clone();
                         self.board_map
@@ -132,7 +132,7 @@ impl Project {
                 }
             }
             false => {
-                if let Some(b) = CanvasBoard::new(&board.borrow()) {
+                if let Some(b) = CanvasBoard::new(&board) {
                     let b_ref = Rc::new(RefCell::new(b));
                     let extra_ref = b_ref.clone();
                     self.board_map
@@ -147,7 +147,7 @@ impl Project {
     }
 
     /// Populate the project board list via the app-wide 'known boards' list
-    pub fn load_board_resources(&mut self, kb: &Vec<Rc<RefCell<Board>>>) {
+    pub fn load_board_resources(&mut self, kb: &Vec<Rc<Board>>) {
         if let Some(b) = &self.main_board {
             let board_id = b.borrow().id;
             self.board_map.insert(board_id, b.clone());
@@ -164,7 +164,7 @@ impl Project {
     }
 
     /// This method will reload the project based on the current project location
-    pub fn reload(&mut self, kb: &Vec<Rc<RefCell<Board>>>) -> Result {
+    pub fn reload(&mut self, kb: &Vec<Rc<Board>>) -> Result {
         if let Some(location) = self.location.clone() {
             self.load_from(&location, kb)
         } else {
@@ -173,7 +173,7 @@ impl Project {
     }
 
     /// Load a project from a specified directory, and sync the board assets.
-    pub fn load_from(&mut self, project_directory: &Path, kb: &Vec<Rc<RefCell<Board>>>) -> Result {
+    pub fn load_from(&mut self, project_directory: &Path, kb: &Vec<Rc<Board>>) -> Result {
         let project_file = project_directory.join(PROJECT_FILE_NAME);
         let toml_str = match fs::read_to_string(project_file) {
             Ok(s) => s,
@@ -234,7 +234,10 @@ impl Project {
                 if let Some(cpu_name) = self
                     .main_board
                     .as_ref()
-                    .and_then(|b| b.borrow().board.cpu.clone())
+                    .and_then(|b| {
+                        let b = b.borrow();
+                        b.board.as_ref().and_then(|board| board.cpu.clone())
+                    })
                 {
                     if cpu_name != "Microchip AVR" {
                         return;
@@ -315,7 +318,7 @@ impl Project {
         }
     }
     /// Prompt the user to select project directory to open
-    pub fn open(&mut self, kb: &Vec<Rc<RefCell<Board>>>) -> Result {
+    pub fn open(&mut self, kb: &Vec<Rc<Board>>) -> Result {
         if let Some(project_directory) = FileDialog::new().pick_folder() {
             self.load_from(&project_directory, kb)
         } else {
@@ -392,7 +395,7 @@ impl Project {
 
     pub fn generate_cargo_template(&mut self) -> Result {
         if let Some(mb) = &self.main_board {
-            if let Some(template_dir) = mb.borrow().board.get_template_dir() {
+            if let Some(template_dir) = mb.borrow().board.as_ref().unwrap().get_template_dir() {
                 let destination = self.get_location();
 
                 let cmd = duct::cmd!(
@@ -461,7 +464,7 @@ impl Project {
 
     pub fn remove_board(&mut self, board: &Rc<RefCell<CanvasBoard>>) {
         let b = board.borrow_mut();
-        if b.board.is_main_board() {
+        if b.board.as_ref().unwrap().is_main_board() {
             return;
         }
         for c in &b.connections {

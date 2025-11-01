@@ -20,7 +20,9 @@ use crate::project::Project;
 #[serde(default)]
 pub struct CanvasBoard {
 	pub id: Uuid,
-	pub board: Board,
+	board_name: String,
+	#[serde(skip)]
+	pub board: Option<Rc<Board>>,
 	#[serde(skip)]
 	texture_handle: Option<TextureHandle>,
 	display_size: Vec2,
@@ -39,7 +41,8 @@ impl Default for CanvasBoard {
 	fn default() -> Self {
 		Self {
 			id: Uuid::default(),
-			board: Board::default(),
+			board_name: String::new(),
+			board: None,
 			texture_handle: None,
 			display_size: Vec2::ZERO,
 			image_rect: Rect::ZERO,
@@ -53,7 +56,7 @@ impl Default for CanvasBoard {
 }
 
 impl CanvasBoard {
-	pub fn new(board: &Board) -> Option<Self> {
+	pub fn new(board: &Rc<Board>) -> Option<Self> {
 		if let Some(svg_board_info) = &board.svg_board_info {
 			let display_size = svg_board_info.physical_size;
 			let image_origin = egui::pos2(0.0, 0.0);
@@ -73,7 +76,8 @@ impl CanvasBoard {
 
 			Some(Self {
 				id: Uuid::new_v4(),
-				board: board.clone(),
+				board_name: board.name.clone(),
+				board: Some(board.clone()),
 				texture_handle: None,
 				display_size,
 				image_rect,
@@ -88,15 +92,18 @@ impl CanvasBoard {
 		}
 	}
 
-	pub fn init_refs(&mut self, kb: &Vec<Rc<RefCell<Board>>>, p: &Project) {
-		if let Some(kb_board) = kb.iter().find(|b_rc| {
-			let b = b_rc.borrow();
-			b.get_name() == self.board.get_name()
+	pub fn init_refs(&mut self, kb: &Vec<Rc<Board>>, p: &Project) {
+		if self.board_name.is_empty() {
+			return;
+		}
+		println!("LOOKING FOR BOARD: {}", self.board_name);
+		if let Some(kb_board) = kb.iter().find(|b| {
+			b.get_name() == self.board_name
 		}) {
-			self.board = kb_board.borrow().clone();
+			self.board = Some(kb_board.clone());
 		}
 
-		if let Some(svg_board_info) = &self.board.svg_board_info {
+		if let Some(svg_board_info) = &self.board.as_ref().unwrap().svg_board_info {
 			let display_size = svg_board_info.physical_size;
 			let image_origin = egui::pos2(0.0, 0.0);
 			self.image_rect = Rect::from_min_size(image_origin, display_size);
@@ -114,8 +121,10 @@ impl CanvasBoard {
 	pub fn draw(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2) {
 		self.canvas_update(to_screen);
 		if self.texture_handle.is_none() {
-			if let Some(svg_board_info) = &self.board.svg_board_info {
-				self.texture_handle = Some(ui.ctx().load_texture(self.board.get_name(), svg_board_info.image.clone(), Default::default()));
+			if let Some(board) = self.board.as_ref() {
+				if let Some(svg_board_info) = &board.svg_board_info {
+					self.texture_handle = Some(ui.ctx().load_texture(self.board.as_ref().unwrap().get_name(), svg_board_info.image.clone(), Default::default()));
+				}
 			}
 		}
 

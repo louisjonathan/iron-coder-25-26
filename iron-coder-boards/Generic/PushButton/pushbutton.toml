@@ -5,10 +5,20 @@ related_crates = ["embedded-hal"]
 
 [pinout]
 interfaces = [
-	{ name = "GPIO" },
+	{ name = "SPI", bus = true, roles = [{name = "SCK"}, {name = "MISO"}, {name = "MOSI"}, {name = "SS"}] },
 ]
 pins = [
-	{ physical = 0, silkscreen = "Input", roles = [
-		{ name = "GPIO" },
+	{ physical = 0, silkscreen = "MISO", roles = [
+		{ name = "MISO" },
 	]},
 ]
+
+# [pinout]
+# interfaces = [
+# 	{ name = "GPIO" },
+# ]
+# pins = [
+# 	{ physical = 0, silkscreen = "Input", roles = [
+# 		{ name = "GPIO", direction = "Input" },
+# 	]},
+# ]

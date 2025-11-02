@@ -5,6 +5,7 @@ use crate::app::canvas_board::CanvasBoard;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use std::collections::HashSet;
 
 use crate::project::Project;
 
@@ -13,7 +14,7 @@ use std::cell::RefCell;
 
 use crate::board::Pin;
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 #[serde(default)]
 pub struct CanvasConnection {
 	pub name: String,
@@ -296,8 +297,8 @@ impl CanvasConnection {
 		return false;
 	}
 
-	pub fn get_start_board(&self) -> Rc<RefCell<CanvasBoard>> {
-		return self.start_board.clone();
+	pub fn get_start_board(&self) -> &Rc<RefCell<CanvasBoard>> {
+		&self.start_board
 	}
 
 	pub fn get_start_pin(&self) -> u32 {
@@ -312,17 +313,22 @@ impl CanvasConnection {
 		return self.end_board.clone();
 	}
 
+	pub fn get_connection_roles(&self) -> Option<HashSet<String>> {
+		let sb = self.start_board.borrow();
+		sb.board.pinout.get_pin_roles(&self.start_pin).cloned()
+	}
+
 	pub fn creation_popup(&mut self, ui: &Ui, p: &Pos2) {
-		egui::show_tooltip_at(ui.ctx(), ui.layer_id(), egui::Id::new("my_tooltip"), *p, |ui| {
-			ui.label("Configure Connection");
-			ui.text_edit_singleline(&mut self.temp_name);
-			if ui.button("Confirm").clicked() {
-				self.show_popup = false;
-				self.name = self.temp_name.clone();
-			}
-			if ui.button("Cancel").clicked() {
-				self.show_popup = false;
-			}
-		});
+		// egui::show_tooltip_at(ui.ctx(), ui.layer_id(), egui::Id::new("my_tooltip"), *p, |ui| {
+		// 	ui.label("Configure Connection");
+		// 	ui.text_edit_singleline(&mut self.temp_name);
+		// 	if ui.button("Confirm").clicked() {
+		// 		self.show_popup = false;
+		// 		self.name = self.temp_name.clone();
+		// 	}
+		// 	if ui.button("Cancel").clicked() {
+		// 		self.show_popup = false;
+		// 	}
+		// });
 	}
 }

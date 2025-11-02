@@ -157,9 +157,32 @@ impl BaseTab for CanvasTab {
             b.borrow_mut().draw_pins(ui, &to_screen, &mouse_screen, draw_all_pins);
         }
 
-        if ui.input(|i| i.key_down(Key::Num1)) {
-            for b in state.project.boards_iter() {
-                b.borrow().draw_pins_from_role(ui, &to_screen, "Analog".to_string());
+        if let Some(conn_rc) = &self.connection_in_progress {
+            let conn = conn_rc.borrow();
+            let sp = conn.get_start_pin();
+            if let Some(set) = conn.get_connection_roles() {
+                let sb = conn.get_start_board().borrow();
+                if sb.board.is_main_board() {
+                    for b in state.project.peripheral_boards.iter() {
+                        let cb = b.borrow();
+                        for role in &set {
+                            println!("{} {}", cb.board.name, role);
+                            cb.draw_pins_from_role(ui, &to_screen, role);
+                        }
+                    }
+                } else {
+                    if let Some(b) = &state.project.main_board {
+                        for role in &set {
+                            let cb = b.borrow();
+                            println!("{} {}", cb.board.name, role);
+                            cb.draw_pins_from_role(ui, &to_screen, role);
+                            // if let Some(interface) = cb.board.pinout.get_interface_from_role(role) {
+                            //     println!("{} {}", cb.board.name, interface);
+                            //     cb.draw_pins_from_role(ui, &to_screen, interface);
+                            // }
+                        }
+                    }
+                }
             }
         }
 

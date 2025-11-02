@@ -20,11 +20,12 @@ use svg_reader::SvgBoardInfo;
 pub mod display;
 
 pub mod pinout;
-use pinout::Pinout;
-pub use pinout::Pin;
+pub use pinout::{Pin, Pinout, GPIODirection};
 
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
+
+use crate::board::pinout::RoleAssignment;
 
 /// These are the various standard development board form factors
 #[non_exhaustive]
@@ -129,8 +130,8 @@ impl Board {
     /// Loads a board from its toml description
     fn load_from_toml(path: &Path) -> std::io::Result<Self> {
         let toml_str = fs::read_to_string(path)?;
-        let mut b: Board = toml::from_str(&toml_str)
-            .map_err(|e| std::io::Error::other(e.to_string()))?;
+        let mut b: Board =
+            toml::from_str(&toml_str).map_err(|e| std::io::Error::other(e.to_string()))?;
 
         // See if there is an image
         if let Ok(pic_path) = path.with_extension("svg").canonicalize() {
@@ -185,12 +186,19 @@ impl Board {
         return self.template_dir.clone();
     }
 
-	pub fn get_board_standard(&self) -> Option<BoardStandards> {
-		self.standard.clone()
-	}
+    pub fn get_board_standard(&self) -> Option<BoardStandards> {
+        self.standard.clone()
+    }
 
     pub fn get_pin(&self, physical: &u32) -> Option<&Pin> {
         self.pinout.pins.iter().find(|p| p.physical == *physical)
+    }
+
+    pub fn get_peripheral_pin_interface(&self, physical: &u32) -> Option<&RoleAssignment> {
+        if self.is_main_board() {
+            return None;
+        }
+        self.pinout.get_peripheral_pin_interface(physical)
     }
 }
 
@@ -247,7 +255,7 @@ pub fn get_boards(boards_dir: &Path) -> Vec<Rc<Board>> {
                                         board.name.clone()
                                     );
                                 }
-                                board.pinout.populate_pins();
+                                board.pinout.populate_pins(board.is_main_board());
                                 r.push(Rc::new(board));
                             }
                             Err(e) => {

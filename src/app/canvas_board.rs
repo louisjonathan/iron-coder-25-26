@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use crate::project::Project;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(default)]
 pub struct CanvasBoard {
 	pub id: Uuid,
@@ -260,12 +260,22 @@ impl CanvasBoard {
 		self.connections.push(r.clone());
 	}
 
-	pub fn draw_pins_from_role(&self, ui: &mut egui::Ui, to_screen: &RectTransform, role: String) {
+	pub fn draw_pins_from_role(&self, ui: &mut egui::Ui, to_screen: &RectTransform, role: &String) {
 		if let Some(pins) = self.board.pinout.get_pins_from_role(&role) {
 			for p in pins {
 				let rect = self.pin_locations.get(p).unwrap();
 				let pin_obj = self.board.get_pin(p).unwrap();
-				let pin_str = pin_obj.aliases.get(&role).unwrap();
+				let pin_str = if let Some(interface) = self.board.pinout.get_interface_from_role(role)
+					&& let Some(alias) = pin_obj.aliases.get(interface)
+				{
+					alias
+				} else if self.board.is_main_board()
+					&& let Some(alias) = pin_obj.aliases.get(role)
+				{
+					alias
+				} else {
+					&pin_obj.silkscreen
+				};
 				self.draw_pin(ui, pin_str, &self.to_canvas(to_screen, rect));
 			}
 		}

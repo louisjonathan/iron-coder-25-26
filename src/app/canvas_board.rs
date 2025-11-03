@@ -226,7 +226,7 @@ impl CanvasBoard {
 	}
 
 	pub fn interact(&mut self, to_screen: &RectTransform, zoom: &f32, response: &Response, mouse_pos: &Pos2) -> bool {
-		if response.dragged() {
+		if response.dragged_by(egui::PointerButton::Primary) {
 				if !self.connections.is_empty() {
 					return false;
 				}
@@ -237,7 +237,7 @@ impl CanvasBoard {
 				return true;
 			}
 		if self.contains(to_screen, mouse_pos) {
-			if response.clicked() {
+			if response.clicked_by(egui::PointerButton::Primary) {
 				return true;
 			}	
 		}

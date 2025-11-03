@@ -1,4 +1,5 @@
 use crate::app::canvas_connection::CanvasConnection;
+use crate::app::connection_wizard::ConnectionWizard;
 use crate::board::{Board, svg_reader::SvgBoardInfo};
 use crate::app::SharedState;
 use egui::{Pos2, Rect, Ui, Sense, Color32, TextureId, Vec2, Id, Response, Context, TextureHandle};
@@ -30,7 +31,7 @@ pub struct CanvasBoard {
 	#[serde(skip)]
 	image_rect: Rect,
 	#[serde(skip)]
-	pin_locations: HashMap<u32, Rect>,
+	pub pin_locations: HashMap<u32, Rect>,
 	canvas_pos: Vec2,
 	#[serde(skip)]
 	pub connections: Vec<Rc<RefCell<CanvasConnection>>>,
@@ -154,15 +155,29 @@ impl CanvasBoard {
 		}
 	}
 
-	pub fn draw_pins(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2, draw_all_pins: bool) {
+	pub fn draw_pins(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: &Pos2, draw_all_pins: bool, mut wizard: Option<&mut ConnectionWizard>) {
 		for ((pin, pin_rect)) in self.pin_locations.iter() {
 			let t_rect = self.to_canvas(to_screen, pin_rect);
-			if draw_all_pins || t_rect.contains(*mouse_pos)
-			{
+
+			// Determine pin color based on wizard state
+			let pin_color = {
+					if let Some(wiz) = wizard.as_mut() {
+						if wiz.can_select_pin(*pin, &self.board){
+							Color32::from_rgb(0, 255, 0) 
+						} else {
+							Color32::from_rgb(255, 100, 100)
+						}
+					} else {
+						ui.style().visuals.faint_bg_color
+					}
+				};
+			
+			if draw_all_pins || t_rect.contains(*mouse_pos){
 				if let Some(name) = self.board.pinout.get_pin_name(pin) {
-					self.draw_pin(ui, name, &t_rect);
+					self.draw_pin(ui, name, &t_rect, pin_color);
 				}
 			}
+
 		}
 	}
 
@@ -176,10 +191,12 @@ impl CanvasBoard {
 		);
 	}
 
-	pub fn draw_pin(&self, ui: &mut egui::Ui, pin_name: &str, pin_rect: &Rect) {
-		let pin_name_color = Color32::from_rgba_unmultiplied(0, 255, 0, 255);
-		let pin_color = Color32::from_rgba_unmultiplied(0, 255, 0, 255);
-
+	pub fn draw_pin(&self, ui: &mut egui::Ui, pin_name: &str, pin_rect: &Rect, color: Color32) {
+		
+		//let pin_name_color = Color32::from_rgba_unmultiplied(0, 255, 0, 255);
+		//let pin_color = Color32::from_rgba_unmultiplied(0, 255, 0, 255);
+		let pin_name_color = color;
+		let pin_color = color;
 		let pin_r = pin_rect.height() / 2.0;
 
 		ui.painter().circle_filled(
@@ -265,18 +282,32 @@ impl CanvasBoard {
 			for p in pins {
 				let rect = self.pin_locations.get(p).unwrap();
 				let pin_obj = self.board.get_pin(p).unwrap();
-				let pin_str = if let Some(interface) = self.board.pinout.get_interface_from_role(role)
-					&& let Some(alias) = pin_obj.aliases.get(interface)
-				{
-					alias
-				} else if self.board.is_main_board()
-					&& let Some(alias) = pin_obj.aliases.get(role)
-				{
-					alias
+				let pin_str = if let Some(interface) = self.board.pinout.get_interface_from_role(role) {
+					if let Some(alias) = pin_obj.aliases.get(interface) {
+						alias
+					} else {
+						if self.board.is_main_board() {
+							if let Some(alias) = pin_obj.aliases.get(role) {
+								alias
+							} else {
+								&pin_obj.silkscreen
+							}
+						} else {
+							&pin_obj.silkscreen
+						}
+					}
 				} else {
-					&pin_obj.silkscreen
+					if self.board.is_main_board() {
+						if let Some(alias) = pin_obj.aliases.get(role) {
+							alias
+						} else {
+							&pin_obj.silkscreen
+						}
+					} else {
+						&pin_obj.silkscreen
+					}
 				};
-				self.draw_pin(ui, pin_str, &self.to_canvas(to_screen, rect));
+				self.draw_pin(ui, pin_str, &self.to_canvas(to_screen, rect), Color32::from_rgb(0,255,0));
 			}
 		}
 	}

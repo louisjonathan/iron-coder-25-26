@@ -19,4 +19,6 @@ pub use canvas_board::CanvasBoard;
 pub mod canvas_connection;
 pub use canvas_connection::CanvasConnection;
 
+pub mod connection_wizard;
+
 mod canvas_element;

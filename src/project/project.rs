@@ -513,7 +513,9 @@ impl Project {
         let mut output = Vec::new();
         let mut inserted = false;
 
-        let Some(new_stmt_str) = self.generate_pin_statement(conn) else { return };
+        let Some(new_stmt_str) = self.generate_pin_statement(conn) else {
+            return;
+        };
 
         for line in code.lines() {
             output.push(line.to_string());
@@ -539,63 +541,71 @@ impl Project {
 
         let start_pin = conn.get_start_pin();
         let end_pin = conn.get_end_pin().unwrap();
-        let pin_interface = eb.get_peripheral_pin_interface(&end_pin).unwrap();
-        if let Some(possible_pins) = sb.pinout.get_pins_from_role(&pin_interface.name) {
-            println!("CHECKING IF {}:{:?} HAS {}", pin_interface.name, possible_pins, start_pin);
-            if !possible_pins.contains(&start_pin) { return None };
-        }
-        let pin_alias = sb.pinout.get_pin_alias(&start_pin, &pin_interface.name).unwrap_or_default();
+        if let Some(pin_interface) = eb.get_peripheral_pin_interface(&end_pin) {
+            if let Some(possible_pins) = sb.pinout.get_pins_from_role(&pin_interface.name) {
+                println!(
+                    "CHECKING IF {}:{:?} HAS {}",
+                    pin_interface.name, possible_pins, start_pin
+                );
+                if !possible_pins.contains(&start_pin) {
+                    return None;
+                };
+            }
+            let pin_alias = sb
+                .pinout
+                .get_pin_alias(&start_pin, &pin_interface.name)
+                .unwrap_or_default();
 
-        let var_name = format!("c_{}_to_{}", start_pin, end_pin);
+            let var_name = format!("c_{}_to_{}", start_pin, end_pin);
 
-        let fmt = match sb.get_board_standard() {
-            Some(BoardStandards::Arduino) => match pin_interface.name.as_str() {
-                "GPIO" => {
-                    let pin_type_str = match pin_interface.direction {
-                        Some(GPIODirection::Input) => "pull_up_input",
+            let fmt = match sb.get_board_standard() {
+                Some(BoardStandards::Arduino) => match pin_interface.name.as_str() {
+                    "GPIO" => {
+                        let pin_type_str = match pin_interface.direction {
+                            Some(GPIODirection::Input) => "pull_up_input",
 
-                        Some(GPIODirection::Output) => "output",
-                        _ => return None,
-                    };
-                    let mutability = if pin_type_str == "output" { "mut " } else { "" };
-                    format!(
-                        "let {}pin_{} = pins.{}.into_{}();",
-                        mutability, var_name, pin_alias, pin_type_str
-                    )
-                },
-                "I2C" => {
-                    format!("let mut i2c = setup_i2c_instance!(dp, pins, 100_000);")
-                },
-                "SPI" => {
-                    format!("let (mut spi, mut cs) = setup_spi_instance!(dp, pins);")
-                },
-                _ => return None,
-            },
-            Some(BoardStandards::ESP32) => match pin_interface.name.as_str() {
-                "GPIO" => match pin_interface.direction {
-                    Some(GPIODirection::Input) =>
+                            Some(GPIODirection::Output) => "output",
+                            _ => return None,
+                        };
+                        let mutability = if pin_type_str == "output" { "mut " } else { "" };
                         format!(
+                            "let {}pin_{} = pins.{}.into_{}();",
+                            mutability, var_name, pin_alias, pin_type_str
+                        )
+                    }
+                    "I2C" => {
+                        format!("let mut i2c = setup_i2c_instance!(dp, pins, 100_000);")
+                    }
+                    "SPI" => {
+                        format!("let (mut spi, mut cs) = setup_spi_instance!(dp, pins);")
+                    }
+                    _ => return None,
+                },
+                Some(BoardStandards::ESP32) => match pin_interface.name.as_str() {
+                    "GPIO" => match pin_interface.direction {
+                        Some(GPIODirection::Input) => format!(
                             "let pin_{} = Input::new(_peripherals.{}, InputConfig::default().with_pull(Pull::Up));",
                             var_name, pin_alias
                         ),
-                    Some(GPIODirection::Output) =>
-                        format!(
+                        Some(GPIODirection::Output) => format!(
                             "let mut pin_{} = Output::new(_peripherals.{}, Level::High, OutputConfig::default());",
                             var_name, pin_alias
                         ),
+                        _ => return None,
+                    },
+                    "I2C" => {
+                        format!("let mut i2c = setup_i2c_instance!(dp, pins, 100_000);")
+                    }
+                    "SPI" => {
+                        format!("let (mut spi, mut cs) = setup_spi_instance!(dp, pins);")
+                    }
                     _ => return None,
                 },
-                "I2C" => {
-                    format!("let mut i2c = setup_i2c_instance!(dp, pins, 100_000);")
-                },
-                "SPI" => {
-                    format!("let (mut spi, mut cs) = setup_spi_instance!(dp, pins);")
-                },
                 _ => return None,
-            }
-            _ => return None,
-        };
-        Some(fmt)
+            };
+            return Some(fmt);
+        }
+        return None;
     }
 }
 

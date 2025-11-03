@@ -11,8 +11,7 @@ use std::io::BufRead;
 use std::path::{Path, PathBuf};
 
 use crate::app::{CanvasBoard, CanvasConnection, SharedState};
-use crate::board::pinout::InterfaceDirection;
-use crate::board::{BoardStandards, get_boards};
+use crate::board::{BoardStandards, GPIODirection, get_boards};
 
 use egui::Context;
 
@@ -30,6 +29,8 @@ use uuid::Uuid;
 use prettyplease;
 use quote::quote;
 use syn::{File, Item, ItemFn, Stmt};
+
+use crate::board::pinout::RoleAssignment;
 
 const PROJECT_FILE_NAME: &'static str = ".ironcoder.toml";
 
@@ -114,14 +115,14 @@ impl Project {
         self.location.is_some()
     }
 
-    pub fn add_board(&mut self, board: &Rc<RefCell<Board>>) -> Option<Rc<RefCell<CanvasBoard>>> {
-        match board.borrow().is_main_board() {
+    pub fn add_board(&mut self, board: &Rc<Board>) -> Option<Rc<RefCell<CanvasBoard>>> {
+        match board.is_main_board() {
             true => {
                 if self.has_main_board() {
                     info!("project already contains a main board! aborting.");
                     return None;
                 } else {
-                    if let Some(b) = CanvasBoard::new(&board.borrow()) {
+                    if let Some(b) = CanvasBoard::new(&board) {
                         let b_ref = Rc::new(RefCell::new(b));
                         let extra_ref = b_ref.clone();
                         self.board_map
@@ -133,7 +134,7 @@ impl Project {
                 }
             }
             false => {
-                if let Some(b) = CanvasBoard::new(&board.borrow()) {
+                if let Some(b) = CanvasBoard::new(&board) {
                     let b_ref = Rc::new(RefCell::new(b));
                     let extra_ref = b_ref.clone();
                     self.board_map
@@ -148,7 +149,7 @@ impl Project {
     }
 
     /// Populate the project board list via the app-wide 'known boards' list
-    pub fn load_board_resources(&mut self, kb: &Vec<Rc<RefCell<Board>>>) {
+    pub fn load_board_resources(&mut self, kb: &Vec<Rc<Board>>) {
         if let Some(b) = &self.main_board {
             let board_id = b.borrow().id;
             self.board_map.insert(board_id, b.clone());
@@ -165,7 +166,7 @@ impl Project {
     }
 
     /// This method will reload the project based on the current project location
-    pub fn reload(&mut self, kb: &Vec<Rc<RefCell<Board>>>) -> Result {
+    pub fn reload(&mut self, kb: &Vec<Rc<Board>>) -> Result {
         if let Some(location) = self.location.clone() {
             self.load_from(&location, kb)
         } else {
@@ -174,7 +175,7 @@ impl Project {
     }
 
     /// Load a project from a specified directory, and sync the board assets.
-    pub fn load_from(&mut self, project_directory: &Path, kb: &Vec<Rc<RefCell<Board>>>) -> Result {
+    pub fn load_from(&mut self, project_directory: &Path, kb: &Vec<Rc<Board>>) -> Result {
         let project_file = project_directory.join(PROJECT_FILE_NAME);
         let toml_str = match fs::read_to_string(project_file) {
             Ok(s) => s,
@@ -232,11 +233,10 @@ impl Project {
                     // println!("IDE path: {}", ide_path.display());
                 }
 
-                if let Some(cpu_name) = self
-                    .main_board
-                    .as_ref()
-                    .and_then(|b| b.borrow().board.cpu.clone())
-                {
+                if let Some(cpu_name) = self.main_board.as_ref().and_then(|b| {
+                    let b = b.borrow();
+                    b.board.cpu.clone()
+                }) {
                     if cpu_name != "Microchip AVR" {
                         return;
                     }
@@ -316,7 +316,7 @@ impl Project {
         }
     }
     /// Prompt the user to select project directory to open
-    pub fn open(&mut self, kb: &Vec<Rc<RefCell<Board>>>) -> Result {
+    pub fn open(&mut self, kb: &Vec<Rc<Board>>) -> Result {
         if let Some(project_directory) = FileDialog::new().pick_folder() {
             self.load_from(&project_directory, kb)
         } else {
@@ -513,7 +513,9 @@ impl Project {
         let mut output = Vec::new();
         let mut inserted = false;
 
-        let new_stmt_str = self.generate_pin_statement(conn);
+        let Some(new_stmt_str) = self.generate_pin_statement(conn) else {
+            return;
+        };
 
         for line in code.lines() {
             output.push(line.to_string());
@@ -531,50 +533,79 @@ impl Project {
         write(path, code);
     }
 
-    fn generate_pin_statement(&self, conn: &CanvasConnection) -> String {
+    fn generate_pin_statement(&self, conn: &CanvasConnection) -> Option<String> {
         let sb_rc = conn.get_start_board();
         let sb = sb_rc.borrow().board.clone();
         let eb_rc = conn.get_end_board().unwrap();
         let eb = eb_rc.borrow().board.clone();
 
-        let start_pin_name = conn.get_start_pin();
-        let end_pin_name = conn.get_end_pin().unwrap();
-        let pin_type = eb
-            .pinout
-            .iter()
-            .find(|pinout| pinout.pins.iter().any(|p| p == end_pin_name.as_str()))
-            .map(|pinout| pinout.interface.direction.clone());
-        let var_name = format!("{}_to_{}", start_pin_name, end_pin_name);
-
-        match sb.get_board_standard() {
-            Some(BoardStandards::ESP32) => match pin_type {
-                Some(InterfaceDirection::Output) => {
-                    format!(
-                        "let mut pin_{} = Output::new(_peripherals.GPIO{}, Level::High, OutputConfig::default());",
-                        var_name, start_pin_name
-                    )
-                }
-                Some(InterfaceDirection::Input) => {
-                    format!(
-                        "let pin_{} = Input::new(_peripherals.GPIO{}, InputConfig::default().with_pull(Pull::Up));",
-                        var_name, start_pin_name
-                    )
-                }
-                _ => "".to_string(),
-            },
-            Some(BoardStandards::Arduino) | _ => {
-                let pin_type_str = match pin_type {
-                    Some(InterfaceDirection::Output) => "output",
-                    Some(InterfaceDirection::Input) => "input",
-                    _ => "input",
+        let start_pin = conn.get_start_pin();
+        let end_pin = conn.get_end_pin().unwrap();
+        if let Some(pin_interface) = eb.get_peripheral_pin_interface(&end_pin) {
+            if let Some(possible_pins) = sb.pinout.get_pins_from_role(&pin_interface.name) {
+                println!(
+                    "CHECKING IF {}:{:?} HAS {}",
+                    pin_interface.name, possible_pins, start_pin
+                );
+                if !possible_pins.contains(&start_pin) {
+                    return None;
                 };
-                let mutability = if pin_type_str == "output" { "mut " } else { "" };
-                format!(
-                    "let {}pin_{} = pins.{}.into_{}();",
-                    mutability, var_name, start_pin_name, pin_type_str
-                )
             }
+            let pin_alias = sb
+                .pinout
+                .get_pin_alias(&start_pin, &pin_interface.name)
+                .unwrap_or_default();
+
+            let var_name = format!("c_{}_to_{}", start_pin, end_pin);
+
+            let fmt = match sb.get_board_standard() {
+                Some(BoardStandards::Arduino) => match pin_interface.name.as_str() {
+                    "GPIO" => {
+                        let pin_type_str = match pin_interface.direction {
+                            Some(GPIODirection::Input) => "pull_up_input",
+
+                            Some(GPIODirection::Output) => "output",
+                            _ => return None,
+                        };
+                        let mutability = if pin_type_str == "output" { "mut " } else { "" };
+                        format!(
+                            "let {}pin_{} = pins.{}.into_{}();",
+                            mutability, var_name, pin_alias, pin_type_str
+                        )
+                    }
+                    "I2C" => {
+                        format!("let mut i2c = setup_i2c_instance!(dp, pins, 100_000);")
+                    }
+                    "SPI" => {
+                        format!("let (mut spi, mut cs) = setup_spi_instance!(dp, pins);")
+                    }
+                    _ => return None,
+                },
+                Some(BoardStandards::ESP32) => match pin_interface.name.as_str() {
+                    "GPIO" => match pin_interface.direction {
+                        Some(GPIODirection::Input) => format!(
+                            "let pin_{} = Input::new(_peripherals.{}, InputConfig::default().with_pull(Pull::Up));",
+                            var_name, pin_alias
+                        ),
+                        Some(GPIODirection::Output) => format!(
+                            "let mut pin_{} = Output::new(_peripherals.{}, Level::High, OutputConfig::default());",
+                            var_name, pin_alias
+                        ),
+                        _ => return None,
+                    },
+                    "I2C" => {
+                        format!("let mut i2c = setup_i2c_instance!(dp, pins, 100_000);")
+                    }
+                    "SPI" => {
+                        format!("let (mut spi, mut cs) = setup_spi_instance!(dp, pins);")
+                    }
+                    _ => return None,
+                },
+                _ => return None,
+            };
+            return Some(fmt);
         }
+        return None;
     }
 }
 

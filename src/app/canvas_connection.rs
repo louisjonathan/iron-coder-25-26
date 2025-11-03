@@ -1,19 +1,23 @@
 use crate::board::Board;
-use egui::{Color32, Pos2, Rect, Response, Stroke, Vec2, Key};
+use egui::{Color32, Pos2, Rect, Response, Stroke, Vec2, Key, Ui};
 use emath::RectTransform;
 use crate::app::canvas_board::CanvasBoard;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use std::collections::HashSet;
 
 use crate::project::Project;
 
 use std::rc::Rc;
 use std::cell::RefCell;
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+use crate::board::Pin;
+
+#[derive(Serialize, Deserialize, Default, Clone, PartialEq, Eq)]
 #[serde(default)]
 pub struct CanvasConnection {
+	pub name: String,
 	pub id: Uuid,
 	points: Vec<Pos2>,
 	color: egui::Color32,
@@ -21,16 +25,21 @@ pub struct CanvasConnection {
 	#[serde(skip)]
 	start_board: Rc<RefCell<CanvasBoard>>,
 	start_board_id: Uuid,
-	start_pin: String,
+	start_pin: u32,
 
 	#[serde(skip)]
 	end_board: Option<Rc<RefCell<CanvasBoard>>>,
 	end_board_id: Uuid,
-	end_pin: Option<String>,
+	end_pin: Option<u32>,
+
+	#[serde(skip)]
+	temp_name: String,
+	#[serde(skip)]
+	pub show_popup: bool
 }
 
 impl CanvasConnection {
-	pub fn new(start_board: Rc<RefCell<CanvasBoard>>, start_pin: String) -> Self {
+	pub fn new(start_board: Rc<RefCell<CanvasBoard>>, start_pin: u32) -> Self {
 		let color = egui::Color32::RED;
 		let points = Vec::<Pos2>::new();
 
@@ -39,6 +48,7 @@ impl CanvasConnection {
 		let start_board_id = start_board.borrow().id;
 
 		Self {
+			name: String::new(),
 			id: Uuid::new_v4(),
 			points,
 			color,
@@ -48,10 +58,12 @@ impl CanvasConnection {
 			end_board: None,
 			end_board_id: Uuid::nil(),
 			end_pin: None,
+			temp_name: String::new(),
+			show_popup: false,
 		}
 	}
 
-	pub fn init_refs(&mut self, kb: &Vec<Rc<RefCell<Board>>>, p: &Project) {
+	pub fn init_refs(&mut self, kb: &Vec<Rc<Board>>, p: &Project) {
 		if let Some(s_b) = p.board_map.get(&self.start_board_id) {
 			let id_copy = s_b.borrow().id;
 			self.start_board = s_b.clone();
@@ -64,8 +76,14 @@ impl CanvasConnection {
 		}
 	}
 
-	pub fn draw(&self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: Pos2) {
-		if self.points.len() > 1 {
+	pub fn draw(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: Pos2) {
+		let len = self.points.len();
+		if len > 0 && self.show_popup {
+			let loc = self.points.last().unwrap();
+			let loc = to_screen.transform_pos(*loc);
+			self.creation_popup(ui, &loc);
+		}
+		if len > 1 {
 			for i in 0..self.points.len() - 1 {
 				let start = to_screen.transform_pos(self.points[i]);
 				let end = to_screen.transform_pos(self.points[i+1]);
@@ -133,30 +151,31 @@ impl CanvasConnection {
 		// }
 	}
 
-	pub fn end(&mut self, board: Rc<RefCell<CanvasBoard>>, pin: String) {
+	pub fn end(&mut self, board: Rc<RefCell<CanvasBoard>>, pin: u32) {
 		let b = board.borrow();
-
+		
 		if b.board.is_main_board() {
 			// we need to make start_board the main board to simplify things
 			self.end_board = Some(self.start_board.clone());
 			self.end_pin = Some(self.start_pin.clone());
 			self.end_board_id = self.start_board_id;
-
+			
 			self.start_board = board.clone();
-			self.start_pin = pin.clone();
+			self.start_pin = pin;
 			self.start_board_id = b.id;
 		} else {
 			self.end_board = Some(board.clone());
-			self.end_pin = Some(pin.clone());
+			self.end_pin = Some(pin);
 			self.end_board_id = b.id;
 		}
+		self.name = format!("{}_to_{}", self.start_pin, self.end_pin.clone().unwrap());
 	}
 
 	pub fn draw_ghost(&self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: Pos2)
 	{
 		let mut p = mouse_pos;
 		let len = self.points.len();
-		if len > 1 {
+		if len > 0 {
 			let lastp = self.points[len - 1];
 
 			let dx = p.x - lastp.x;
@@ -278,19 +297,38 @@ impl CanvasConnection {
 		return false;
 	}
 
-	pub fn get_start_board(&self) -> Rc<RefCell<CanvasBoard>> {
-		return self.start_board.clone();
+	pub fn get_start_board(&self) -> &Rc<RefCell<CanvasBoard>> {
+		&self.start_board
 	}
 
-	pub fn get_start_pin(&self) -> String {
+	pub fn get_start_pin(&self) -> u32 {
 		return self.start_pin.clone();
 	}
 
-	pub fn get_end_pin(&self) -> Option<String> {
+	pub fn get_end_pin(&self) -> Option<u32> {
 		return self.end_pin.clone();
 	}
 
 	pub fn get_end_board(&self) -> Option<Rc<RefCell<CanvasBoard>>> {
 		return self.end_board.clone();
+	}
+
+	pub fn get_connection_roles(&self) -> Option<HashSet<String>> {
+		let sb = self.start_board.borrow();
+		sb.board.pinout.get_pin_roles(&self.start_pin).cloned()
+	}
+
+	pub fn creation_popup(&mut self, ui: &Ui, p: &Pos2) {
+		// egui::show_tooltip_at(ui.ctx(), ui.layer_id(), egui::Id::new("my_tooltip"), *p, |ui| {
+		// 	ui.label("Configure Connection");
+		// 	ui.text_edit_singleline(&mut self.temp_name);
+		// 	if ui.button("Confirm").clicked() {
+		// 		self.show_popup = false;
+		// 		self.name = self.temp_name.clone();
+		// 	}
+		// 	if ui.button("Cancel").clicked() {
+		// 		self.show_popup = false;
+		// 	}
+		// });
 	}
 }

@@ -6,6 +6,7 @@ use egui::widgets::Widget;
 use egui::{Color32, FontFamily, FontId, Response, Ui};
 use egui_extras::RetainedImage;
 use log::{debug, info};
+use std::rc::Rc;
 
 /// Construct a LayoutJob with a bold heading, followed by a colon,
 /// followed by some content, all with custom colors.
@@ -152,12 +153,12 @@ impl Widget for Board {
 }
 
 /// Display the board for use in the Board selector window
-pub struct BoardSelectorWidget(pub Board);
+pub struct BoardSelectorWidget(pub Rc<Board>);
 impl Widget for BoardSelectorWidget {
     fn ui(self, ui: &mut Ui) -> Response {
-        let this_board = self.0;
+        let this_board = self.0.as_ref();
         let response: egui::Response;
-        if let Some(svg_board_info) = this_board.clone().svg_board_info {
+        if let Some(svg_board_info) = &this_board.svg_board_info {
             // Use a frame to display multiple widgets within our widget,
             // with an inner margin
             response = egui::Frame::none()
@@ -173,7 +174,7 @@ impl Widget for BoardSelectorWidget {
                         ));
                         // ui.label(label);
                         let retained_image =
-                            RetainedImage::from_color_image("pic", svg_board_info.image);
+                            RetainedImage::from_color_image("pic", svg_board_info.image.clone());
                         let _ = retained_image.show_max_size(ui, egui::vec2(150.0, 150.0));
                     });
                     ui.horizontal(|ui| {
@@ -186,7 +187,7 @@ impl Widget for BoardSelectorWidget {
                     });
                     ui.horizontal(|ui| {
                         ui.label("Ecosystem: ");
-                        if let Some(standard) = this_board.clone().standard {
+                        if let Some(standard) = &this_board.standard {
                             ui.label(standard.to_string());
                         } else {
                             ui.label("none");

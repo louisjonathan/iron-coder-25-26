@@ -5,9 +5,3 @@ is_main_board = false
 standard = "Feather"
 
 related_crates = ["sh1107"]
-
-bsp = "iron-coder-featherwing-oled-bsp"
-
-[[pinout]]
-pins = ["8", "9"]
-interface = { iface_type = "I2C", direction = "Input" }

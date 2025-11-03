@@ -3,9 +3,22 @@ board_type = "Peripheral"
 
 related_crates = ["embedded-hal"]
 
-bsp = "iron-coder-pushbutton-bsp"
+[pinout]
+interfaces = [
+	{ name = "SPI", bus = true, roles = [{name = "SCK"}, {name = "MISO"}, {name = "MOSI"}, {name = "SS"}] },
+]
+pins = [
+	{ physical = 0, silkscreen = "MISO", roles = [
+		{ name = "MISO" },
+	]},
+]
 
-# Single pin for the button (other end assumed connected to ground/vcc)
-[[pinout]]
-pins = ["signal"]
-interface = { iface_type = "NONE", direction = "Input" }
+# [pinout]
+# interfaces = [
+# 	{ name = "GPIO" },
+# ]
+# pins = [
+# 	{ physical = 0, silkscreen = "Input", roles = [
+# 		{ name = "GPIO", direction = "Input" },
+# 	]},
+# ]

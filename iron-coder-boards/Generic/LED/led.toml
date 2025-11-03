@@ -3,7 +3,22 @@ board_type = "Peripheral"
 
 related_crates = ["embedded-hal"]
 
-# Single pin for the LED (other end assumed connected to ground through resistor)
-[[pinout]]
-pins = ["anode"]
-interface = { iface_type = "NONE", direction = "Output" }
+# [pinout]
+# interfaces = [
+# 	{ name = "I2C", bus = true, roles = [{name = "SDA"}, {name = "SCL"}] },
+# ]
+# pins = [
+# 	{ physical = 0, silkscreen = "SDA", roles = [
+# 		{ name = "SDA" },
+# 	]},
+# ]
+
+[pinout]
+interfaces = [
+	{ name = "GPIO" },
+]
+pins = [
+	{ physical = 0, silkscreen = "Anode", roles = [
+		{ name = "GPIO", direction = "Output" },
+	]},
+]

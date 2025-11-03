@@ -2,10 +2,11 @@ use crate::app::{canvas_board, canvas_connection::CanvasConnection};
 use crate::app::tabs::base_tab::BaseTab;
 use crate::app::canvas_board::CanvasBoard;
 use crate::app::canvas_element::CanvasSelection;
-use crate::app::SharedState;
+use crate::app::{SharedState, connection_wizard};
 use crate::board;
 use eframe::egui::{Pos2, Rect, Response, Sense, Ui, Vec2, Color32, Stroke, Key, Align2, FontId};
 use egui::color_picker::color_picker_color32;
+use egui::debug_text::print;
 use emath::RectTransform;
 use syntect::highlighting::Color;
 
@@ -14,7 +15,7 @@ use std::cell::RefCell;
 
 use std::collections::HashMap;
 use egui_extras::RetainedImage;
-
+use crate::app::connection_wizard::{ConnectionWizard, WizardType, WizardResult};
 
 pub struct CanvasTab {
     canvas_zoom: f32,
@@ -101,7 +102,7 @@ impl BaseTab for CanvasTab {
             Align2::LEFT_TOP,
             format!("Raw Mouse: {}", mouse_pos),
             FontId::monospace(12.0),
-            Color32::WHITE
+            state.colorschemes.current["code_bg_color"]
         );
 
         ui.painter().text(
@@ -109,7 +110,7 @@ impl BaseTab for CanvasTab {
             Align2::LEFT_TOP,
             format!("Canvas Mouse: {}", mouse_canvas),
             FontId::monospace(12.0),
-            Color32::WHITE
+            state.colorschemes.current["code_bg_color"]
         );
         
         */
@@ -139,7 +140,7 @@ impl BaseTab for CanvasTab {
                 self.connection_in_progress = None;
             }
         }
-
+        
         // BOARDS
         for b in state.project.boards_iter() {
             b.borrow_mut().draw(ui, &to_screen, &mouse_screen);
@@ -147,30 +148,156 @@ impl BaseTab for CanvasTab {
 
         // CONNECTIONS
         for c in state.project.connections_iter() {
-            c.borrow().draw(ui, &to_screen, mouse_canvas);
+            c.borrow_mut().draw(ui, &to_screen, mouse_canvas);
         }
         if let Some(c) = &self.connection_in_progress {
-            c.borrow().draw(ui, &to_screen, mouse_canvas);
+            c.borrow_mut().draw(ui, &to_screen, mouse_canvas);
         }
 
         // PINS
         for b in state.project.boards_iter() {
-            b.borrow_mut().draw_pins(ui, &to_screen, &mouse_screen, draw_all_pins);
+            b.borrow_mut().draw_pins(ui, &to_screen, &mouse_screen, draw_all_pins,state.connection_wizard.as_mut());
+        }
+        
+        if let Some(conn_rc) = &self.connection_in_progress {
+            let conn = conn_rc.borrow();
+            let sp = conn.get_start_pin();
+            if let Some(set) = conn.get_connection_roles() {
+                let sb = conn.get_start_board().borrow();
+                if sb.board.is_main_board() {
+                    for b in state.project.peripheral_boards.iter() {
+                        let cb = b.borrow();
+                        for role in &set {
+                            println!("{} {}", cb.board.name, role);
+                            cb.draw_pins_from_role(ui, &to_screen, role);
+                        }
+                    }
+                } else {
+                    if let Some(b) = &state.project.main_board {
+                        for role in &set {
+                            let cb = b.borrow();
+                            println!("{} {}", cb.board.name, role);
+                            cb.draw_pins_from_role(ui, &to_screen, role);
+                            // if let Some(interface) = cb.board.pinout.get_interface_from_role(role) {
+                            //     println!("{} {}", cb.board.name, interface);
+                            //     cb.draw_pins_from_role(ui, &to_screen, interface);
+                            // }
+                        }
+                    }
+                }
+            }
         }
 
         // Keybind text
         // TODO: bind to keybinds backend
         let mut offset = 0.0;
-        ui.painter().text(rect.min+Vec2{x:0.0,y:offset}, Align2::LEFT_TOP, "Alt: Show all pins", FontId::monospace(12.0), Color32::WHITE);
+        ui.painter().text(rect.min+Vec2{x:0.0,y:offset}, Align2::LEFT_TOP, "Alt: Show all pins", FontId::monospace(12.0), state.colorschemes.current["code_bg_color"]);
         offset += 12.0;
 
+        let bar_height = 40.0;
+        let bar_rect = Rect::from_min_size(
+            rect.min,
+            Vec2::new(rect.width(), bar_height)
+        );
+
+      let bar_height = 40.0;
+        let bar_rect = Rect::from_min_size(
+            rect.min,
+            Vec2::new(rect.width(), bar_height)
+        );
+
+        egui::Area::new("canvas_top_bar".into())
+            .fixed_pos(bar_rect.min)
+            .order(egui::Order::Foreground)
+            .show(ui.ctx(), |ui| {
+                ui.set_max_width(bar_rect.width());
+                ui.set_max_height(bar_height);
+                
+                ui.horizontal(|ui| {
+                    ui.add_space(180.0);
+                    // Determine current selection based on wizard state
+                    let selected = if let Some(ref wizard) = state.connection_wizard {
+                        match wizard.wizard_type {
+                            WizardType::None => 0,
+                            WizardType::I2C => 1,
+                            WizardType::SPI => 2,
+                            WizardType::UART => 3,
+                        }
+                    } else {
+                        0
+                    };
+                    
+                    let options: [WizardType; 4] = [
+                        WizardType::None,
+                        WizardType::I2C,
+                        WizardType::SPI,
+                        WizardType::UART,
+                    ];
+                    
+                    ui.label("Connection Type:");
+                    egui::ComboBox::from_id_source("connection_type_combo")
+                        .selected_text(options[selected].display_name())
+                        .show_ui(ui, |cb_ui| {
+                            for (i, wizard_type) in options.iter().enumerate() {
+                                if cb_ui.selectable_value(&mut selected.clone(), i, wizard_type.display_name()).clicked() {
+                                    match wizard_type {
+                                        WizardType::None => {
+                                            state.connection_wizard = None;
+                                        }
+                                        WizardType::I2C | WizardType::SPI | WizardType::UART => {
+                                            if let Some(main_board_rc) = state.project.main_board.as_mut() {
+                                                let main_board = main_board_rc.borrow();
+                                                // Starts the wizard
+                                                state.connection_wizard = Some(
+                                                    ConnectionWizard::new(*wizard_type, &main_board.board)
+                                                );                                    
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    
+                    ui.separator();
+                    
+                    // Show wizard status and controls
+                    if let Some(wizard) = &state.connection_wizard {
+                        // Status message
+                        let status = wizard.status_message();
+                        let color = if wizard.error_message.is_some() {
+                            state.colorschemes.current["error_fg_color"]
+                        } else {
+                            state.colorschemes.current["warn_fg_color"]
+                        };
+                        ui.colored_label(color, status);
+                        
+                        // Show selected pins so far
+                        let selected = wizard.selected_pins();
+                        if !selected.is_empty() {
+                            ui.separator();
+                            ui.label(format!("Connections:"));
+                            ui.vertical(|ui|
+                                for (role,_, name) in selected {
+                                    ui.label(format!("{} : {}", role, name));
+                                }    
+                            );
+                        }
+                        ui.separator();
+                        if ui.button("Cancel").clicked() {
+                            state.connection_wizard = None;
+                        }
+                    }
+                    
+                    ui.add_space(ui.available_width());
+                });
+            });
         if self.selection.is_some() {
-            ui.painter().text(rect.min+Vec2{x:0.0,y:offset}, Align2::LEFT_TOP, "Delete: Remove current selection from canvas", FontId::monospace(12.0), Color32::WHITE);
+            ui.painter().text(rect.min+Vec2{x:0.0,y:offset}, Align2::LEFT_TOP, "Delete: Remove current selection from canvas", FontId::monospace(12.0), state.colorschemes.current["code_bg_color"]);
             offset += 12.0;
         }
         
         if self.connection_in_progress.is_some() {
-            ui.painter().text(rect.min+Vec2{x:0.0,y:offset}, Align2::LEFT_TOP, "Escape: Quit current connection", FontId::monospace(12.0), Color32::WHITE);
+            ui.painter().text(rect.min+Vec2{x:0.0,y:offset}, Align2::LEFT_TOP, "Escape: Quit current connection", FontId::monospace(12.0), state.colorschemes.current["code_bg_color"]);
             offset += 12.0;
         }
 
@@ -184,7 +311,7 @@ impl BaseTab for CanvasTab {
 
         // 1
         if let Some(mut conn) = self.connection_in_progress.take() {
-            let mut clicked_pin: Option<String> = None;
+            let mut clicked_pin: Option<u32> = None;
             let boards: Vec<_> = state.project.boards_iter().cloned().collect();
             for canvas_board_rc in &boards {
                 let pin_opt = {
@@ -195,10 +322,22 @@ impl BaseTab for CanvasTab {
                         canvas_board.pin_click(&to_screen, &response, &mouse_screen)
                     }
                 };
-
+                
                 if let Some(pin) = pin_opt {
-                    clicked_pin = Some(pin.clone());
+                    clicked_pin = Some(pin);
 
+                    let mut should_connect=false;
+                    if let Some(cw) = state.connection_wizard.as_mut() {
+                        if cw.handle_pin_selected(pin, &canvas_board_rc.borrow().board) {
+                            should_connect=true;
+                        }                            
+                        if matches!(cw.state, connection_wizard::WizardState::Complete) {
+                            state.connection_wizard = None;
+                        }
+                    }
+                    if !should_connect {
+                        break;
+                    }
                     let conn_clone = conn.clone();
                     {
                         let mut connection = conn_clone.borrow_mut();
@@ -211,6 +350,7 @@ impl BaseTab for CanvasTab {
 
                         if let Some(pin_location) = pin_location_opt {
                             connection.add_end_point(&mouse_canvas, pin_location);
+							connection.show_popup = true;
                         }
 
                         connection.get_start_board().borrow_mut().connections.push(conn_clone.clone());
@@ -239,10 +379,11 @@ impl BaseTab for CanvasTab {
             }            
         } else {
 
-            let mut clicked_pin: Option<String> = None;
+            let mut clicked_pin: Option<u32> = None;
             let mut ignore_canvas = false;
 
             // 2
+            
             let boards: Vec<_> = state.project.boards_iter().cloned().collect();
             for canvas_board_rc in &boards {
                 if clicked_pin.is_none() {
@@ -252,11 +393,23 @@ impl BaseTab for CanvasTab {
                     };
                     
                     if let Some(pin) = pin_opt {
-                        clicked_pin = Some(pin.clone());
+                        clicked_pin = Some(pin);
                         if self.check_pin_use(canvas_board_rc, &pin, &state.project.connections) {
                             break;
                         }
-                        
+                        let mut should_connect=false;
+                        if let Some(cw) = state.connection_wizard.as_mut() {
+                            if cw.handle_pin_selected(pin, &canvas_board_rc.borrow().board) {
+                                should_connect=true;
+                            }                            
+                            if matches!(cw.state, connection_wizard::WizardState::Complete) {
+                                state.connection_wizard = None;
+                            }
+                        }
+                        if !should_connect {
+                            break;
+                        }
+                                                
                         let mut conn = Rc::new(RefCell::new(CanvasConnection::new(canvas_board_rc.clone(), pin.clone())));
                         {
                             let mut connection = conn.borrow_mut();
@@ -314,6 +467,10 @@ impl BaseTab for CanvasTab {
             if clicked_pin == None && !ignore_canvas {
                 if response.dragged_by(egui::PointerButton::Secondary) {
                     self.canvas_offset += response.drag_delta();
+					for b_ref in state.project.boards_iter() {
+						let mut b = b_ref.borrow_mut();
+						b.canvas_update(&to_screen);
+					}
                 }
 
                 if response.clicked() {
@@ -383,14 +540,14 @@ impl CanvasTab {
         }
     }
 
-    fn check_pin_use(&self, board: &Rc<RefCell<CanvasBoard>>, pin_name: &String, connections: &Vec<Rc<RefCell<CanvasConnection>>>) -> bool {
+    fn check_pin_use(&self, board: &Rc<RefCell<CanvasBoard>>, pin_num: &u32, connections: &Vec<Rc<RefCell<CanvasConnection>>>) -> bool {
         for c in connections {
             let connection = c.borrow();
-            if Rc::ptr_eq(&connection.get_start_board(), board) && pin_name.eq(&connection.get_start_pin()) {
+            if Rc::ptr_eq(&connection.get_start_board(), board) && pin_num.eq(&connection.get_start_pin()) {
                 return true;
             }
             if let Some(eb) = connection.get_end_board() {
-                if Rc::ptr_eq(&eb, board) && pin_name.eq(&connection.get_end_pin().unwrap()) {
+                if Rc::ptr_eq(&eb, board) && pin_num.eq(&connection.get_end_pin().unwrap()) {
                     return true;
                 }
             }

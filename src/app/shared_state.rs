@@ -5,6 +5,8 @@ use crate::project::Project;
 use crate::app::colorschemes::{self, colorscheme};
 use crate::app::ide_settings::{self, IDE_Settings};
 use crate::app::syntax_highlighting::SyntaxHighlighter;
+use crate::app::connection_wizard::ConnectionWizard;
+
 use std::path::{Path, PathBuf};
 use crate::app::CanvasConnection;
 use std::rc::Rc;
@@ -24,11 +26,12 @@ pub struct SharedState {
     pub syntax_highlighter: SyntaxHighlighter,
     pub project: Project,
     pub requested_file_to_open: Option<PathBuf>,
-    pub known_boards: Vec<Rc<RefCell<Board>>>,
+    pub known_boards: Vec<Rc<Board>>,
 	pub default_terminal: Option<PathBuf>,
 	pub output_terminal_backend: Option<Rc<RefCell<TerminalBackend>>>,
 	pub reset_canvas: bool,
 	pub sync_file_explorer: bool,
+    pub connection_wizard: Option<ConnectionWizard>, 
 }
 
 impl SharedState {
@@ -88,6 +91,7 @@ impl SharedState {
 			default_terminal: Some(default_terminal),
 			reset_canvas: false,
 			sync_file_explorer: false,
+            connection_wizard: None,
         }
     }
 

@@ -8,3 +8,94 @@ ram = 264
 flash = 8000
 required_crates = ["adafruit-feather-rp2040", "embedded-hal", "embedded-time", "cortex-m-rt", "cortex-m", "panic-halt"]
 related_crates = ["smart-leds", "ws2812-pio"]
+
+[pinout]
+interfaces = [
+	{ name = "GPIO", roles = [{name = "Digital", alias_fmt = "d{}"}, {name = "Analog", alias_fmt = "a{}"}] },
+	{ name = "I2C", bus = true, roles = [{name = "SDA"}, {name = "SCL"}] },
+	{ name = "SPI", bus = true, roles = [{name = "SCK"}, {name = "MISO"}, {name = "MOSI"}, {name = "SS"}] },
+	{ name = "UART", bus = true, roles = [{name = "TX"}, {name = "RX"}] },
+]
+pins = [
+	{ physical = 0,  silkscreen = "Rst" },
+	{ physical = 1,  silkscreen = "3.3V" },
+	{ physical = 2,  silkscreen = "3.3V" },
+	{ physical = 3,  silkscreen = "GND" },
+	{ physical = 4,  silkscreen = "A0", roles = [
+		{ name = "Analog",  id = 0 },
+		{ name = "Digital",  id = 26 },
+	]},
+	{ physical = 5,  silkscreen = "A1", roles = [
+		{ name = "Analog",  id = 1 },
+		{ name = "Digital",  id = 27 },
+	]},
+	{ physical = 6,  silkscreen = "A2", roles = [
+		{ name = "Analog",  id = 2 },
+		{ name = "Digital",  id = 28 },
+	]},
+	{ physical = 7,  silkscreen = "A3", roles = [
+		{ name = "Analog",  id = 3 },
+		{ name = "Digital",  id = 29 },
+	]},
+	{ physical = 8,  silkscreen = "24", roles = [
+		{ name = "Digital",  id = 24 },
+	]},
+	{ physical = 9,  silkscreen = "25", roles = [
+		{ name = "Digital",  id = 25 },
+	]},
+	{ physical = 10, silkscreen = "SCK", roles = [
+		{ name = "Digital",  id = 18 },
+		{ name = "SCK" },
+	]},
+	{ physical = 11, silkscreen = "MOSI", roles = [
+		{ name = "Digital",  id = 19 },
+		{ name = "MOSI" },
+	]},
+	{ physical = 12, silkscreen = "MISO", roles = [
+		{ name = "Digital",  id = 20 },
+		{ name = "MISO" },
+	]},
+	{ physical = 13, silkscreen = "RX", roles = [
+		{ name = "Digital",  id = 1 },
+		{ name = "RX" },
+	]},
+	{ physical = 14, silkscreen = "TX", roles = [
+		{ name = "Digital",  id = 0 },
+		{ name = "TX" },
+	]},
+	{ physical = 15, silkscreen = "D4", roles = [
+		{ name = "Digital",  id = 6 },
+	]},
+	{ physical = 16, silkscreen = "Bat" },
+	{ physical = 17, silkscreen = "En" },
+	{ physical = 18, silkscreen = "USB" },
+	{ physical = 19, silkscreen = "13", roles = [
+		{ name = "Digital", id = 13 },
+	]},
+	{ physical = 20, silkscreen = "12", roles = [
+		{ name = "Digital", id = 12 },
+	]},
+	{ physical = 21, silkscreen = "11", roles = [
+		{ name = "Digital", id = 11 },
+	]},
+	{ physical = 22, silkscreen = "10", roles = [
+		{ name = "Digital", id = 10 },
+	]},
+	{ physical = 23, silkscreen = "9", roles = [
+		{ name = "Digital", id = 9 },
+	]},
+	{ physical = 24, silkscreen = "6", roles = [
+		{ name = "Digital", id = 8 },
+	]},
+	{ physical = 25, silkscreen = "5", roles = [
+		{ name = "Digital", id = 7 },
+	]},
+	{ physical = 26, silkscreen = "SCL", roles = [
+		{ name = "Digital", id = 3 },
+		{ name = "SCL" },
+	]},
+	{ physical = 27, silkscreen = "SDA", roles = [
+		{ name = "Digital", id = 2 },
+		{ name = "SDA" },
+	]},
+]

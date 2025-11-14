@@ -5,3 +5,26 @@ is_main_board = false
 standard = "Feather"
 
 related_crates = ["sh1107"]
+
+[pinout]
+interfaces = [
+	{ name = "I2C", bus = true, roles = [{name = "SDA"}, {name = "SCL"}] },
+	{ name = "GPIO" },
+]
+pins = [
+	{ physical = 0, silkscreen = "Button C", roles = [
+		{ name = "GPIO", direction = "Input" },
+	]},
+	{ physical = 1, silkscreen = "Button B", roles = [
+		{ name = "GPIO", direction = "Input" },
+	]},
+	{ physical = 2, silkscreen = "Button A", roles = [
+		{ name = "GPIO", direction = "Input" },
+	]},
+	{ physical = 3, silkscreen = "SCL", roles = [
+		{ name = "SCL" },
+	]},
+	{ physical = 4, silkscreen = "SDA", roles = [
+		{ name = "SDA" },
+	]},
+]

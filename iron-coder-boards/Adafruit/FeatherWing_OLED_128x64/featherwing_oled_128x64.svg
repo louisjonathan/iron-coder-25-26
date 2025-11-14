@@ -42,44 +42,35 @@
      id="image3181" /><g
      inkscape:groupmode="layer"
      id="layer1"
-     inkscape:label="pins"><ellipse
-       id="sda"
-       cx="31.910255"
-       cy="47.442196"
-       rx="0.86902767"
-       ry="0.85051012"
-       fill="#fc00fb"
-       fill-opacity="0.699074"
-       stroke-width="0.139858" /><ellipse
-       id="button_C"
-       cx="31.893673"
+     inkscape:label="pins">
+       <circle
+       id="0"
+       cx="32.4"
        cy="37.259346"
-       rx="0.86902767"
-       ry="0.85051012"
-       fill="#fc00fb"
-       fill-opacity="0.699074"
-       stroke-width="0.139858" /><ellipse
-       id="button_B"
-       cx="31.884384"
+       r="0.85"
+       />
+       <circle
+       id="1"
+       cx="32.4"
        cy="39.795525"
-       rx="0.86902767"
-       ry="0.85051012"
-       fill="#fc00fb"
-       fill-opacity="0.699074"
-       stroke-width="0.139858" /><ellipse
-       id="button_A"
-       cx="31.870453"
+       r="0.85"
+       />
+       <circle
+       id="2"
+       cx="32.4"
        cy="42.341328"
-       rx="0.86902767"
-       ry="0.85051012"
-       fill="#fc00fb"
-       fill-opacity="0.699074"
-       stroke-width="0.139858" /><ellipse
-       id="scl"
-       cx="31.908142"
+       r="0.85"
+       />
+       <circle
+       id="3"
+       cx="32.4"
        cy="44.893635"
-       rx="0.86902767"
-       ry="0.85051012"
-       fill="#fc00fb"
-       fill-opacity="0.699074"
-       stroke-width="0.139858" /></g></svg>
+       r="0.85"
+       />
+     <circle
+       id="4"
+       cx="32.4"
+       cy="47.442196"
+       r="0.85"
+       />
+       </g></svg>

@@ -22,12 +22,8 @@ use panic_halt as _;
 fn main() -> ! {
     rp2040_setup!(pac, core, clocks, sio, pins);
 	let mut delay = new_delay!(core,clocks); 
-    let mut led_pin = pins.gpio13.into_push_pull_output();
     
     loop {
-        led_pin.set_high().unwrap();
-        delay.delay_ms(1500);
-        led_pin.set_low().unwrap();
-        delay.delay_ms(1500);
+        delay.delay_ms(100);
     }
 }

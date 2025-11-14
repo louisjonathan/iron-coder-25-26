@@ -1,10 +1,10 @@
 [package]
 name = "common_hal_interface"
-version = "1.0.0-alpha"
+version = "1.0.3-alpha"
 description = "A common interface between Rust HALs, for use in the Iron Coder IDE"
 license = "MIT"
 readme = "README.md"
-authors = ["jonathanlouis@ufl.edu"]
+authors = ["jonathanlouis@ufl.edu","jbryan2@ufl.edu","evanpurutcuoglu@ufl.edu"]
 categories = ["embedded", "development-tools", "hardware-support", "rust-patterns", "no-std"]
 keywords = ["embedded", "hal", "macro", "compatibility"]
 edition = "2024"
@@ -24,13 +24,8 @@ sparkfun-promini-5v = ["arduino"]
 trinket = ["arduino"]
 trinket-pro = ["arduino"]
 
-rp2040 = ["dep:rp2040-hal"]
-stm32f4 = ["dep:stm32f4xx-hal"]
-esp = ["dep:esp-hal"]
-
-[dependencies]
-rp2040-hal = { version = "0.10", optional = true }
-stm32f4xx-hal = { version = "0.21", optional = true }
-esp-hal = { version = "0.20", optional = true }
+rp2040 = []
+stm32f4 = []
+esp = []
 
 

@@ -10,7 +10,8 @@ use common_hal_interface::*;
 
 #[arduino_hal::entry]
 fn main() -> ! {
-    arduino_setup!(57600, dp, pins, serial);
+    arduino_setup!(dp, pins);
+    let mut serial = setup_serial!(dp, pins, 57600);
     uwriteln!(serial, "Starting up...").unwrap();
 
     /*

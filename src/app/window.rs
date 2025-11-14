@@ -1,14 +1,14 @@
-use crate::app::SharedState;
-use crate::board::{Board, get_boards};
-use super::tabs::*;
 use super::tabs::file_tab::FileTab;
+use super::tabs::*;
+use crate::app::SharedState;
 use crate::app::colorschemes::colorscheme;
-use eframe::egui::{Ui};
+use crate::board::{Board, get_boards};
+use eframe::egui::Ui;
 use egui::util::undoer::Settings;
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 use std::fs;
+use std::path::{Path, PathBuf};
 
 use rfd::FileDialog;
 
@@ -33,7 +33,7 @@ static OPENABLE_TABS: &'static [&'static str] = &[
     "File Explorer",
     "Output",
     "Board Info",
-	"Debug"
+    "Debug",
 ];
 
 struct WindowContext<'a> {
@@ -50,14 +50,14 @@ impl<'a> egui_dock::TabViewer for WindowContext<'a> {
         if let Some(file_tab) = self.tabs.get(tab) {
             if let Some(file_tab) = file_tab.as_any().downcast_ref::<FileTab>() {
                 let path = Path::new(tab);
-				let display_name = match path.file_name() {
-					Some(name) => name.to_string_lossy().to_string(),
-					None => path.to_string_lossy().to_string(),
-            	};
-				if !file_tab.is_synced() {
+                let display_name = match path.file_name() {
+                    Some(name) => name.to_string_lossy().to_string(),
+                    None => path.to_string_lossy().to_string(),
+                };
+                if !file_tab.is_synced() {
                     return format!("● {}", display_name).into();
                 }
-				return display_name.into();
+                return display_name.into();
             }
         }
         tab.as_str().into()
@@ -66,11 +66,16 @@ impl<'a> egui_dock::TabViewer for WindowContext<'a> {
     fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
         // Check if the pointer is over this tab's area and there was a click
         let rect = ui.max_rect();
-        if ui.ctx().input(|i| i.pointer.any_click()) && 
-           ui.ctx().input(|i| i.pointer.hover_pos().map_or(false, |pos| rect.contains(pos))) {
+        if ui.ctx().input(|i| i.pointer.any_click())
+            && ui.ctx().input(|i| {
+                i.pointer
+                    .hover_pos()
+                    .map_or(false, |pos| rect.contains(pos))
+            })
+        {
             *self.active_tab = Some(tab.clone());
         }
-        
+
         if let Some(tab_content) = self.tabs.get_mut(tab) {
             tab_content.draw(ui, self.state);
         }
@@ -111,11 +116,8 @@ enum PendingAction {
 
 impl Default for MainWindow {
     fn default() -> Self {
-        let mut state= SharedState::default();
-        let mut tree = DockState::new(vec![
-            "Canvas".to_owned(),
-            "Settings".to_owned(),
-        ]);
+        let mut state = SharedState::default();
+        let mut tree = DockState::new(vec!["Canvas".to_owned(), "Settings".to_owned()]);
 
         let [a, b] = tree.main_surface_mut().split_left(
             NodeIndex::root(),
@@ -132,19 +134,21 @@ impl Default for MainWindow {
         tabs.insert("Board Info".to_string(), Box::new(BoardInfoTab::new()));
         tabs.insert("Canvas".to_string(), Box::new(CanvasTab::new()));
         // tabs.insert("Settings".to_string(), Box::new(SettingsTab::new()));
-        tabs.insert("Settings".to_string(), Box::new({
-            let mut temp = SettingsTab::new();
-            temp.current_colorscheme_search=state.colorschemes.name.clone();
-            temp.current_syntax_search=state.syntax_highlighter.get_current_theme().to_string();
-            temp
-            }));
+        tabs.insert(
+            "Settings".to_string(),
+            Box::new({
+                let mut temp = SettingsTab::new();
+                temp.current_colorscheme_search = state.colorschemes.name.clone();
+                temp.current_syntax_search =
+                    state.syntax_highlighter.get_current_theme().to_string();
+                temp
+            }),
+        );
         tabs.insert(
             "File Explorer".to_string(),
             Box::new(FileExplorerTab::new()),
         );
         tabs.insert("Output".to_string(), Box::new(TerminalTab::new()));
-
-        
 
         let mut window = Self {
             tree: tree,
@@ -170,7 +174,7 @@ impl Default for MainWindow {
 impl MainWindow {
     pub fn display_menu(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            if(!self.state.did_activate_colorscheme){
+            if (!self.state.did_activate_colorscheme) {
                 self.state.did_activate_colorscheme = true;
                 let name = self.state.colorschemes.name.clone();
                 self.state.colorschemes.try_use_colorscheme(ui, &name);
@@ -182,10 +186,10 @@ impl MainWindow {
                         ui.close_menu();
                     }
                     if ui.button("Open Project").clicked() {
-						self.state.stop_board();
-						self.prompt_save_if_needed(PendingAction::OpenProject);
-						self.state.term_open_project_dir();
-						self.state.reset_canvas = true;
+                        self.state.stop_board();
+                        self.prompt_save_if_needed(PendingAction::OpenProject);
+                        self.state.term_open_project_dir();
+                        self.state.reset_canvas = true;
                         ui.close_menu();
                     }
                     if ui.button("Save Project").clicked() {
@@ -227,26 +231,29 @@ impl MainWindow {
                         }
                     }
 
-					if ui.add(egui::SelectableLabel::new(false,"New Terminal")).clicked() {
-						self.add_tab("Terminal".to_string());
-					}
-				});
+                    if ui
+                        .add(egui::SelectableLabel::new(false, "New Terminal"))
+                        .clicked()
+                    {
+                        self.add_tab("Terminal".to_string());
+                    }
+                });
 
                 ui.menu_button("Build", |ui| {
                     if ui.button("Build Project").clicked() {
-						// self.state.stop_board();
+                        // self.state.stop_board();
                         self.state.build_project();
                         ui.close_menu();
                     }
                     if ui.button("Flash to Board").clicked() {
-						// self.state.stop_board();
+                        // self.state.stop_board();
                         self.state.run_project();
                         ui.close_menu();
                     }
                 });
             });
-		});
-	}
+        });
+    }
 
     pub fn add_tab(&mut self, tab_name: String) {
         match tab_name.as_str() {
@@ -267,15 +274,12 @@ impl MainWindow {
                     .insert(tab_name.clone(), Box::new(FileExplorerTab::new()));
             }
             "Board Info" => {
-                self.tabs.insert(
-                    tab_name.clone(),
-                    Box::new(BoardInfoTab::new()),
-                );
+                self.tabs
+                    .insert(tab_name.clone(), Box::new(BoardInfoTab::new()));
             }
-			"Debug" => {
-				self.tabs
-                    .insert(tab_name.clone(), Box::new(DebugTab{}));
-			}
+            "Debug" => {
+                self.tabs.insert(tab_name.clone(), Box::new(DebugTab {}));
+            }
             _ => {}
         }
         self.tree.push_to_focused_leaf(tab_name);
@@ -328,7 +332,7 @@ impl MainWindow {
 
     fn open_file(&mut self, file_path: &Path) {
         let tab_name = file_path.display().to_string();
-        
+
         if self.tabs.contains_key(&tab_name) {
             println!("File '{}' is already open", tab_name);
             return;
@@ -338,9 +342,9 @@ impl MainWindow {
         match file_tab.load_from_file(file_path) {
             Ok(()) => {
                 self.tabs.insert(tab_name.clone(), Box::new(file_tab));
-                
+
                 self.add_file_tab_intelligently(tab_name.clone());
-                
+
                 println!("File '{}' opened successfully", tab_name);
             }
             Err(e) => {
@@ -351,11 +355,11 @@ impl MainWindow {
 
     fn find_canvas_node(&self) -> Option<NodeIndex> {
         let tree = self.tree.main_surface();
-        
+
         // try all possible node indices to find Canvas
         for i in 0..tree.len() {
             let node_index = NodeIndex(i);
-            
+
             let node = &tree[node_index];
             if let egui_dock::Node::Leaf { tabs, .. } = node {
                 if tabs.contains(&"Canvas".to_string()) {
@@ -369,7 +373,7 @@ impl MainWindow {
     fn add_file_tab_intelligently(&mut self, tab_name: String) {
         // Find the node that contains Canvas
         let canvas_node = self.find_canvas_node();
-        
+
         if let Some(node_index) = canvas_node {
             let tree = self.tree.main_surface_mut();
             if let egui_dock::Node::Leaf { tabs, active, .. } = &mut tree[node_index] {
@@ -384,18 +388,23 @@ impl MainWindow {
 
     fn is_file_tab(&self, tab_name: &str) -> bool {
         // list of allowable files to open
-        tab_name.contains('.') && (
-            tab_name.ends_with(".rs") || 
-            tab_name.ends_with(".json") || 
+        tab_name.contains('.')
+            && (
+                tab_name.ends_with(".rs") ||
+            tab_name.ends_with(".json") ||
             tab_name.ends_with(".txt") ||
             tab_name.contains('/') ||  // for unix
-            tab_name.contains('\\') // for windows
-        )
+            tab_name.contains('\\')
+                // for windows
+            )
     }
 
     fn refocus_file_explorer_to_project(&mut self) {
         if let Some(file_explorer_tab) = self.tabs.get_mut("File Explorer") {
-            if let Some(file_explorer) = file_explorer_tab.as_any_mut().downcast_mut::<FileExplorerTab>() {
+            if let Some(file_explorer) = file_explorer_tab
+                .as_any_mut()
+                .downcast_mut::<FileExplorerTab>()
+            {
                 if let Some(project_location) = self.state.project.get_location_path() {
                     file_explorer.set_root_dir(project_location);
                 }
@@ -406,7 +415,7 @@ impl MainWindow {
     fn display_new_project_dialog(&mut self, ctx: &egui::Context) {
         let mut should_create_project = false;
         let mut should_close_dialog = false;
-        
+
         egui::Window::new("New Project")
             .open(&mut self.show_new_project_dialog)
             .collapsible(false)
@@ -415,65 +424,73 @@ impl MainWindow {
             .show(ctx, |ui| {
                 ui.label("Create a new Iron Coder project:");
                 ui.separator();
-                
+
                 ui.horizontal(|ui| {
                     ui.label("Project Name:");
                     ui.text_edit_singleline(&mut self.new_project_dialog.name);
                 });
-                
+
                 ui.horizontal(|ui| {
                     ui.label("Project Path:");
                     ui.text_edit_singleline(&mut self.new_project_dialog.path);
-                    
+
                     if ui.button("Browse...").clicked() {
                         if let Some(folder) = FileDialog::new().pick_folder() {
                             self.new_project_dialog.path = folder.display().to_string();
                         }
                     }
                 });
-                
+
                 ui.horizontal(|ui| {
                     ui.label("Main Board:");
-                    let main_boards: Vec<_> = self.state.known_boards.iter()
+                    let main_boards: Vec<_> = self
+                        .state
+                        .known_boards
+                        .iter()
                         .filter(|b| b.is_main_board())
                         .collect();
-                    
+
                     if !main_boards.is_empty() {
-                        let selected_board_name = main_boards.get(self.new_project_dialog.selected_board_index)
+                        let selected_board_name = main_boards
+                            .get(self.new_project_dialog.selected_board_index)
                             .map(|b| b.get_name().to_owned())
                             .unwrap_or("Unknown".to_string());
-                        
+
                         egui::ComboBox::from_label("")
                             .selected_text(selected_board_name)
                             .show_ui(ui, |ui| {
                                 for (i, board) in main_boards.iter().enumerate() {
-                                    ui.selectable_value(&mut self.new_project_dialog.selected_board_index, i, board.get_name());
+                                    ui.selectable_value(
+                                        &mut self.new_project_dialog.selected_board_index,
+                                        i,
+                                        board.get_name(),
+                                    );
                                 }
                             });
                     } else {
                         ui.label("No main boards available");
                     }
                 });
-                
+
                 ui.separator();
-                
+
                 ui.horizontal(|ui| {
                     if ui.button("Create Project").clicked() {
                         should_create_project = true;
                     }
-                    
+
                     if ui.button("Cancel").clicked() {
                         should_close_dialog = true;
                     }
                 });
             });
-            
+
         if should_create_project {
             self.create_new_project();
-			self.state.term_open_project_dir();
-			self.state.reset_canvas = true;
+            self.state.term_open_project_dir();
+            self.state.reset_canvas = true;
         }
-        
+
         if should_close_dialog {
             self.show_new_project_dialog = false;
             self.new_project_dialog.reset();
@@ -484,38 +501,43 @@ impl MainWindow {
         if self.new_project_dialog.name.is_empty() {
             return;
         }
-        
+
         if self.new_project_dialog.path.is_empty() {
             return;
         }
-        
+
         // Create a new project
         let mut new_project = crate::project::Project::default();
-        new_project.borrow_name().clone_from(&self.new_project_dialog.name);
-        
+        new_project
+            .borrow_name()
+            .clone_from(&self.new_project_dialog.name);
+
         // select board for the project
         if self.new_project_dialog.selected_board_index < self.state.known_boards.len() {
-            let main_boards: Vec<_> = self.state.known_boards.iter()
+            let main_boards: Vec<_> = self
+                .state
+                .known_boards
+                .iter()
                 .filter(|b| b.is_main_board())
                 .collect();
-            
+
             if self.new_project_dialog.selected_board_index < main_boards.len() {
                 let board = main_boards[self.new_project_dialog.selected_board_index].clone();
                 new_project.add_board(&board);
             }
         }
-        
+
         // Set the location and save
         let project_path = PathBuf::from(&self.new_project_dialog.path);
-        
+
         // create the project by saving it to the specified location
         let project_folder = project_path.join(&self.new_project_dialog.name);
-        
+
         match std::fs::create_dir_all(&project_folder) {
             Ok(()) => {
                 // Set the location for saving
                 new_project.set_location(project_folder);
-                
+
                 // .ironcoder.toml
                 match new_project.save() {
                     Ok(()) => {
@@ -526,21 +548,27 @@ impl MainWindow {
                                     println!("Project template generated.");
                                 }
                                 Err(e) => {
-                                    println!("Is cargo-generate installed? Try: cargo install cargo-generate");
+                                    println!(
+                                        "Is cargo-generate installed? Try: cargo install cargo-generate"
+                                    );
                                 }
                             }
                         }
-                        
+
                         // open the project
                         let project_location = new_project.get_location_path();
-                        match self.state.project.load_from(&project_location.unwrap(), &self.state.known_boards) {
+                        match self
+                            .state
+                            .project
+                            .load_from(&project_location.unwrap(), &self.state.known_boards)
+                        {
                             Ok(()) => {
                                 self.refocus_file_explorer_to_project();
                                 self.show_new_project_dialog = false;
                                 let project_name = self.new_project_dialog.name.clone();
                                 self.new_project_dialog.reset();
                                 println!("Project '{}' created and opened.", project_name);
-                                
+
                                 // open main.rs during new project open
                                 self.auto_open_main_rs();
                             }
@@ -592,16 +620,16 @@ impl MainWindow {
                 ui.label("You have unsaved changes.");
                 ui.label("Would you like to save before continuing?");
                 ui.separator();
-                
+
                 ui.horizontal(|ui| {
                     if ui.button("Yes").clicked() {
                         should_save = true;
                     }
-                    
+
                     if ui.button("No").clicked() {
                         should_dont_save = true;
                     }
-                    
+
                     if ui.button("Cancel").clicked() {
                         should_cancel = true;
                     }
@@ -664,7 +692,7 @@ impl MainWindow {
             Ok(()) => {
                 self.refocus_file_explorer_to_project();
                 println!("Project opened successfully.");
-                
+
                 // open main.rs during project open
                 self.auto_open_main_rs();
             }
@@ -685,10 +713,14 @@ impl MainWindow {
     }
 
     fn auto_open_main_rs(&mut self) {
-        let main_rs_path = self.state.project.source_files.iter()
+        let main_rs_path = self
+            .state
+            .project
+            .source_files
+            .iter()
             .find(|path| path.file_name().map_or(false, |name| name == "main.rs"))
             .cloned();
-        
+
         if let Some(main_rs_path) = main_rs_path {
             let tab_name = main_rs_path.display().to_string();
             if !self.tabs.contains_key(&tab_name) {
@@ -699,14 +731,13 @@ impl MainWindow {
 
     fn is_terminal_tab_active(&self) -> bool {
         if let Some(active_tab_name) = &self.active_tab {
-            active_tab_name == "Output" || 
-            active_tab_name == "Terminal" || 
-            active_tab_name.starts_with("Terminal")
+            active_tab_name == "Output"
+                || active_tab_name == "Terminal"
+                || active_tab_name.starts_with("Terminal")
         } else {
             false
         }
     }
-
 }
 
 impl eframe::App for MainWindow {

@@ -1,7 +1,7 @@
 #![allow(warnings)]
 use egui::FontDefinitions;
-use iron_coder::MainWindow;
 use egui_extras::install_image_loaders;
+use iron_coder::MainWindow;
 
 pub fn main() -> eframe::Result<()> {
     let icon_data = include_bytes!("../assets/application-icon/icon.png");
@@ -18,8 +18,8 @@ pub fn main() -> eframe::Result<()> {
         "IRON CODER",
         options,
         Box::new(|cc| {
-        install_image_loaders(&cc.egui_ctx); // <-- call here
-        Ok(Box::<MainWindow>::default())
+            install_image_loaders(&cc.egui_ctx); // <-- call here
+            Ok(Box::<MainWindow>::default())
         }),
     )?;
 

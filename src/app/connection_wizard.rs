@@ -170,7 +170,7 @@ impl ConnectionWizard {
                                 board
                                     .pinout
                                     .get_pin_name(&pin_number)
-                                    .unwrap_or( &"".to_string())
+                                    .unwrap_or(&"".to_string())
                                     .to_string(),
                             ));
                             *pins_left_to_connect -= 1;

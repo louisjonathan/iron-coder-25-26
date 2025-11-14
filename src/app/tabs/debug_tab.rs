@@ -1,21 +1,18 @@
-use crate::app::tabs::base_tab::BaseTab;
 use crate::app::SharedState;
+use crate::app::tabs::base_tab::BaseTab;
 
-pub struct DebugTab {
-}
+pub struct DebugTab {}
 
 impl DebugTab {
     pub fn default() -> Self {
-        Self {
-        }
+        Self {}
     }
 }
 
 impl BaseTab for DebugTab {
     fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
-		ui.label("Testing!");
-		
-	}
+        ui.label("Testing!");
+    }
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self

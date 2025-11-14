@@ -1,6 +1,6 @@
-use serde::{Serialize, Deserialize};
-use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
 use std::fs;
+use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize)]
 pub struct IDE_Settings {
@@ -8,7 +8,7 @@ pub struct IDE_Settings {
     pub syntect_highlighting_file: Option<String>,
     pub last_opened_project: Option<PathBuf>,
     pub opened_files: Vec<PathBuf>,
-	pub default_terminal: Option<PathBuf>,
+    pub default_terminal: Option<PathBuf>,
 }
 
 pub fn save_ide_settings(settings: &IDE_Settings) {
@@ -33,7 +33,7 @@ impl Default for IDE_Settings {
             colorscheme_file: None,
             last_opened_project: None,
             opened_files: Vec::new(),
-			default_terminal: None,
+            default_terminal: None,
         }
     }
-}   
+}

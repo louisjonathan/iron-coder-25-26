@@ -82,7 +82,7 @@ impl Keybindings {
     pub fn save_to_file(&self) -> Result<(), Box<dyn std::error::Error>> {
         let mut bindings: Vec<&Keybinding> = self.bindings.values().collect();
         bindings.sort_by(|a, b| a.id.cmp(&b.id));
-        
+
         let json = serde_json::to_string_pretty(&bindings)?;
         fs::write("resources/keybindings.json", json)?;
         Ok(())
@@ -91,7 +91,7 @@ impl Keybindings {
     pub fn reload_from_file(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let file_content = fs::read_to_string("resources/keybindings.json")?;
         let bindings: Vec<Keybinding> = serde_json::from_str(&file_content)?;
-        
+
         self.bindings.clear();
         for binding in bindings {
             self.bindings.insert(binding.id.clone(), binding);

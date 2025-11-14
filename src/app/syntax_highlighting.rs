@@ -1,14 +1,14 @@
 use eframe::egui::{self, Color32, TextFormat};
 use std::collections::HashMap;
 use std::fs;
+use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use syntect::easy::HighlightLines;
+use syntect::highlighting::Theme;
 use syntect::highlighting::{Style, ThemeSet};
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
-use syntect::highlighting::Theme;
-use std::io::BufReader;
 
 // simple implementation of syntax highlighting with syntect ymmv
 pub struct SyntaxHighlighter {
@@ -20,7 +20,8 @@ pub struct SyntaxHighlighter {
 
 impl Default for SyntaxHighlighter {
     fn default() -> Self {
-        let theme_set = ThemeSet::load_from_folder("resources/syntax_themes").expect("error loading themes");
+        let theme_set =
+            ThemeSet::load_from_folder("resources/syntax_themes").expect("error loading themes");
         Self {
             syntax_set: SyntaxSet::load_defaults_newlines(),
             theme_set,
@@ -34,11 +35,11 @@ impl SyntaxHighlighter {
         Self::default()
     }
 
-    pub fn set_theme(&mut self, theme_name: &str) -> bool{
+    pub fn set_theme(&mut self, theme_name: &str) -> bool {
         if self.theme_set.themes.contains_key(theme_name) {
             self.current_theme = theme_name.to_string();
             return true;
-        }else{
+        } else {
             return false;
         }
     }
@@ -101,32 +102,32 @@ impl SyntaxHighlighter {
 
         if let Some(theme) = self.theme_set.themes.get(&self.current_theme) {
             let mut highlighter = HighlightLines::new(syntax, theme);
-    
+
             for line in LinesWithEndings::from(code) {
                 let ranges = highlighter
                     .highlight_line(line, &self.syntax_set)
                     .unwrap_or_else(|_| vec![(syntect::highlighting::Style::default(), line)]);
-    
+
                 for (style, text) in ranges {
                     let format = self.style_to_text_format(&style);
                     job.append(text, 0.0, format);
                 }
             }
-
         }
 
         job
     }
-    pub fn try_add_file_else_update(&mut self, file: fs::File){
+    pub fn try_add_file_else_update(&mut self, file: fs::File) {
         let mut reader = BufReader::new(file);
         match ThemeSet::load_from_reader(&mut reader) {
             Ok(new_theme) => {
-            self.theme_set.themes.insert(self.current_theme.clone(), new_theme);
+                self.theme_set
+                    .themes
+                    .insert(self.current_theme.clone(), new_theme);
             }
             Err(e) => {
-            eprintln!("Failed to load theme: {}", e);
+                eprintln!("Failed to load theme: {}", e);
             }
         }
-        
     }
 }

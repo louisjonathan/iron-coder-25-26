@@ -1,5 +1,5 @@
-use crate::app::tabs::base_tab::BaseTab;
 use crate::app::SharedState;
+use crate::app::tabs::base_tab::BaseTab;
 
 use crate::app::CanvasBoard;
 
@@ -7,8 +7,8 @@ use crate::board;
 use crate::board::display;
 use serde::{Deserialize, Serialize};
 
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct BoardInfoTab {
     chosen_board_idx: Option<usize>,
@@ -38,11 +38,11 @@ impl BaseTab for BoardInfoTab {
             ui.label("or select a board from the list below");
             ui.columns(num_cols, |columns| {
                 for (i, board) in state.known_boards.clone().into_iter().enumerate() {
-					if state.project.has_main_board() {
-						if board.as_ref().is_main_board() {
-							continue;
-						}
-					}
+                    if state.project.has_main_board() {
+                        if board.as_ref().is_main_board() {
+                            continue;
+                        }
+                    }
                     let col = i % num_cols;
                     // When a board is clicked, add it to the new project
                     ///@TODO  BoardSelectorWidget
@@ -52,7 +52,7 @@ impl BaseTab for BoardInfoTab {
                     {
                         state.project.add_board(&board);
 
-						// state.project.add_board(b.clone());
+                        // state.project.add_board(b.clone());
 
                         // let board_rc = Rc::new(RefCell::new(CanvasBoard::new(&b).unwrap()));
                         // state.boards_used.push(board_rc);

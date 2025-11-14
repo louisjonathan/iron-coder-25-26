@@ -1,4 +1,4 @@
-use egui::{ahash::random_state, text_selection::visuals, Color32, Stroke};
+use egui::{Color32, Stroke, ahash::random_state, text_selection::visuals};
 // https://github.com/Experience-Monks/nice-color-palettes/tree/master
 use rand::{prelude::*, thread_rng};
 use std::{collections::HashMap, io::Write};
@@ -42,7 +42,15 @@ pub fn get_colorscheme_filenames() -> Vec<String> {
         .map(|e| e.path())
         .filter(|p| p.is_file())
         .filter(|p| p.extension().map_or(false, |ext| ext == "toml"))
-        .map(|p| p.file_name().expect(&format!("failed to get filename for colorscheme {}", p.display())).to_string_lossy().into_owned())
+        .map(|p| {
+            p.file_name()
+                .expect(&format!(
+                    "failed to get filename for colorscheme {}",
+                    p.display()
+                ))
+                .to_string_lossy()
+                .into_owned()
+        })
         .collect();
     files
 }
@@ -92,8 +100,7 @@ pub fn create_or_modify_colorscheme(filename: &String, colors: &HashMap<String, 
 
 pub fn set_colorscheme(ui: &mut egui::Ui, colorscheme: &HashMap<String, Color32>) {
     let mut new_style = (*ui.ctx().style()).clone();
-    
-    
+
     new_style.visuals.extreme_bg_color = colorscheme["extreme_bg_color"];
     new_style.visuals.faint_bg_color = colorscheme["faint_bg_color"];
     new_style.visuals.code_bg_color = colorscheme["code_bg_color"];
@@ -117,7 +124,7 @@ pub fn set_colorscheme(ui: &mut egui::Ui, colorscheme: &HashMap<String, Color32>
         state.bg_fill = colorscheme["faint_bg_color"];
         state.fg_stroke.color = colorscheme["code_bg_color"];
         state.weak_bg_fill = colorscheme["faint_bg_color"];
-        state.bg_stroke.color = colorscheme["window_fill"]; 
+        state.bg_stroke.color = colorscheme["window_fill"];
     }
 
     // new_style.visuals.extreme_bg_color = colorscheme["extreme_bg_color"];
@@ -143,18 +150,17 @@ pub fn set_colorscheme(ui: &mut egui::Ui, colorscheme: &HashMap<String, Color32>
     //     state.bg_fill = colorscheme["faint_bg_color"];
     //     state.fg_stroke.color = colorscheme["code_bg_color"];
     //     state.weak_bg_fill = colorscheme["faint_bg_color"];
-    //     state.bg_stroke.color = colorscheme["faint_bg_color"]; 
+    //     state.bg_stroke.color = colorscheme["faint_bg_color"];
     // }
 
     ui.ctx().set_style(new_style);
-
 }
 /*
-    faint C= code
-    window C= code
-    panel C= code
-    extreme C= code
- */
+   faint C= code
+   window C= code
+   panel C= code
+   extreme C= code
+*/
 impl colorscheme {
     pub fn try_use_colorscheme(&mut self, ui: &mut egui::Ui, filename: &String) -> bool {
         if let Some(colors) = try_get_colorscheme(&filename) {

@@ -1,9 +1,9 @@
-use crate::app::tabs::base_tab::BaseTab;
 use crate::app::SharedState;
+use crate::app::tabs::base_tab::BaseTab;
 
 use std::collections::HashMap;
+use std::fs::read_dir;
 use std::path::PathBuf;
-use std::fs::{read_dir};
 
 pub struct FileExplorerTab {
     root_dir: PathBuf,
@@ -47,10 +47,10 @@ impl FileExplorerTab {
 
 impl BaseTab for FileExplorerTab {
     fn draw(&mut self, ui: &mut egui::Ui, _state: &mut SharedState) {
-		if _state.sync_file_explorer {
-			self.set_root_dir(_state.project.location.clone().unwrap());
-			_state.sync_file_explorer = false;
-		}
+        if _state.sync_file_explorer {
+            self.set_root_dir(_state.project.location.clone().unwrap());
+            _state.sync_file_explorer = false;
+        }
         egui::ScrollArea::vertical().show(ui, |ui| {
             fn draw_directory(
                 ui: &mut egui::Ui,
@@ -95,16 +95,17 @@ impl BaseTab for FileExplorerTab {
                             );
                         } else {
                             let file_name = entry.file_name().unwrap_or_default().to_string_lossy();
-                            
+
                             // check if this is a supported file type
-                            let is_supported_file = entry.extension()
+                            let is_supported_file = entry
+                                .extension()
                                 .and_then(|ext| ext.to_str())
                                 .map(|ext| matches!(ext, "rs" | "json" | "txt" | "toml"))
                                 .unwrap_or(false);
-                            
+
                             ui.horizontal(|ui| {
                                 ui.add_space((depth + 1) as f32 * 16.0);
-                                
+
                                 if is_supported_file {
                                     // Make supported files clickable
                                     if ui.button(format!("{}", file_name)).clicked() {
@@ -139,16 +140,16 @@ impl BaseTab for FileExplorerTab {
                 _state.requested_file_to_open = Some(file_path);
             };
 
-			ui.label("Sources:");
-			let src_path = _state.project.location.as_ref().unwrap();
-			for entry in &_state.project.source_files {
-				let rel_path = entry.strip_prefix(&src_path).unwrap_or(entry);
-				if ui.button(format!("{}", rel_path.display())).clicked() {
-					file_clicked(entry.clone());
-				}
-			}
-			ui.separator();
-			ui.label("Project Directory:");
+            ui.label("Sources:");
+            let src_path = _state.project.location.as_ref().unwrap();
+            for entry in &_state.project.source_files {
+                let rel_path = entry.strip_prefix(&src_path).unwrap_or(entry);
+                if ui.button(format!("{}", rel_path.display())).clicked() {
+                    file_clicked(entry.clone());
+                }
+            }
+            ui.separator();
+            ui.label("Project Directory:");
 
             let max_visible = 500;
             let mut visible_count = 0;

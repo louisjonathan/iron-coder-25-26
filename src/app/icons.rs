@@ -4,20 +4,19 @@
 
 use log::error;
 
-use std::path::Path;
 use std::collections::HashMap;
+use std::path::Path;
 
+use egui::{Image, Vec2};
 use image;
-use egui::{Vec2, Image};
 
 pub type IconSet<'a> = HashMap<&'static str, Image<'a>>;
 pub const ICON_DIR: &'static str = "file://assets/icons/pack/white/";
 pub const SMALL_ICON_SIZE: Vec2 = Vec2::new(8.0, 8.0);
 pub const DEFAULT_ICON_SIZE: Vec2 = Vec2::new(12.0, 12.0);
 
-// This function returns a mapping of icon names to RetainedImages 
+// This function returns a mapping of icon names to RetainedImages
 pub fn load_icons(icon_path: &Path) -> HashMap<&'static str, Image> {
-
     let mut icon_map = HashMap::new();
 
     let icon_names_and_files: [(&str, &str); 16] = [
@@ -39,7 +38,12 @@ pub fn load_icons(icon_path: &Path) -> HashMap<&'static str, Image> {
         ("right_arrow_icon", "005b_53.gif"),
     ];
     for (icon_name, icon_file) in icon_names_and_files.into_iter() {
-        let p = icon_path.join(icon_file).as_path().to_str().unwrap().to_string();
+        let p = icon_path
+            .join(icon_file)
+            .as_path()
+            .to_str()
+            .unwrap()
+            .to_string();
         // attempt to open the icon image file
         let image = Image::new(p).fit_to_exact_size(DEFAULT_ICON_SIZE);
         icon_map.insert(icon_name, image);

@@ -1,10 +1,10 @@
 #![allow(warnings)]
-pub mod icons;
 mod colorschemes;
-mod keybinding;
-mod syntax_highlighting;
+pub mod icons;
 mod ide_settings;
+mod keybinding;
 mod shared_state;
+mod syntax_highlighting;
 pub use shared_state::SharedState;
 
 pub mod tabs;

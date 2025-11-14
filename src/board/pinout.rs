@@ -1,9 +1,9 @@
 use egui::accesskit::Role;
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::ops::DerefMut;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 #[derive(Debug, Clone, Deserialize)]
 // #[serde(rename_all = "lowercase")]
@@ -72,28 +72,46 @@ pub struct InterfaceRole {
 impl Pinout {
     fn populate_silkscreen_map(&mut self) {
         for pin in &self.pins {
-            self.silkscreen_map.insert(pin.physical, pin.silkscreen.clone());
+            self.silkscreen_map
+                .insert(pin.physical, pin.silkscreen.clone());
         }
     }
 
     fn populate_interface_to_pins_map(&mut self, main_board: bool) {
         for pin in &self.pins {
             for role in &pin.roles {
-                println!("MAPPING {}:{:?}", pin.physical, role.name);
-                self.role_to_pins.entry(role.name.clone()).or_default().insert(pin.physical);
-                self.pin_to_roles.entry(pin.physical).or_default().insert(role.name.clone());
+                self.role_to_pins
+                    .entry(role.name.clone())
+                    .or_default()
+                    .insert(pin.physical);
+                self.pin_to_roles
+                    .entry(pin.physical)
+                    .or_default()
+                    .insert(role.name.clone());
 
                 if main_board {
                     if let Some(interface) = self.role_to_interface.get(&role.name) {
-                        println!("MAPPING {}:{:?}", pin.physical, interface);
-                        self.role_to_pins.entry(interface.to_string()).or_default().insert(pin.physical);
-                        self.pin_to_roles.entry(pin.physical).or_default().insert(interface.to_string());
+                        self.role_to_pins
+                            .entry(interface.to_string())
+                            .or_default()
+                            .insert(pin.physical);
+                        self.pin_to_roles
+                            .entry(pin.physical)
+                            .or_default()
+                            .insert(interface.to_string());
                     } else {
-                        if let Some(interface) = self.interfaces.iter().find(|i| i.name == role.name) {
+                        if let Some(interface) =
+                            self.interfaces.iter().find(|i| i.name == role.name)
+                        {
                             for interface_role in &interface.roles {
-                                println!("MAPPING {}:{:?}", pin.physical, interface_role.name);
-                                self.role_to_pins.entry(interface_role.name.to_string()).or_default().insert(pin.physical);
-                                self.pin_to_roles.entry(pin.physical).or_default().insert(interface_role.name.to_string());
+                                self.role_to_pins
+                                    .entry(interface_role.name.to_string())
+                                    .or_default()
+                                    .insert(pin.physical);
+                                self.pin_to_roles
+                                    .entry(pin.physical)
+                                    .or_default()
+                                    .insert(interface_role.name.to_string());
                             }
                         }
                     }
@@ -105,13 +123,15 @@ impl Pinout {
     fn populate_alias_map(&mut self) {
         for interface in &self.interfaces {
             if let Some(fmt) = &interface.alias_fmt {
-                self.alias_map.insert(interface.name.clone(), fmt.to_string());
+                self.alias_map
+                    .insert(interface.name.clone(), fmt.to_string());
             }
             for role in &interface.roles {
                 if let Some(fmt) = &role.alias_fmt {
                     self.alias_map.insert(role.name.clone(), fmt.to_string());
                 }
-                self.role_to_interface.insert(role.name.clone(), interface.name.clone());
+                self.role_to_interface
+                    .insert(role.name.clone(), interface.name.clone());
                 // self.interface_to_roles.entry(interface.name.clone()).or_default().insert(role.name.clone());
             }
         }
@@ -123,7 +143,10 @@ impl Pinout {
             for role in &pin.roles {
                 let name = if let Some(fmt) = self.alias_map.get(&role.name) {
                     let id = role.id.or(pin.logical).unwrap_or_else(|| {
-                        panic!("Neither role.id nor pin.logical exists for pin {:?} at role {:?}", pin, role);
+                        panic!(
+                            "Neither role.id nor pin.logical exists for pin {:?} at role {:?}",
+                            pin, role
+                        );
                     });
                     fmt.replace("{}", &id.to_string())
                 } else {
@@ -137,8 +160,7 @@ impl Pinout {
         }
     }
 
-    pub fn populate_pins(&mut self, main_board: bool)
-    {
+    pub fn populate_pins(&mut self, main_board: bool) {
         self.populate_silkscreen_map();
         self.populate_pin_aliases();
         self.populate_interface_to_pins_map(main_board);
@@ -176,4 +198,3 @@ impl Pinout {
         self.role_to_interface.get(role)
     }
 }
-

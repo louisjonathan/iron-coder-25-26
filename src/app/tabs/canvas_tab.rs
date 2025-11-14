@@ -1,27 +1,27 @@
-use crate::app::{canvas_board, canvas_connection::CanvasConnection};
-use crate::app::tabs::base_tab::BaseTab;
 use crate::app::canvas_board::CanvasBoard;
 use crate::app::canvas_element::CanvasSelection;
+use crate::app::tabs::base_tab::BaseTab;
 use crate::app::{SharedState, connection_wizard};
+use crate::app::{canvas_board, canvas_connection::CanvasConnection};
 use crate::board;
-use eframe::egui::{Pos2, Rect, Response, Sense, Ui, Vec2, Color32, Stroke, Key, Align2, FontId};
+use eframe::egui::{Align2, Color32, FontId, Key, Pos2, Rect, Response, Sense, Stroke, Ui, Vec2};
 use egui::color_picker::color_picker_color32;
 use egui::debug_text::print;
 use emath::RectTransform;
 use syntect::highlighting::Color;
 
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
-use std::collections::HashMap;
+use crate::app::connection_wizard::{ConnectionWizard, WizardResult, WizardType};
 use egui_extras::RetainedImage;
-use crate::app::connection_wizard::{ConnectionWizard, WizardType, WizardResult};
+use std::collections::HashMap;
 
 pub struct CanvasTab {
     canvas_zoom: f32,
     canvas_offset: Vec2,
     connection_in_progress: Option<Rc<RefCell<CanvasConnection>>>,
-    selection : Option<CanvasSelection>,
+    selection: Option<CanvasSelection>,
 }
 
 impl CanvasTab {
@@ -37,10 +37,10 @@ impl CanvasTab {
 
 impl BaseTab for CanvasTab {
     fn draw(&mut self, ui: &mut egui::Ui, state: &mut SharedState) {
-		if state.reset_canvas {
-			self.reset_canvas();
-			state.reset_canvas = false;
-		}
+        if state.reset_canvas {
+            self.reset_canvas();
+            state.reset_canvas = false;
+        }
 
         // grab mouse location
         let mouse_screen = ui.input(|i| i.pointer.hover_pos()).unwrap_or_default();
@@ -48,7 +48,7 @@ impl BaseTab for CanvasTab {
         // ui.label(format!("Canvas zoom: {}", self.canvas_zoom));
         // ui.label(format!("Canvas offset: {}", self.canvas_offset));
         // ui.label(format!("Mouse location: {}", mouse_screen));
-        
+
         let response = ui.allocate_response(ui.available_size(), Sense::click_and_drag());
 
         let rect = response.rect;
@@ -93,7 +93,9 @@ impl BaseTab for CanvasTab {
         );
 
         let mouse_pos = mouse_screen - rect.min;
-        let mouse_canvas = to_screen.inverse().transform_pos(Pos2::new(mouse_screen.x, mouse_screen.y));
+        let mouse_canvas = to_screen
+            .inverse()
+            .transform_pos(Pos2::new(mouse_screen.x, mouse_screen.y));
 
         /* DEBUG DISPLAY MOUSE & MOUSE CANVAS POSITIONS
 
@@ -112,7 +114,7 @@ impl BaseTab for CanvasTab {
             FontId::monospace(12.0),
             state.colorschemes.current["code_bg_color"]
         );
-        
+
         */
 
         self.draw_grid(ui, &to_screen);
@@ -120,18 +122,18 @@ impl BaseTab for CanvasTab {
         let draw_all_pins = ui.input(|i| i.modifiers.alt);
 
         if ui.input(|i| i.key_pressed(Key::Delete)) {
-			if let Some(s) = self.selection.take() {
-				match s {
-					CanvasSelection::Board(board) => {
-						self.selection = None;
+            if let Some(s) = self.selection.take() {
+                match s {
+                    CanvasSelection::Board(board) => {
+                        self.selection = None;
                         state.project.remove_board(&board);
                     }
                     CanvasSelection::Connection(connection) => {
-						self.selection = None;
+                        self.selection = None;
                         state.project.remove_connection(&connection);
                     }
                 }
-        	}
+            }
         }
 
         let quit_connection = ui.input(|i| i.key_pressed(Key::Escape));
@@ -140,7 +142,7 @@ impl BaseTab for CanvasTab {
                 self.connection_in_progress = None;
             }
         }
-        
+
         // BOARDS
         for b in state.project.boards_iter() {
             b.borrow_mut().draw(ui, &to_screen, &mouse_screen);
@@ -156,9 +158,15 @@ impl BaseTab for CanvasTab {
 
         // PINS
         for b in state.project.boards_iter() {
-            b.borrow_mut().draw_pins(ui, &to_screen, &mouse_screen, draw_all_pins,state.connection_wizard.as_mut());
+            b.borrow_mut().draw_pins(
+                ui,
+                &to_screen,
+                &mouse_screen,
+                draw_all_pins,
+                state.connection_wizard.as_mut(),
+            );
         }
-        
+
         if let Some(conn_rc) = &self.connection_in_progress {
             let conn = conn_rc.borrow();
             let sp = conn.get_start_pin();
@@ -168,7 +176,6 @@ impl BaseTab for CanvasTab {
                     for b in state.project.peripheral_boards.iter() {
                         let cb = b.borrow();
                         for role in &set {
-                            println!("{} {}", cb.board.name, role);
                             cb.draw_pins_from_role(ui, &to_screen, role);
                         }
                     }
@@ -176,12 +183,7 @@ impl BaseTab for CanvasTab {
                     if let Some(b) = &state.project.main_board {
                         for role in &set {
                             let cb = b.borrow();
-                            println!("{} {}", cb.board.name, role);
                             cb.draw_pins_from_role(ui, &to_screen, role);
-                            // if let Some(interface) = cb.board.pinout.get_interface_from_role(role) {
-                            //     println!("{} {}", cb.board.name, interface);
-                            //     cb.draw_pins_from_role(ui, &to_screen, interface);
-                            // }
                         }
                     }
                 }
@@ -191,20 +193,20 @@ impl BaseTab for CanvasTab {
         // Keybind text
         // TODO: bind to keybinds backend
         let mut offset = 0.0;
-        ui.painter().text(rect.min+Vec2{x:0.0,y:offset}, Align2::LEFT_TOP, "Alt: Show all pins", FontId::monospace(12.0), state.colorschemes.current["code_bg_color"]);
+        ui.painter().text(
+            rect.min + Vec2 { x: 0.0, y: offset },
+            Align2::LEFT_TOP,
+            "Alt: Show all pins",
+            FontId::monospace(12.0),
+            state.colorschemes.current["code_bg_color"],
+        );
         offset += 12.0;
 
         let bar_height = 40.0;
-        let bar_rect = Rect::from_min_size(
-            rect.min,
-            Vec2::new(rect.width(), bar_height)
-        );
+        let bar_rect = Rect::from_min_size(rect.min, Vec2::new(rect.width(), bar_height));
 
-      let bar_height = 40.0;
-        let bar_rect = Rect::from_min_size(
-            rect.min,
-            Vec2::new(rect.width(), bar_height)
-        );
+        let bar_height = 40.0;
+        let bar_rect = Rect::from_min_size(rect.min, Vec2::new(rect.width(), bar_height));
 
         egui::Area::new("canvas_top_bar".into())
             .fixed_pos(bar_rect.min)
@@ -212,7 +214,7 @@ impl BaseTab for CanvasTab {
             .show(ui.ctx(), |ui| {
                 ui.set_max_width(bar_rect.width());
                 ui.set_max_height(bar_height);
-                
+
                 ui.horizontal(|ui| {
                     ui.add_space(180.0);
                     // Determine current selection based on wizard state
@@ -226,40 +228,51 @@ impl BaseTab for CanvasTab {
                     } else {
                         0
                     };
-                    
+
                     let options: [WizardType; 4] = [
                         WizardType::None,
                         WizardType::I2C,
                         WizardType::SPI,
                         WizardType::UART,
                     ];
-                    
+
                     ui.label("Connection Type:");
                     egui::ComboBox::from_id_source("connection_type_combo")
                         .selected_text(options[selected].display_name())
                         .show_ui(ui, |cb_ui| {
                             for (i, wizard_type) in options.iter().enumerate() {
-                                if cb_ui.selectable_value(&mut selected.clone(), i, wizard_type.display_name()).clicked() {
+                                if cb_ui
+                                    .selectable_value(
+                                        &mut selected.clone(),
+                                        i,
+                                        wizard_type.display_name(),
+                                    )
+                                    .clicked()
+                                {
                                     match wizard_type {
                                         WizardType::None => {
                                             state.connection_wizard = None;
                                         }
                                         WizardType::I2C | WizardType::SPI | WizardType::UART => {
-                                            if let Some(main_board_rc) = state.project.main_board.as_mut() {
+                                            if let Some(main_board_rc) =
+                                                state.project.main_board.as_mut()
+                                            {
                                                 let main_board = main_board_rc.borrow();
                                                 // Starts the wizard
-                                                state.connection_wizard = Some(
-                                                    ConnectionWizard::new(*wizard_type, &main_board.board)
-                                                );                                    
+                                                state.connection_wizard =
+                                                    Some(ConnectionWizard::new(
+                                                        *wizard_type,
+                                                        &main_board.board,
+                                                    ));
                                             }
                                         }
                                     }
                                 }
                             }
                         });
-                    
+
                     ui.separator();
-                    
+
                     // Show wizard status and controls
                     if let Some(wizard) = &state.connection_wizard {
                         // Status message
@@ -270,34 +283,46 @@ impl BaseTab for CanvasTab {
                             state.colorschemes.current["warn_fg_color"]
                         };
                         ui.colored_label(color, status);
-                        
+
                         // Show selected pins so far
                         let selected = wizard.selected_pins();
                         if !selected.is_empty() {
                             ui.separator();
                             ui.label(format!("Connections:"));
-                            ui.vertical(|ui|
-                                for (role,_, name) in selected {
+                            ui.vertical(|ui| {
+                                for (role, _, name) in selected {
                                     ui.label(format!("{} : {}", role, name));
-                                }    
-                            );
+                                }
+                            });
                         }
                         ui.separator();
                         if ui.button("Cancel").clicked() {
                             state.connection_wizard = None;
                         }
                     }
-                    
+
                     ui.add_space(ui.available_width());
                 });
             });
         if self.selection.is_some() {
-            ui.painter().text(rect.min+Vec2{x:0.0,y:offset}, Align2::LEFT_TOP, "Delete: Remove current selection from canvas", FontId::monospace(12.0), state.colorschemes.current["code_bg_color"]);
+            ui.painter().text(
+                rect.min + Vec2 { x: 0.0, y: offset },
+                Align2::LEFT_TOP,
+                "Delete: Remove current selection from canvas",
+                FontId::monospace(12.0),
+                state.colorschemes.current["code_bg_color"],
+            );
             offset += 12.0;
         }
-        
+
         if self.connection_in_progress.is_some() {
-            ui.painter().text(rect.min+Vec2{x:0.0,y:offset}, Align2::LEFT_TOP, "Escape: Quit current connection", FontId::monospace(12.0), state.colorschemes.current["code_bg_color"]);
+            ui.painter().text(
+                rect.min + Vec2 { x: 0.0, y: offset },
+                Align2::LEFT_TOP,
+                "Escape: Quit current connection",
+                FontId::monospace(12.0),
+                state.colorschemes.current["code_bg_color"],
+            );
             offset += 12.0;
         }
 
@@ -322,21 +347,21 @@ impl BaseTab for CanvasTab {
                         canvas_board.pin_click(&to_screen, &response, &mouse_screen)
                     }
                 };
-                
+
                 if let Some(pin) = pin_opt {
                     clicked_pin = Some(pin);
 
-                    let mut should_connect=false;
+                    let mut should_connect = false;
                     if let Some(cw) = state.connection_wizard.as_mut() {
                         if cw.handle_pin_selected(pin, &canvas_board_rc.borrow().board) {
-                            should_connect=true;
-                        }                            
+                            should_connect = true;
+                        }
                         if matches!(cw.state, connection_wizard::WizardState::Complete) {
                             state.connection_wizard = None;
                         }
-                    }
-                    if !should_connect {
-                        break;
+                        if !should_connect {
+                            break;
+                        }
                     }
                     let conn_clone = conn.clone();
                     {
@@ -344,16 +369,21 @@ impl BaseTab for CanvasTab {
 
                         let pin_location_opt = {
                             let canvas_board = canvas_board_rc.borrow();
-                            canvas_board.get_pin_location(&pin)
+                            canvas_board
+                                .get_pin_location(&pin)
                                 .map(|loc| loc + canvas_board.get_canvas_position())
                         };
 
                         if let Some(pin_location) = pin_location_opt {
                             connection.add_end_point(&mouse_canvas, pin_location);
-							connection.show_popup = true;
+                            connection.show_popup = true;
                         }
 
-                        connection.get_start_board().borrow_mut().connections.push(conn_clone.clone());
+                        connection
+                            .get_start_board()
+                            .borrow_mut()
+                            .connections
+                            .push(conn_clone.clone());
 
                         connection.end(canvas_board_rc.clone(), pin.clone());
                     }
@@ -367,7 +397,7 @@ impl BaseTab for CanvasTab {
                     break;
                 }
             }
-            
+
             if clicked_pin.is_none() {
                 self.connection_in_progress = Some(conn);
 
@@ -376,14 +406,13 @@ impl BaseTab for CanvasTab {
                         conn.borrow_mut().add_point(mouse_canvas);
                     }
                 }
-            }            
+            }
         } else {
-
             let mut clicked_pin: Option<u32> = None;
             let mut ignore_canvas = false;
 
             // 2
-            
+
             let boards: Vec<_> = state.project.boards_iter().cloned().collect();
             for canvas_board_rc in &boards {
                 if clicked_pin.is_none() {
@@ -391,31 +420,35 @@ impl BaseTab for CanvasTab {
                         let mut canvas_board = canvas_board_rc.borrow_mut();
                         canvas_board.pin_click(&to_screen, &response, &mouse_screen)
                     };
-                    
+
                     if let Some(pin) = pin_opt {
                         clicked_pin = Some(pin);
                         if self.check_pin_use(canvas_board_rc, &pin, &state.project.connections) {
                             break;
                         }
-                        let mut should_connect=false;
+                        let mut should_connect = false;
                         if let Some(cw) = state.connection_wizard.as_mut() {
                             if cw.handle_pin_selected(pin, &canvas_board_rc.borrow().board) {
-                                should_connect=true;
-                            }                            
+                                should_connect = true;
+                            }
                             if matches!(cw.state, connection_wizard::WizardState::Complete) {
                                 state.connection_wizard = None;
                             }
+                            if !should_connect {
+                                break;
+                            }
                         }
-                        if !should_connect {
-                            break;
-                        }
-                                                
-                        let mut conn = Rc::new(RefCell::new(CanvasConnection::new(canvas_board_rc.clone(), pin.clone())));
+
+                        let mut conn = Rc::new(RefCell::new(CanvasConnection::new(
+                            canvas_board_rc.clone(),
+                            pin.clone(),
+                        )));
                         {
                             let mut connection = conn.borrow_mut();
                             let canvas_board = canvas_board_rc.borrow();
                             if let Some(pin_location) = canvas_board.get_pin_location(&pin) {
-                                connection.add_point(pin_location+canvas_board.get_canvas_position());
+                                connection
+                                    .add_point(pin_location + canvas_board.get_canvas_position());
                             }
                         }
 
@@ -467,17 +500,16 @@ impl BaseTab for CanvasTab {
             if clicked_pin == None && !ignore_canvas {
                 if response.dragged_by(egui::PointerButton::Secondary) {
                     self.canvas_offset += response.drag_delta();
-					for b_ref in state.project.boards_iter() {
-						let mut b = b_ref.borrow_mut();
-						b.canvas_update(&to_screen);
-					}
+                    for b_ref in state.project.boards_iter() {
+                        let mut b = b_ref.borrow_mut();
+                        b.canvas_update(&to_screen);
+                    }
                 }
 
                 if response.clicked() {
                     self.selection = None;
                 }
             }
-
         }
     }
 
@@ -500,50 +532,61 @@ impl CanvasTab {
         let canvas_rect = to_screen.inverse().transform_rect(screen_rect);
 
         let x_start = (canvas_rect.min.x / spacing).floor() as i32;
-        let x_end   = (canvas_rect.max.x / spacing).ceil() as i32;
+        let x_end = (canvas_rect.max.x / spacing).ceil() as i32;
 
         let y_start = (canvas_rect.min.y / spacing).floor() as i32;
-        let y_end   = (canvas_rect.max.y / spacing).ceil() as i32;
+        let y_end = (canvas_rect.max.y / spacing).ceil() as i32;
 
         for i in x_start..=x_end {
             let x = i as f32 * spacing;
             let p1 = to_screen.transform_pos(Pos2::new(x, canvas_rect.min.y));
             let p2 = to_screen.transform_pos(Pos2::new(x, canvas_rect.max.y));
-            ui.painter().line_segment([p1, p2], Stroke::new(1.0, grid_color));
+            ui.painter()
+                .line_segment([p1, p2], Stroke::new(1.0, grid_color));
         }
 
         for j in y_start..=y_end {
             let y = j as f32 * spacing;
             let p1 = to_screen.transform_pos(Pos2::new(canvas_rect.min.x, y));
             let p2 = to_screen.transform_pos(Pos2::new(canvas_rect.max.x, y));
-            ui.painter().line_segment([p1, p2], Stroke::new(1.0, grid_color));
+            ui.painter()
+                .line_segment([p1, p2], Stroke::new(1.0, grid_color));
         }
 
         let x_major_start = (canvas_rect.min.x / major_spacing).floor() as i32;
-        let x_major_end   = (canvas_rect.max.x / major_spacing).ceil() as i32;
+        let x_major_end = (canvas_rect.max.x / major_spacing).ceil() as i32;
 
         let y_major_start = (canvas_rect.min.y / major_spacing).floor() as i32;
-        let y_major_end   = (canvas_rect.max.y / major_spacing).ceil() as i32;
+        let y_major_end = (canvas_rect.max.y / major_spacing).ceil() as i32;
 
         for i in x_major_start..=x_major_end {
             let x = i as f32 * major_spacing;
             let p1 = to_screen.transform_pos(Pos2::new(x, canvas_rect.min.y));
             let p2 = to_screen.transform_pos(Pos2::new(x, canvas_rect.max.y));
-            ui.painter().line_segment([p1, p2], Stroke::new(3.0, grid_color));
+            ui.painter()
+                .line_segment([p1, p2], Stroke::new(3.0, grid_color));
         }
 
         for j in y_major_start..=y_major_end {
             let y = j as f32 * major_spacing;
             let p1 = to_screen.transform_pos(Pos2::new(canvas_rect.min.x, y));
             let p2 = to_screen.transform_pos(Pos2::new(canvas_rect.max.x, y));
-            ui.painter().line_segment([p1, p2], Stroke::new(3.0, grid_color));
+            ui.painter()
+                .line_segment([p1, p2], Stroke::new(3.0, grid_color));
         }
     }
 
-    fn check_pin_use(&self, board: &Rc<RefCell<CanvasBoard>>, pin_num: &u32, connections: &Vec<Rc<RefCell<CanvasConnection>>>) -> bool {
+    fn check_pin_use(
+        &self,
+        board: &Rc<RefCell<CanvasBoard>>,
+        pin_num: &u32,
+        connections: &Vec<Rc<RefCell<CanvasConnection>>>,
+    ) -> bool {
         for c in connections {
             let connection = c.borrow();
-            if Rc::ptr_eq(&connection.get_start_board(), board) && pin_num.eq(&connection.get_start_pin()) {
+            if Rc::ptr_eq(&connection.get_start_board(), board)
+                && pin_num.eq(&connection.get_start_pin())
+            {
                 return true;
             }
             if let Some(eb) = connection.get_end_board() {
@@ -555,18 +598,18 @@ impl CanvasTab {
         return false;
     }
 
-	pub fn fit_to_screen(&mut self, state: &mut SharedState, screen_rect: &Rect) {
-		let mut min = Vec2::splat(f32::INFINITY);
-    	let mut max = Vec2::splat(f32::NEG_INFINITY);
+    pub fn fit_to_screen(&mut self, state: &mut SharedState, screen_rect: &Rect) {
+        let mut min = Vec2::splat(f32::INFINITY);
+        let mut max = Vec2::splat(f32::NEG_INFINITY);
 
-		for b_ref in state.project.boards_iter() {
-			let b = b_ref.borrow();
-			let p = b.get_canvas_position();
+        for b_ref in state.project.boards_iter() {
+            let b = b_ref.borrow();
+            let p = b.get_canvas_position();
 
-			min = min.min(p);
-			max = max.max(p);
-		}
-	}
+            min = min.min(p);
+            max = max.max(p);
+        }
+    }
 
     pub fn reset_canvas(&mut self) {
         self.canvas_zoom = 5.0;

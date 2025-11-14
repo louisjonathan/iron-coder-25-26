@@ -20,7 +20,7 @@ use svg_reader::SvgBoardInfo;
 pub mod display;
 
 pub mod pinout;
-pub use pinout::{Pin, Pinout, GPIODirection};
+pub use pinout::{GPIODirection, Pin, Pinout};
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -177,7 +177,6 @@ impl Board {
     pub fn related_crates(&self) -> Option<Vec<String>> {
         self.related_crates.clone()
     }
-
     pub fn is_main_board(&self) -> bool {
         self.is_main_board
     }

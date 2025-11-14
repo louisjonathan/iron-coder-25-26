@@ -435,19 +435,19 @@ impl MainWindow {
                 ui.horizontal(|ui| {
                     ui.label("Main Board:");
                     let main_boards: Vec<_> = self.state.known_boards.iter()
-                        .filter(|b| b.borrow().is_main_board())
+                        .filter(|b| b.is_main_board())
                         .collect();
                     
                     if !main_boards.is_empty() {
                         let selected_board_name = main_boards.get(self.new_project_dialog.selected_board_index)
-                            .map(|b| b.borrow().get_name().to_owned())
+                            .map(|b| b.get_name().to_owned())
                             .unwrap_or("Unknown".to_string());
                         
                         egui::ComboBox::from_label("")
                             .selected_text(selected_board_name)
                             .show_ui(ui, |ui| {
                                 for (i, board) in main_boards.iter().enumerate() {
-                                    ui.selectable_value(&mut self.new_project_dialog.selected_board_index, i, board.borrow().get_name());
+                                    ui.selectable_value(&mut self.new_project_dialog.selected_board_index, i, board.get_name());
                                 }
                             });
                     } else {
@@ -496,7 +496,7 @@ impl MainWindow {
         // select board for the project
         if self.new_project_dialog.selected_board_index < self.state.known_boards.len() {
             let main_boards: Vec<_> = self.state.known_boards.iter()
-                .filter(|b| b.borrow().is_main_board())
+                .filter(|b| b.is_main_board())
                 .collect();
             
             if self.new_project_dialog.selected_board_index < main_boards.len() {

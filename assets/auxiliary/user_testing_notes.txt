@@ -1,0 +1,22 @@
+// compilation of various complaints/bugs/comments from testers
+// Some may not be relevant or somewhat misguided, but still left for completion sake.
+
+fresh install no syntax
+no focusing on already-open tab when opened through view
+File explorer crashed when no project open
+Browse button doesn't work when creating a new project
+right click to drag
+Didn't understand the need to make project before placing parts on canvas.
+Upon creating project, main.rs didnt open correctly.
+User interface is relatively simple and is intuitive to use.
+Ability to customize theme and color scheme is nice.
+Seems like a useful program for generating code for simple microcontrolled circuits.
+Simulator doesn't have basic circuit components such as resistors, diodes,L transistors, and potentiometers.
+LED legs are so similar in length that it is visually hard to tell between anode and cathode.
+Not clear that I needed to open a new project to begin a simulation.
+Cannot clear Arduino Uno model prior to File->New Project
+Have to unload 469 containers twice: once when downloading Iron Coder and another time when trying to flash/upload to Arduino Uno
+RESET push button on Arduino Uno inside the application doesn't work.
+When bottom GND pins on the Arduino Uno are clicked, the application defaults to the top GND pin.
+While the feature that showcases pin description when pressing tab is cool,
+most pins are already written on the sample image of the Arduino Uno so only displaying the names of pins not written on the Arduino Uno would suffice for this feature. If wanting to display all pin names, you should have a line from the pin going to the text separate from the pin header to properly separate pin names

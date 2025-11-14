@@ -10,8 +10,8 @@ path = "./src/bin/main.rs"
 [dependencies]
 esp-bootloader-esp-idf = { version = "0.2.0", features = ["esp32c6"] }
 esp-hal                = { version = "=1.0.0-rc.0", features = ["esp32c6"] }
-
 critical-section = "1.2.0"
+common_hal_interface = { version = "1.0.3-alpha", features= ["esp"]}
 
 
 [profile.dev]

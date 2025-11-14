@@ -8,17 +8,134 @@ flash = 32
 required_crates = ["ufmt", "nb", "embedded-hal", "embedded-time", "panic-halt"]
 related_crates = ["smart-leds", "ws2812-pio"]
 
-bsp = "iron-coder-uno-bsp"
+[pinout]
+interfaces = [
+	{ name = "GPIO", alias_fmt = "GPIO{}"},
+	{ name = "I2C", bus = true, roles = [{name = "SDA"}, {name = "SCL"}] },
+	{ name = "SPI", bus = true, roles = [{name = "SCK"}, {name = "MISO"}, {name = "MOSI"}, {name = "SS"}] },
+	{ name = "UART", bus = true, roles = [{name = "TX"}, {name = "RX"}] },
+	{ name = "USB", bus = true, roles = [{name = "USB_D+"}, {name = "USB_D-"}] },
+]
+pins = [
+	# power & control
+	{ physical = 0, silkscreen = "3V3" },
+	{ physical = 1, silkscreen = "RST" },
 
-# Each element of the Pinout Vec should be prefaced with [[pinout]]
-[[pinout]]
-pins = ["rx", "tx"]
-interface = { iface_type = "UART", direction = "Bidirectional" }
+	# gpio
+	{ physical = 2, logical = 2, silkscreen = "2", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 3, logical = 3, silkscreen = "3", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 4, logical = 4, silkscreen = "4", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 5, logical = 5, silkscreen = "5", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 6, logical = 0, silkscreen = "0/N", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 7, logical = 1, silkscreen = "1/N", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 8, logical = 8, silkscreen = "8", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 9, logical = 6, silkscreen = "6", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 10, logical = 7, silkscreen = "7", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 11, logical = 14, silkscreen = "14", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
 
-[[pinout]]
-pins = ["scl", "sda"]
-interface = { iface_type = "I2C", direction = "Output" }
+	# power
+	{ physical = 12, silkscreen = "G" },
+	{ physical = 13, silkscreen = "5V" },
+	{ physical = 14, silkscreen = "G" },
+	{ physical = 15, silkscreen = "G" },
 
-[[pinout]]
-pins = ["mosi", "miso", "sclk"]
-interface = { iface_type = "SPI", direction = "Output" }
+	# default uart
+	{ physical = 16, logical = 16, silkscreen = "TX", roles = [
+		{ name = "TX" },
+	]},
+	{ physical = 17, logical = 17, silkscreen = "RX", roles = [
+		{ name = "RX" },
+	]},
+
+	# gpio
+	{ physical = 18, logical = 23, silkscreen = "23", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 19, logical = 22, silkscreen = "22", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 20, logical = 21, silkscreen = "21", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 21, logical = 20, silkscreen = "20", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 22, logical = 19, silkscreen = "19", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 23, logical = 18, silkscreen = "18", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 24, logical = 15, silkscreen = "15", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+	{ physical = 25, logical = 9, silkscreen = "9", roles = [
+		{ name = "GPIO" },
+		{ name = "I2C" },
+		{ name = "SPI" },
+	]},
+
+	# power & usb
+	{ physical = 26, silkscreen = "G" },
+	{ physical = 27, logical = 13, silkscreen = "13", roles = [
+		{ name = "USB_D+" },
+	]},
+	{ physical = 28, logical = 12, silkscreen = "12", roles = [
+		{ name = "USB_D-" },
+	]},
+	{ physical = 29, silkscreen = "G" },
+]

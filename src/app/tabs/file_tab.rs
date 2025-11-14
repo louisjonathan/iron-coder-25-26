@@ -25,6 +25,9 @@ pub struct FileTab {
 	watcher_rx: Option<Receiver<Event>>,
 	watcher_handle: Option<thread::JoinHandle<()>>,
 	file_changed_externally: Arc<Mutex<bool>>,
+
+	last_cursor_range: Option<egui::text::CCursorRange>,
+    should_request_focus: bool,
 }
 
 impl FileTab {
@@ -41,6 +44,10 @@ impl FileTab {
 			watcher_rx: None,
 			watcher_handle: None,
 			file_changed_externally: Arc::new(Mutex::new(false)),
+			
+			// Cursor restoration logic
+			last_cursor_range: None,
+			should_request_focus: false,
 		}
 	}
 
@@ -71,6 +78,8 @@ impl FileTab {
 			file.write(self.code.as_bytes())?;
 			file.sync_all()?;
 			self.synced = true;
+			// Must request focus after synced changes due to title name change
+			self.should_request_focus = true;
 		}
 		Ok(())
 	}
@@ -160,8 +169,6 @@ impl BaseTab for FileTab {
 			}
 			
 			let response = if self.use_syntax_highlighting && !self.code.is_empty() {
-				// apply syntax highlighting
-				let cached_job = self.cached_layout_job.clone();
 				ui.add(
 					egui::TextEdit::multiline(&mut self.code)
 						.font(egui::TextStyle::Monospace)
@@ -176,7 +183,6 @@ impl BaseTab for FileTab {
 						}),
 				)
 			} else {
-				// just draw it nromally if above doesnt work
 				ui.add(
 					egui::TextEdit::multiline(&mut self.code)
 						.font(egui::TextStyle::Monospace)
@@ -186,14 +192,34 @@ impl BaseTab for FileTab {
 						.frame(false),
 				)
 			};
-			
-			// check if the code has changed, so we can set the synced flag
+
+			// Store cursor position whenever the text edit has focus
+			if response.has_focus() {
+				if let Some(mut state) = egui::TextEdit::load_state(ui.ctx(), response.id) {
+					if let Some(cursor_range) = state.cursor.char_range() {
+						self.last_cursor_range = Some(cursor_range);
+					}
+				}
+			}
+
+			if self.should_request_focus {
+				response.request_focus();
+				if let Some(cursor_range) = self.last_cursor_range {
+					if let Some(mut state) = egui::TextEdit::load_state(ui.ctx(), response.id) {
+						state.cursor.set_char_range(Some(cursor_range));
+						state.store(ui.ctx(), response.id);
+					}
+				}
+				self.should_request_focus = false;
+			}
+
 			if self.synced && self.code != former_contents {
 				self.synced = false;
+				// Must request focus after synced changes due to title name change
+				self.should_request_focus = true;
 			}
 			
 			// See if a code snippet was released over the editor.
-			// TODO -- if so, insert it on the proper line
 			ui.ctx().memory_mut(|mem| {
 				let id = egui::Id::new("released_code_snippet");
 				let data: Option<String> = mem.data.get_temp(id);

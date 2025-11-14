@@ -37,10 +37,9 @@ impl BaseTab for BoardInfoTab {
             // }
             ui.label("or select a board from the list below");
             ui.columns(num_cols, |columns| {
-                for (i, b) in state.known_boards.clone().into_iter().enumerate() {
+                for (i, board) in state.known_boards.clone().into_iter().enumerate() {
 					if state.project.has_main_board() {
-						let board = b.borrow();
-						if board.is_main_board() {
+						if board.as_ref().is_main_board() {
 							continue;
 						}
 					}
@@ -48,10 +47,10 @@ impl BaseTab for BoardInfoTab {
                     // When a board is clicked, add it to the new project
                     ///@TODO  BoardSelectorWidget
                     if columns[col]
-                        .add(board::display::BoardSelectorWidget(b.borrow().clone()))
+                        .add(board::display::BoardSelectorWidget(board.clone()))
                         .clicked()
                     {
-                        state.project.add_board(&b);
+                        state.project.add_board(&board);
 
 						// state.project.add_board(b.clone());
 

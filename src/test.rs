@@ -21,8 +21,8 @@ mod tests {
 		let mut project = Project::default();
 
 		// board rcs
-		let b1_rc = Rc::new(RefCell::new(Board::dummy_svg()));
-		let b2_rc = Rc::new(RefCell::new(Board::dummy_svg()));
+		let b1_rc = Rc::new(Board::dummy_svg());
+		let b2_rc = Rc::new(Board::dummy_svg());
 		let kb = vec![b1_rc.clone(), b2_rc.clone()];
 		
 		// canvas board rcs
@@ -32,8 +32,8 @@ mod tests {
 		let cb2_id = cb2_rc.borrow().id;
 
 		// connection
-		let connection_rc = Rc::new(RefCell::new(CanvasConnection::new(cb1_rc.clone(), "test".to_string())));
-		connection_rc.borrow_mut().end(cb2_rc.clone(), "test2".to_string());
+		let connection_rc = Rc::new(RefCell::new(CanvasConnection::new(cb1_rc.clone(), 0)));
+		connection_rc.borrow_mut().end(cb2_rc.clone(), 1);
 		project.add_connection(&connection_rc);
 
 		// test uuids are correctly assigned

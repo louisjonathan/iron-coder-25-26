@@ -2,7 +2,7 @@
 #![no_std]
 #![no_main]
 
-use arduino_hal::prelude::_unwrap_infallible_UnwrapInfallible;
+use arduino_hal::prelude::*;
 use panic_halt as _;
 use ufmt::uwriteln;
 
@@ -13,9 +13,7 @@ fn main() -> ! {
     arduino_setup!(dp, pins);
     let mut serial = setup_serial!(dp, pins, 57600);
     uwriteln!(serial, "Starting up...").unwrap();
-    let i2c = setup_i2c_instance!(dp, pins, 100_000);
-    // lol apparently the internal LED is the same pin as SPI SCK so you cant use them at the same time
-    //let mut spi = setup_spi_instance!(dp, pins);
+
     /*
      * For examples (and inspiration), head to
      *

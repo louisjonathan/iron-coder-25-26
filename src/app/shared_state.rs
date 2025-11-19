@@ -107,6 +107,12 @@ impl SharedState {
                 term.process_command(BackendCommand::Write(
                     format!("cd {}\n", path_str).as_bytes().to_vec(),
                 ));
+                // Clear the terminal after changing directory
+                if term_type.contains("cmd") || term_type.contains("powershell") {
+                    term.process_command(BackendCommand::Write("cls\n".as_bytes().to_vec()));
+                } else {
+                    term.process_command(BackendCommand::Write("clear\n".as_bytes().to_vec()));
+                }
             }
         }
         self.sync_file_explorer = true;

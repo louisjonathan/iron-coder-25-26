@@ -4,10 +4,11 @@ use crate::app::connection_wizard::ConnectionWizard;
 use crate::app::ide_settings::{self, IDE_Settings};
 use crate::app::keybinding::{Keybinding, Keybindings};
 use crate::app::syntax_highlighting::SyntaxHighlighter;
-use crate::board;
+use crate::board::{self, Board};
 use crate::project::Project;
 
 use crate::app::CanvasConnection;
+use eframe::glow::LINE;
 use egui_term::{BackendCommand, TerminalBackend};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -17,7 +18,10 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use uuid::Uuid;
 
-use crate::board::Board;
+#[cfg(target_os = "windows")]
+pub const LINE_ENDING: &str = "\r\n";
+#[cfg(not(target_os = "windows"))]
+pub const LINE_ENDING: &str = "\n";
 
 pub struct SharedState {
     pub did_activate_colorscheme: bool,
@@ -97,21 +101,21 @@ impl SharedState {
     pub fn term_open_project_dir(&mut self) {
         if let Some(term_ref) = &self.output_terminal_backend {
             let mut term = term_ref.borrow_mut();
-            if let (Some(def_term), Some(dir)) = (&self.default_terminal, &self.project.location) {
+            if let (Some(def_term), Some(project_dir)) = (&self.default_terminal, &self.project.location) {
                 let term_type = def_term
                     .file_name()
                     .and_then(OsStr::to_str)
                     .unwrap_or("")
                     .to_ascii_lowercase();
-                let path_str = dir.to_string_lossy().replace("\\", "/");
+                let path_str = project_dir.to_string_lossy().replace("\\", "/");
                 term.process_command(BackendCommand::Write(
-                    format!("cd {}\r\n", path_str).as_bytes().to_vec(),
+                    format!("cd {}{}", path_str, LINE_ENDING).as_bytes().to_vec(),
                 ));
                 // Clear the terminal after changing directory
                 if term_type.contains("cmd") || term_type.contains("powershell") {
-                    term.process_command(BackendCommand::Write("cls\r\n".as_bytes().to_vec()));
+                    term.process_command(BackendCommand::Write(format!("cls {}",LINE_ENDING).as_bytes().to_vec()));
                 } else {
-                    term.process_command(BackendCommand::Write("clear\r\n".as_bytes().to_vec()));
+                    term.process_command(BackendCommand::Write(format!("clear {}",LINE_ENDING).as_bytes().to_vec()));
                 }
             }
         }
@@ -123,7 +127,7 @@ impl SharedState {
             let mut term = term_ref.borrow_mut();
             self.project.update_toolchain_location();
             term.process_command(BackendCommand::Write(
-                "cargo +nightly build\r\n".as_bytes().to_vec(),
+                "cargo +nightly build\n".as_bytes().to_vec(),
             ));
         }
     }
@@ -131,8 +135,20 @@ impl SharedState {
     pub fn run_project(&mut self) {
         if let Some(term_ref) = &self.output_terminal_backend {
             let mut term = term_ref.borrow_mut();
+            // if project uses main board arduino, select --target atmega328p.json
+            // if let Some(board) = self.project.main_board.as_ref() {
+            //     if board.borrow().board.cpu.as_deref() == Some("arduino-uno") {
+            //         term.process_command(BackendCommand::Write(
+            //             format!("cargo +nightly run {}", LINE_ENDING).as_bytes().to_vec(),
+            //         ));
+            //     } else {
+            //         term.process_command(BackendCommand::Write(
+            //             format!("cargo +nightly run --target avr-atmega328p.json{}", LINE_ENDING).as_bytes().to_vec(),
+            //         ));
+            //     }
+            // }
             term.process_command(BackendCommand::Write(
-                "cargo +nightly run\r\n".as_bytes().to_vec(),
+                "cargo +nightly run\n".as_bytes().to_vec(),
             ));
         }
     }

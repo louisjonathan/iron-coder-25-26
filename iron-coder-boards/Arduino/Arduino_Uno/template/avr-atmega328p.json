@@ -8,7 +8,6 @@
   "linker-flavor": "gcc",
   "linker-is-gnu": true,
   "llvm-target": "avr-unknown-unknown",
-  "no-compiler-rt": true,
   "os": "none",
   "position-independent-executables": false,
   "exe-suffix": ".elf",
@@ -25,8 +24,8 @@
       "-lgcc"
     ]
   },
-  "target-c-int-width": "16",
+  "target-c-int-width": 16,
   "target-endian": "little",
-  "target-pointer-width": "16",
+  "target-pointer-width": 16,
   "vendor": "unknown"
 }

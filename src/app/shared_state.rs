@@ -109,9 +109,9 @@ impl SharedState {
                 ));
                 // Clear the terminal after changing directory
                 if term_type.contains("cmd") || term_type.contains("powershell") {
-                    term.process_command(BackendCommand::Write("cls\n".as_bytes().to_vec()));
+                    term.process_command(BackendCommand::Write("cls\r\n".as_bytes().to_vec()));
                 } else {
-                    term.process_command(BackendCommand::Write("clear\n".as_bytes().to_vec()));
+                    term.process_command(BackendCommand::Write("clear\r\n".as_bytes().to_vec()));
                 }
             }
         }

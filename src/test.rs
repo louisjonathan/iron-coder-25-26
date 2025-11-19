@@ -3,7 +3,6 @@ mod tests {
     use crate::app::CanvasConnection;
     use crate::board::{Board, svg_reader::SvgBoardInfo};
     use crate::project::Project;
-    use serde_json;
     use std::cell::RefCell;
     use std::rc::Rc;
 

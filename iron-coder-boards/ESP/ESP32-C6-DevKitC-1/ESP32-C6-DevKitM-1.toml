@@ -22,53 +22,53 @@ pins = [
 	{ physical = 1, silkscreen = "RST" },
 
 	# gpio
-	{ physical = 2, logical = 2, silkscreen = "2", roles = [
-		{ name = "GPIO" },
+	{ physical = 2, silkscreen = "2", roles = [
+		{ name = "GPIO", id = 2 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 3, logical = 3, silkscreen = "3", roles = [
-		{ name = "GPIO" },
+	{ physical = 3, silkscreen = "3", roles = [
+		{ name = "GPIO", id = 3 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 4, logical = 4, silkscreen = "4", roles = [
-		{ name = "GPIO" },
+	{ physical = 4, silkscreen = "4", roles = [
+		{ name = "GPIO", id = 4 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 5, logical = 5, silkscreen = "5", roles = [
-		{ name = "GPIO" },
+	{ physical = 5, silkscreen = "5", roles = [
+		{ name = "GPIO", id = 5 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 6, logical = 0, silkscreen = "0/N", roles = [
-		{ name = "GPIO" },
+	{ physical = 6, silkscreen = "0/N", roles = [
+		{ name = "GPIO", id = 0 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 7, logical = 1, silkscreen = "1/N", roles = [
-		{ name = "GPIO" },
+	{ physical = 7, silkscreen = "1/N", roles = [
+		{ name = "GPIO", id = 1 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 8, logical = 8, silkscreen = "8", roles = [
-		{ name = "GPIO" },
+	{ physical = 8, silkscreen = "8", roles = [
+		{ name = "GPIO", id = 8 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 9, logical = 6, silkscreen = "6", roles = [
-		{ name = "GPIO" },
+	{ physical = 9, silkscreen = "6", roles = [
+		{ name = "GPIO", id = 6 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 10, logical = 7, silkscreen = "7", roles = [
-		{ name = "GPIO" },
+	{ physical = 10, silkscreen = "7", roles = [
+		{ name = "GPIO", id = 7 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 11, logical = 14, silkscreen = "14", roles = [
-		{ name = "GPIO" },
+	{ physical = 11, silkscreen = "14", roles = [
+		{ name = "GPIO", id = 14 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
@@ -80,61 +80,61 @@ pins = [
 	{ physical = 15, silkscreen = "G" },
 
 	# default uart
-	{ physical = 16, logical = 16, silkscreen = "TX", roles = [
+	{ physical = 16, silkscreen = "TX", roles = [
 		{ name = "TX" },
 	]},
-	{ physical = 17, logical = 17, silkscreen = "RX", roles = [
+	{ physical = 17, silkscreen = "RX", roles = [
 		{ name = "RX" },
 	]},
 
 	# gpio
-	{ physical = 18, logical = 23, silkscreen = "23", roles = [
-		{ name = "GPIO" },
+	{ physical = 18, silkscreen = "23", roles = [
+		{ name = "GPIO", id = 23 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 19, logical = 22, silkscreen = "22", roles = [
-		{ name = "GPIO" },
+	{ physical = 19, silkscreen = "22", roles = [
+		{ name = "GPIO", id = 22 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 20, logical = 21, silkscreen = "21", roles = [
-		{ name = "GPIO" },
+	{ physical = 20, silkscreen = "21", roles = [
+		{ name = "GPIO", id = 21 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 21, logical = 20, silkscreen = "20", roles = [
-		{ name = "GPIO" },
+	{ physical = 21, silkscreen = "20", roles = [
+		{ name = "GPIO", id = 20 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 22, logical = 19, silkscreen = "19", roles = [
-		{ name = "GPIO" },
+	{ physical = 22, silkscreen = "19", roles = [
+		{ name = "GPIO", id = 19 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 23, logical = 18, silkscreen = "18", roles = [
-		{ name = "GPIO" },
+	{ physical = 23, silkscreen = "18", roles = [
+		{ name = "GPIO", id = 18 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 24, logical = 15, silkscreen = "15", roles = [
-		{ name = "GPIO" },
+	{ physical = 24, silkscreen = "15", roles = [
+		{ name = "GPIO", id = 15 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
-	{ physical = 25, logical = 9, silkscreen = "9", roles = [
-		{ name = "GPIO" },
+	{ physical = 25, silkscreen = "9", roles = [
+		{ name = "GPIO", id = 9 },
 		{ name = "I2C" },
 		{ name = "SPI" },
 	]},
 
 	# power & usb
 	{ physical = 26, silkscreen = "G" },
-	{ physical = 27, logical = 13, silkscreen = "13", roles = [
+	{ physical = 27, silkscreen = "13", roles = [
 		{ name = "USB_D+" },
 	]},
-	{ physical = 28, logical = 12, silkscreen = "12", roles = [
+	{ physical = 28, silkscreen = "12", roles = [
 		{ name = "USB_D-" },
 	]},
 	{ physical = 29, silkscreen = "G" },

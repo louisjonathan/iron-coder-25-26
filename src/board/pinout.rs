@@ -2,6 +2,7 @@ use egui::accesskit::Role;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::ops::DerefMut;
 use std::rc::Rc;
 
@@ -31,8 +32,6 @@ pub struct Pinout {
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct Pin {
     pub physical: u32,
-    #[serde(default)]
-    pub logical: Option<u32>,
     pub silkscreen: String,
     #[serde(default)]
     pub roles: Vec<RoleAssignment>,
@@ -142,7 +141,7 @@ impl Pinout {
         for pin in &mut self.pins {
             for role in &pin.roles {
                 let name = if let Some(fmt) = self.alias_map.get(&role.name) {
-                    let id = role.id.or(pin.logical).unwrap_or_else(|| {
+                    let id = role.id.unwrap_or_else(|| {
                         panic!(
                             "Neither role.id nor pin.logical exists for pin {:?} at role {:?}",
                             pin, role
@@ -196,5 +195,36 @@ impl Pinout {
 
     pub fn get_interface_from_role(&self, role: &String) -> Option<&String> {
         self.role_to_interface.get(role)
+    }
+
+    pub fn get_pin(&self, physical: &u32) -> Option<&Pin> {
+        self.pins.iter().find(|&p| p.physical == *physical)
+    }
+
+    pub fn ui_show_pin_info(&self, physical: &u32, ui: &mut egui::Ui) {
+        if let Some(pin) = self.get_pin(physical) {
+            ui.heading(format!("Pin {}", pin.silkscreen));
+            ui.label(format!("Physical pin: {}", pin.physical));
+
+            ui.separator();
+
+            if pin.roles.is_empty() {
+                ui.label("Roles: (none)");
+            } else {
+                ui.label("Roles:");
+                for role in &pin.roles {
+                    let interface = self.get_interface_from_role(&role.name);
+                    let alias = pin.aliases.get(&role.name);
+                    let label = if let Some(interface) = interface && let Some(alias) = alias {
+                        format!("{}:{}", interface, alias)
+                    } else if let Some(alias) = alias {
+                        format!("{}", alias)
+                    } else {
+                        String::new()
+                    };
+                    ui.label(label);
+                }
+            }
+        }
     }
 }

@@ -105,7 +105,7 @@ impl SharedState {
                     .to_ascii_lowercase();
                 let path_str = dir.to_string_lossy().replace("\\", "/");
                 term.process_command(BackendCommand::Write(
-                    format!("cd {}\n", path_str).as_bytes().to_vec(),
+                    format!("cd {}\r\n", path_str).as_bytes().to_vec(),
                 ));
             }
         }
@@ -117,7 +117,7 @@ impl SharedState {
             let mut term = term_ref.borrow_mut();
             self.project.update_toolchain_location();
             term.process_command(BackendCommand::Write(
-                "cargo +nightly build\n".as_bytes().to_vec(),
+                "cargo +nightly build\r\n".as_bytes().to_vec(),
             ));
         }
     }
@@ -126,7 +126,7 @@ impl SharedState {
         if let Some(term_ref) = &self.output_terminal_backend {
             let mut term = term_ref.borrow_mut();
             term.process_command(BackendCommand::Write(
-                "cargo +nightly run\n".as_bytes().to_vec(),
+                "cargo +nightly run\r\n".as_bytes().to_vec(),
             ));
         }
     }

@@ -2,7 +2,10 @@ use crate::app::SharedState;
 use crate::app::canvas_connection::CanvasConnection;
 use crate::app::connection_wizard::ConnectionWizard;
 use crate::board::{Board, svg_reader::SvgBoardInfo};
-use egui::{Color32, Context, Id, Pos2, Rect, Response, Sense, TextureHandle, TextureId, Ui, Vec2};
+use egui::{
+    Color32, Context, Id, PointerButton, Pos2, Rect, Response, Sense, TextureHandle, TextureId, Ui,
+    Vec2,
+};
 use emath::RectTransform;
 
 use egui_extras::RetainedImage;
@@ -191,6 +194,16 @@ impl CanvasBoard {
         }
     }
 
+    pub fn draw_pin_from_number(&self, pin: &u32, ui: &mut egui::Ui, to_screen: &RectTransform) {
+        let pin_color = ui.style().visuals.faint_bg_color;
+        if let Some(pin_rect) = self.pin_locations.get(pin) {
+            let t_rect = self.to_canvas(to_screen, pin_rect);
+            if let Some(name) = self.board.pinout.get_pin_name(pin) {
+                self.draw_pin(ui, name, &t_rect, pin_color);
+            }
+        }
+    }
+
     pub fn highlight(&self, ui: &mut egui::Ui, to_screen: &RectTransform) {
         ui.painter().rect(
             self.canvas_rect,
@@ -265,17 +278,27 @@ impl CanvasBoard {
         to_screen: &RectTransform,
         response: &Response,
         mouse_pos: &Pos2,
-    ) -> Option<u32> {
-        if !response.clicked() {
-            return None;
-        }
+        ui: &Ui,
+    ) -> Option<(u32, PointerButton)> {
+        ui.ctx().input(|i| {
+            let pressed_button = if i.pointer.button_pressed(PointerButton::Primary) {
+                Some(PointerButton::Primary)
+            } else if i.pointer.button_pressed(PointerButton::Secondary) {
+                Some(PointerButton::Secondary)
+            } else if i.pointer.button_pressed(PointerButton::Middle) {
+                Some(PointerButton::Middle)
+            } else {
+                None
+            }?;
 
-        for ((pin_name, pin_rect)) in self.pin_locations.iter() {
-            if self.to_canvas(to_screen, pin_rect).contains(*mouse_pos) {
-                return Some(*pin_name);
+            for (pin_name, pin_rect) in self.pin_locations.iter() {
+                if self.to_canvas(to_screen, pin_rect).contains(*mouse_pos) {
+                    return Some((*pin_name, pressed_button));
+                }
             }
-        }
-        return None;
+
+            None
+        })
     }
 
     pub fn get_pin_location(&self, pin_num: &u32) -> Option<Pos2> {

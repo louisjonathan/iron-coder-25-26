@@ -11,7 +11,7 @@ related_crates = ["smart-leds", "ws2812-pio"]
 
 [pinout]
 interfaces = [
-	{ name = "GPIO", roles = [{name = "Digital", alias_fmt = "D{}"}, {name = "Analog", alias_fmt = "A{}"}] },
+	{ name = "GPIO", roles = [{name = "Digital", alias_fmt = "d{}"}, {name = "Analog", alias_fmt = "a{}"}] },
 	{ name = "I2C", bus = true, roles = [{name = "SDA"}, {name = "SCL"}] },
 	{ name = "SPI", bus = true, roles = [{name = "SCK"}, {name = "MISO"}, {name = "MOSI"}, {name = "SS"}] },
 	{ name = "UART", bus = true, roles = [{name = "TX"}, {name = "RX"}] },

@@ -543,10 +543,6 @@ impl Project {
         let end_pin = conn.get_end_pin().unwrap();
         if let Some(pin_interface) = eb.get_peripheral_pin_interface(&end_pin) {
             if let Some(possible_pins) = sb.pinout.get_pins_from_role(&pin_interface.name) {
-                println!(
-                    "CHECKING IF {}:{:?} HAS {}",
-                    pin_interface.name, possible_pins, start_pin
-                );
                 if !possible_pins.contains(&start_pin) {
                     return None;
                 };

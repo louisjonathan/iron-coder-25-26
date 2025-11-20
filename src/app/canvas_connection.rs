@@ -1,10 +1,11 @@
 use crate::app::canvas_board::CanvasBoard;
+use crate::app::colorschemes::debug_once;
 use crate::board::Board;
-use egui::{Color32, Key, Pos2, Rect, Response, Stroke, Ui, Vec2};
+use egui::{Color32, Key, Pos2, Rect, Response, Stroke, Ui, Vec2, Align2, FontId};
 use emath::RectTransform;
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use uuid::Uuid;
 
 use crate::project::Project;
@@ -19,8 +20,15 @@ use crate::board::Pin;
 pub struct CanvasConnection {
     pub name: String,
     pub id: Uuid,
+
+    /// Hash map key key for specific protocol group for this connection
+    pub protocol_group_id: Option<Uuid>,
+
+    /// Role assigned to connection.
+    pub role: Option<String>,
+
     points: Vec<Pos2>,
-    color: egui::Color32,
+    pub color: egui::Color32,
 
     #[serde(skip)]
     start_board: Rc<RefCell<CanvasBoard>>,
@@ -39,8 +47,7 @@ pub struct CanvasConnection {
 }
 
 impl CanvasConnection {
-    pub fn new(start_board: Rc<RefCell<CanvasBoard>>, start_pin: u32) -> Self {
-        let color = egui::Color32::RED;
+    pub fn new(start_board: Rc<RefCell<CanvasBoard>>, start_pin: u32, color: Color32) -> Self {
         let points = Vec::<Pos2>::new();
 
         let mut points = points;
@@ -50,6 +57,8 @@ impl CanvasConnection {
         Self {
             name: String::new(),
             id: Uuid::new_v4(),
+            protocol_group_id: None,
+            role: None,
             points,
             color,
             start_board: start_board,
@@ -76,7 +85,7 @@ impl CanvasConnection {
         }
     }
 
-    pub fn draw(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: Pos2) {
+    pub fn draw(&mut self, ui: &mut egui::Ui, to_screen: &RectTransform, mouse_pos: Pos2, colorscheme: &HashMap<String, Color32>) {
         let len = self.points.len();
         if len > 0 && self.show_popup {
             let loc = self.points.last().unwrap();
@@ -84,11 +93,18 @@ impl CanvasConnection {
             self.creation_popup(ui, &loc);
         }
         if len > 1 {
+            // Secondary contrast color
+            let draw_color = self.color;
+            // debug_once(
+            //     &format!("conn_draw_{}", self.id),
+            //     format!("connection {} drawing with color {:?}", self.name, draw_color)
+            // );
+
             for i in 0..self.points.len() - 1 {
                 let start = to_screen.transform_pos(self.points[i]);
                 let end = to_screen.transform_pos(self.points[i + 1]);
                 ui.painter()
-                    .line_segment([start, end], egui::Stroke::new(4.0, self.color));
+                    .line_segment([start, end], egui::Stroke::new(4.0, draw_color));
             }
         }
 
@@ -148,6 +164,19 @@ impl CanvasConnection {
         // }
     }
 
+    /// Remove the last waypoint from the connection
+    /// Keeps at least the starting pin point (won't remove if only 1 point exists)
+    pub fn remove_last_point(&mut self) -> bool {
+        if self.points.len() > 1 {
+            self.points.pop();
+            //println!("removed last waypoint ({} points remaining)", self.points.len());
+            true
+        } else {
+            // ""
+            false
+        }
+    }
+
     pub fn end(&mut self, board: Rc<RefCell<CanvasBoard>>, pin: u32) {
         let b = board.borrow();
 
@@ -203,6 +232,22 @@ impl CanvasConnection {
             let p_t = to_screen.transform_pos(*p);
             ui.painter()
                 .circle_stroke(p_t, pin_r, Stroke::new(2.0, point_color));
+        }
+    }
+
+    /// Highlight this connection as part of a protocol group
+    /// Draws a thick border around the entire connection path
+    pub fn highlight_as_group(&self, ui: &mut egui::Ui, to_screen: &RectTransform, border_color: Color32) {
+        let len = self.points.len();
+        if len > 1 {
+            // Draw thick border behind the connection
+            for i in 0..len - 1 {
+                let start = to_screen.transform_pos(self.points[i]);
+                let end = to_screen.transform_pos(self.points[i + 1]);
+                // Draw a thicker stroke as the "border"
+                ui.painter()
+                    .line_segment([start, end], Stroke::new(8.0, border_color));
+            }
         }
     }
 

@@ -224,7 +224,7 @@ impl Pinout {
                     };
                     ui.label(label);
                 }
-            }
+            };
         }
     }
 }

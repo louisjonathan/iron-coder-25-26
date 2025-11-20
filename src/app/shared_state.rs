@@ -1,6 +1,7 @@
 use crate::app::canvas_board::CanvasBoard;
 use crate::app::colorschemes::{self, colorscheme};
 use crate::app::connection_wizard::ConnectionWizard;
+use crate::app::command::CommandHistory;
 use crate::app::ide_settings::{self, IDE_Settings};
 use crate::app::keybinding::{Keybinding, Keybindings};
 use crate::app::syntax_highlighting::SyntaxHighlighter;
@@ -36,6 +37,7 @@ pub struct SharedState {
     pub reset_canvas: bool,
     pub sync_file_explorer: bool,
     pub connection_wizard: Option<ConnectionWizard>,
+    pub command_history: CommandHistory,
 }
 
 impl SharedState {
@@ -57,18 +59,23 @@ impl SharedState {
         let mut colorschemes = colorscheme::default();
 
         if let Some(scheme_name) = last_settings.colorscheme_file {
-            colorschemes = colorschemes::try_get_colorscheme(&scheme_name).map_or_else(
-                || {
+            match colorschemes::try_get_colorscheme(&scheme_name) {
+                Some(scheme) => {
+                    colorschemes.all_names = colorschemes::get_colorscheme_filenames();
+                    colorschemes.current = scheme.clone();
+                    colorschemes.name = scheme_name.clone();
+
+                    // Recalculate contrast colors for the loaded colorscheme (using canvas background)
+                    let background = scheme.get("window_fill").copied().unwrap_or(egui::Color32::GRAY);
+                    colorschemes.contrast_colors = colorschemes::calculate_contrast_colors(&background, &scheme);
+                }
+                None => {
                     println!("Failed to load colorscheme {}, using default", scheme_name);
-                    colorscheme::default()
-                },
-                |scheme| colorscheme {
-                    all_names: colorschemes::get_colorscheme_filenames(),
-                    current: scheme,
-                    name: scheme_name.clone(),
-                },
-            );
+                    colorschemes = colorscheme::default();
+                }
+            }
         }
+        
         let mut syntax_highlighter = SyntaxHighlighter::new();
         if let Some(theme_name) = last_settings.syntect_highlighting_file {
             syntax_highlighter.set_theme(&theme_name);
@@ -82,7 +89,7 @@ impl SharedState {
             PathBuf::from("bash")
         };
 
-        Self {
+        let mut state = Self {
             did_activate_colorscheme: false,
             keybindings: Keybindings::new(),
             colorschemes,
@@ -95,7 +102,13 @@ impl SharedState {
             reset_canvas: false,
             sync_file_explorer: false,
             connection_wizard: None,
-        }
+            command_history: CommandHistory::new(),
+        };
+
+        // Update all wire colors to match the loaded colorscheme
+        state.update_all_wire_colors_to_match_colorscheme();
+
+        state
     }
 
     pub fn term_open_project_dir(&mut self) {
@@ -186,5 +199,16 @@ impl SharedState {
             }
         }
         PathBuf::from(".")
+    }
+
+    /// Update all wire colors to match the current colorscheme's secondary contrast color
+    pub fn update_all_wire_colors_to_match_colorscheme(&mut self) {
+        let wire_color = self.colorschemes.contrast_colors.get(1)
+            .copied()
+            .unwrap_or(egui::Color32::WHITE);
+
+        for connection in self.project.connections_iter() {
+            connection.borrow_mut().color = wire_color;
+        }
     }
 }

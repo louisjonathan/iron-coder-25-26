@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use egui::Color32;
+
     use crate::app::CanvasConnection;
     use crate::board::{Board, svg_reader::SvgBoardInfo};
     use crate::project::Project;
@@ -30,7 +32,7 @@ mod tests {
         let cb2_id = cb2_rc.borrow().id;
 
         // connection
-        let connection_rc = Rc::new(RefCell::new(CanvasConnection::new(cb1_rc.clone(), 0)));
+        let connection_rc = Rc::new(RefCell::new(CanvasConnection::new(cb1_rc.clone(), 0,Color32::RED)));
         connection_rc.borrow_mut().end(cb2_rc.clone(), 1);
         project.add_connection(&connection_rc);
 

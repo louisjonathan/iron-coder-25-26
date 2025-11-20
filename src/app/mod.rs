@@ -21,4 +21,10 @@ pub use canvas_connection::CanvasConnection;
 
 pub mod connection_wizard;
 
+pub mod canvas_protocol;
+pub use canvas_protocol::CanvasProtocol;
+
+pub mod command;
+pub use command::{Command, CommandHistory, AddProtocolConnectionCommand, RemoveProtocolConnectionCommand};
+
 mod canvas_element;

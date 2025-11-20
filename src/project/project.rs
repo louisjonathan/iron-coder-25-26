@@ -10,7 +10,7 @@ use std::io;
 use std::io::BufRead;
 use std::path::{Path, PathBuf};
 
-use crate::app::{CanvasBoard, CanvasConnection, SharedState};
+use crate::app::{CanvasBoard, CanvasConnection, CanvasProtocol, SharedState};
 use crate::board::{BoardStandards, GPIODirection, get_boards};
 
 use egui::Context;
@@ -65,6 +65,10 @@ pub struct Project {
 
     #[serde(with = "rc_refcell_vec")]
     pub connections: Vec<Rc<RefCell<CanvasConnection>>>,
+
+    /// Protocol groups (I2C, SPI, UART) that bundle multiple connections together
+    #[serde(default)]
+    pub protocol_groups: HashMap<Uuid, CanvasProtocol>,
 
     #[serde(skip)]
     pub board_map: HashMap<Uuid, Rc<RefCell<CanvasBoard>>>,
@@ -163,6 +167,10 @@ impl Project {
         for c in &self.connections {
             c.borrow_mut().init_refs(kb, &self);
         }
+        // Initialize protocol group references
+        for (_, protocol_group) in self.protocol_groups.iter_mut() {
+            protocol_group.init_refs(&self.connections);
+        }
     }
 
     /// This method will reload the project based on the current project location
@@ -196,6 +204,7 @@ impl Project {
         self.main_board = p.main_board;
         self.peripheral_boards = p.peripheral_boards;
         self.connections = p.connections;
+        self.protocol_groups = p.protocol_groups;
         self.has_unsaved_changes = false; // just loaded from disk therefore no changes
         self.load_board_resources(kb);
         self.find_source_files();
@@ -506,6 +515,32 @@ impl Project {
         }
     }
 
+    // ===== Protocol Group Management =====
+
+    /// Add a protocol group to the project
+    pub fn add_protocol_group(&mut self, group: CanvasProtocol) {
+        self.protocol_groups.insert(group.id, group);
+    }
+
+    /// Remove a protocol group from the project
+    pub fn remove_protocol_group(&mut self, group_id: &Uuid) {
+        self.protocol_groups.remove(group_id);
+    }
+
+    /// Get a protocol group by ID
+    pub fn get_protocol_group(&self, group_id: &Uuid) -> Option<&CanvasProtocol> {
+        self.protocol_groups.get(group_id)
+    }
+
+    /// Get all connections that belong to a protocol group
+    pub fn get_group_connections(&self, group_id: &Uuid) -> Vec<Rc<RefCell<CanvasConnection>>> {
+        if let Some(group) = self.protocol_groups.get(group_id) {
+            group.connections.clone()
+        } else {
+            vec![]
+        }
+    }
+
     fn insert_pin_into_source(&self, path: &PathBuf, conn: &CanvasConnection) {
         let marker = "PIN_DEFINITIONS".to_string();
 
@@ -605,7 +640,7 @@ impl Project {
     }
 }
 
-mod rc_refcell_vec {
+pub mod rc_refcell_vec {
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use std::{cell::RefCell, rc::Rc};
 

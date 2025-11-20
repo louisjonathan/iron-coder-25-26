@@ -1,0 +1,199 @@
+name = "FINAL_ESP32C6"
+location = 'C:\Users\Admin\Desktop\github\iron-coder-25-26-projects\FINAL_ESP32C6'
+source_files = ['C:\Users\Admin\Desktop\github\iron-coder-25-26-projects\FINAL_ESP32C6\src\main.rs']
+
+[main_board]
+id = "f429b8a9-4ef2-40fa-b32e-7e706459e31f"
+board_name = "ESP32-C6-DevKitM-1"
+connection_ids = ["1114b9a0-d061-46be-a975-dc9d5b963089", "062a4d74-88dc-469a-b4ab-83cefb3be4d4", "61f849cc-009e-4ea0-bf2d-19fb0471d3e9"]
+
+[main_board.canvas_pos]
+x = 0.0
+y = 0.0
+
+[[peripheral_boards]]
+id = "32b102d0-aeb7-4230-9808-e5f58404a741"
+board_name = "LED"
+connection_ids = ["1114b9a0-d061-46be-a975-dc9d5b963089"]
+
+[peripheral_boards.canvas_pos]
+x = -9.474451065063477
+y = 0.3789789378643036
+
+[[peripheral_boards]]
+id = "15974f0b-f20e-4198-974d-da90e21e6d46"
+board_name = "OLED Featherwing (128x64)"
+connection_ids = ["062a4d74-88dc-469a-b4ab-83cefb3be4d4", "61f849cc-009e-4ea0-bf2d-19fb0471d3e9"]
+
+[peripheral_boards.canvas_pos]
+x = 31.52012825012207
+y = -31.67392921447754
+
+[[connections]]
+name = "6_to_0"
+id = "1114b9a0-d061-46be-a975-dc9d5b963089"
+color = [224, 143, 59, 255]
+start_board_id = "f429b8a9-4ef2-40fa-b32e-7e706459e31f"
+start_pin = 6
+end_board_id = "32b102d0-aeb7-4230-9808-e5f58404a741"
+end_pin = 0
+
+[[connections.points]]
+x = 10.0
+y = 29.299999237060547
+
+[[connections.points]]
+x = 10.0
+y = 29.452777862548828
+
+[[connections.points]]
+x = -4.474451065063477
+y = 29.452777862548828
+
+[[connections.points]]
+x = -4.474451065063477
+y = 30.378978729248047
+
+[[connections]]
+name = "25_to_4"
+id = "062a4d74-88dc-469a-b4ab-83cefb3be4d4"
+protocol_group_id = "53c6164b-c75a-4b7c-a53f-58c968a14061"
+role = "SDA"
+color = [224, 143, 59, 255]
+start_board_id = "f429b8a9-4ef2-40fa-b32e-7e706459e31f"
+start_pin = 25
+end_board_id = "15974f0b-f20e-4198-974d-da90e21e6d46"
+end_pin = 4
+
+[[connections.points]]
+x = 63.920127868652344
+y = 15.768266677856445
+
+[[connections.points]]
+x = 63.920127868652344
+y = 16.159469604492188
+
+[[connections.points]]
+x = 69.36975860595703
+y = 16.159469604492188
+
+[[connections.points]]
+x = 69.36975860595703
+y = 40.94463348388672
+
+[[connections.points]]
+x = 30.200000762939453
+y = 40.94463348388672
+
+[[connections.points]]
+x = 30.200000762939453
+y = 39.900001525878906
+
+[[connections]]
+name = "24_to_3"
+id = "61f849cc-009e-4ea0-bf2d-19fb0471d3e9"
+protocol_group_id = "53c6164b-c75a-4b7c-a53f-58c968a14061"
+role = "SCL"
+color = [224, 143, 59, 255]
+start_board_id = "f429b8a9-4ef2-40fa-b32e-7e706459e31f"
+start_pin = 24
+end_board_id = "15974f0b-f20e-4198-974d-da90e21e6d46"
+end_pin = 3
+
+[[connections.points]]
+x = 63.920127868652344
+y = 13.219705581665039
+
+[[connections.points]]
+x = 63.920127868652344
+y = 12.544966697692871
+
+[[connections.points]]
+x = 74.01698303222656
+y = 12.544966697692871
+
+[[connections.points]]
+x = 74.01698303222656
+y = 38.98247146606445
+
+[[connections.points]]
+x = 30.200000762939453
+y = 38.98247146606445
+
+[[connections.points]]
+x = 30.200000762939453
+y = 37.29999923706055
+
+[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061]
+id = "53c6164b-c75a-4b7c-a53f-58c968a14061"
+protocol_type = "I2C"
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections]]
+name = "25_to_4"
+id = "062a4d74-88dc-469a-b4ab-83cefb3be4d4"
+protocol_group_id = "53c6164b-c75a-4b7c-a53f-58c968a14061"
+role = "SDA"
+color = [224, 143, 59, 255]
+start_board_id = "f429b8a9-4ef2-40fa-b32e-7e706459e31f"
+start_pin = 25
+end_board_id = "15974f0b-f20e-4198-974d-da90e21e6d46"
+end_pin = 4
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections.points]]
+x = 63.920127868652344
+y = 15.768266677856445
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections.points]]
+x = 63.920127868652344
+y = 16.159469604492188
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections.points]]
+x = 69.36975860595703
+y = 16.159469604492188
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections.points]]
+x = 69.36975860595703
+y = 40.94463348388672
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections.points]]
+x = 30.200000762939453
+y = 40.94463348388672
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections.points]]
+x = 30.200000762939453
+y = 39.900001525878906
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections]]
+name = "24_to_3"
+id = "61f849cc-009e-4ea0-bf2d-19fb0471d3e9"
+protocol_group_id = "53c6164b-c75a-4b7c-a53f-58c968a14061"
+role = "SCL"
+color = [224, 143, 59, 255]
+start_board_id = "f429b8a9-4ef2-40fa-b32e-7e706459e31f"
+start_pin = 24
+end_board_id = "15974f0b-f20e-4198-974d-da90e21e6d46"
+end_pin = 3
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections.points]]
+x = 63.920127868652344
+y = 13.219705581665039
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections.points]]
+x = 63.920127868652344
+y = 12.544966697692871
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections.points]]
+x = 74.01698303222656
+y = 12.544966697692871
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections.points]]
+x = 74.01698303222656
+y = 38.98247146606445
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections.points]]
+x = 30.200000762939453
+y = 38.98247146606445
+
+[[protocol_groups.53c6164b-c75a-4b7c-a53f-58c968a14061.connections.points]]
+x = 30.200000762939453
+y = 37.29999923706055

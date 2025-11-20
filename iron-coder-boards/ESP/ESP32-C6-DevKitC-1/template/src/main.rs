@@ -28,6 +28,8 @@ fn main() -> ! {
 
     // PIN_DEFINITIONS
 
+    // INTERFACE_DEFINITIONS
+
     loop {
         delay.delay(Duration::from_millis(1000));
     }

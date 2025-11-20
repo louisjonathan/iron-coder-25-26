@@ -1,6 +1,6 @@
 [package]
 name = "common_hal_interface"
-version = "1.0.3-alpha"
+version = "1.0.5-alpha"
 description = "A common interface between Rust HALs, for use in the Iron Coder IDE"
 license = "MIT"
 readme = "README.md"
@@ -27,5 +27,3 @@ trinket-pro = ["arduino"]
 rp2040 = []
 stm32f4 = []
 esp = []
-
-

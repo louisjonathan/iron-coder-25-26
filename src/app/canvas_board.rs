@@ -202,7 +202,8 @@ impl CanvasBoard {
 
             // Auto-show acceptable pins when wizard is active
             // Draw pin if: 1) Alt held, 2) Hovering, OR 3) Wizard active AND pin is acceptable
-            let should_draw = draw_all_pins || t_rect.contains(*mouse_pos) || (wizard.is_some() && can_select);
+            let should_draw =
+                draw_all_pins || t_rect.contains(*mouse_pos) || (wizard.is_some() && can_select);
 
             if should_draw {
                 if let Some(name) = self.board.pinout.get_pin_name(pin) {

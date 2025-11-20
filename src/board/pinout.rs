@@ -179,9 +179,19 @@ impl Pinout {
         gpio_role.direction.as_ref()
     }
 
-    pub fn get_peripheral_pin_interface(&self, physical: &u32) -> Option<&RoleAssignment> {
+    pub fn get_peripheral_pin_interface(
+        &self,
+        physical: &u32,
+    ) -> Option<(&String, &RoleAssignment)> {
         let pin = self.pins.iter().find(|p| p.physical == *physical)?;
-        pin.roles.first()
+        if let Some(role) = pin.roles.first() {
+            return Some((
+                self.get_interface_from_role(&role.name)
+                    .unwrap_or(&role.name),
+                role,
+            ));
+        }
+        None
     }
 
     pub fn get_pin_alias(&self, physical: &u32, role: &String) -> Option<String> {

@@ -24,8 +24,10 @@ fn main() -> ! {
      * examples available.
      */
 
-	// PIN_DEFINITIONS
-    
+    // PIN_DEFINITIONS
+
+    // INTERFACE_DEFINITIONS
+
     loop {
         arduino_hal::delay_ms(100);
     }

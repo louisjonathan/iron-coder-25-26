@@ -1,0 +1,17 @@
+[build]
+rustflags = [
+    "-C",
+    "link-arg=-Tlinkall.x",
+    "-C",
+    "force-frame-pointers",
+]
+target = "riscv32imac-unknown-none-elf"
+
+[target.'cfg(target_arch = "avr")']
+linker = 'C:\Users\Admin\Desktop\github\iron-coder-25-26\Redist\Arduino\toolchain\windows-x86_64\bin\avr-gcc.exe'
+
+[target.riscv32imac-unknown-none-elf]
+runner = "espflash flash --monitor --chip esp32c6"
+
+[unstable]
+build-std = ["core"]

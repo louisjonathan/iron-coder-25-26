@@ -10,6 +10,7 @@ use std::io;
 use std::io::BufRead;
 use std::path::{Path, PathBuf};
 
+use crate::app::connection_wizard::WizardType;
 use crate::app::{CanvasBoard, CanvasConnection, CanvasProtocol, SharedState};
 use crate::board::{BoardStandards, GPIODirection, get_boards};
 
@@ -541,16 +542,29 @@ impl Project {
         }
     }
 
-    fn insert_pin_into_source(&self, path: &PathBuf, conn: &CanvasConnection) {
-        let marker = "PIN_DEFINITIONS".to_string();
+    pub fn add_connection_bus(&mut self, bus_type: &WizardType) {
+        let main_file = self.source_files.iter().find(|path| {
+            path.file_name()
+                .map(|name| name == "main.rs")
+                .unwrap_or(false)
+        });
+
+        if let Some(path) = main_file {
+            self.insert_bus_into_source(path, bus_type);
+        }
+    }
+
+    fn insert_bus_into_source(&self, path: &PathBuf, bus_type: &WizardType) {
+        let marker = "INTERFACE_DEFINITIONS".to_string();
 
         let code = read_to_string(&path).unwrap();
         let mut output = Vec::new();
         let mut inserted = false;
 
-        let Some(new_stmt_str) = self.generate_pin_statement(conn) else {
+        let Some(new_stmt_str) = self.generate_bus_statement(bus_type) else {
             return;
         };
+        println!("HERES WHAT WIZ WANTS: {}", new_stmt_str);
 
         for line in code.lines() {
             output.push(line.to_string());
@@ -568,31 +582,92 @@ impl Project {
         write(path, code);
     }
 
+    fn insert_pin_into_source(&self, path: &PathBuf, conn: &CanvasConnection) {
+        let marker = "PIN_DEFINITIONS".to_string();
+
+        let code = read_to_string(&path).unwrap();
+        let mut output = Vec::new();
+        let mut inserted = false;
+
+        let Some(new_stmt_str) = self.generate_pin_statement(conn) else {
+            return;
+        };
+        println!("HERES WHAT CONN WANTS {}", new_stmt_str);
+
+        for line in code.lines() {
+            output.push(line.to_string());
+
+            if !inserted && line.contains(&marker) {
+                let indent = line
+                    .chars()
+                    .take_while(|c| c.is_whitespace())
+                    .collect::<String>();
+                output.push(format!("{}{}", indent, new_stmt_str));
+                inserted = true;
+            }
+        }
+        let code = output.join("\n");
+        write(path, code);
+    }
+
+    fn generate_bus_statement(&self, bus_type: &WizardType) -> Option<String> {
+        let Some(sb_rc) = &self.main_board else {
+            return None;
+        };
+        let sb = &sb_rc.borrow().board;
+        let fmt = match sb.get_board_standard() {
+            Some(BoardStandards::Arduino) => match bus_type {
+                WizardType::I2C => format!("let mut i2c = setup_i2c!(dp, sda, scl, 10_000);"),
+                WizardType::SPI => format!("let mut i2c = setup_spi!(dp, sck, mosi, miso, ss);"),
+                _ => return None,
+            },
+            Some(BoardStandards::ESP32) => match bus_type {
+                WizardType::I2C => format!(
+                    "let i2c_peripheral = peripherals.I2C0;\n    let mut i2c = setup_i2c!(i2c_peripheral, sda, scl, 10);"
+                ),
+                WizardType::SPI => format!(
+                    "let spi_peripheral = peripherals.SPI2;\n    let mut spi = setup_spi!(spi_peripheral, sck, mosi, miso, 10);"
+                ),
+                _ => return None,
+            },
+            _ => return None,
+        };
+        return Some(fmt);
+    }
+
     fn generate_pin_statement(&self, conn: &CanvasConnection) -> Option<String> {
         let sb_rc = conn.get_start_board();
-        let sb = sb_rc.borrow().board.clone();
+        let sb = &sb_rc.borrow().board;
         let eb_rc = conn.get_end_board().unwrap();
-        let eb = eb_rc.borrow().board.clone();
+        let eb = &eb_rc.borrow().board;
 
         let start_pin = conn.get_start_pin();
         let end_pin = conn.get_end_pin().unwrap();
-        if let Some(pin_interface) = eb.get_peripheral_pin_interface(&end_pin) {
-            if let Some(possible_pins) = sb.pinout.get_pins_from_role(&pin_interface.name) {
+        if let Some((pin_interface, pin_role)) = eb.get_peripheral_pin_interface(&end_pin) {
+            if let Some(possible_pins) = sb.pinout.get_pins_from_role(&pin_interface) {
                 if !possible_pins.contains(&start_pin) {
                     return None;
                 };
             }
             let pin_alias = sb
                 .pinout
-                .get_pin_alias(&start_pin, &pin_interface.name)
+                .get_pin_alias(&start_pin, &"GPIO".to_string())
                 .unwrap_or_default();
+
+            let conn_type = eb
+                .pinout
+                .get_pin_alias(&end_pin, &pin_interface)
+                .unwrap_or_default()
+                .to_lowercase();
 
             let var_name = format!("c_{}_to_{}", start_pin, end_pin);
 
+            // println!("PARSING CONNECTION");
+
             let fmt = match sb.get_board_standard() {
-                Some(BoardStandards::Arduino) => match pin_interface.name.as_str() {
+                Some(BoardStandards::Arduino) => match pin_interface.as_str() {
                     "GPIO" => {
-                        let pin_type_str = match pin_interface.direction {
+                        let pin_type_str = match pin_role.direction {
                             Some(GPIODirection::Input) => "pull_up_input",
 
                             Some(GPIODirection::Output) => "output",
@@ -604,34 +679,40 @@ impl Project {
                             mutability, var_name, pin_alias, pin_type_str
                         )
                     }
-                    "I2C" => {
-                        format!("let mut i2c = setup_i2c_instance!(dp, pins, 100_000);")
-                    }
                     "SPI" => {
-                        format!("let (mut spi, mut cs) = setup_spi_instance!(dp, pins);")
+                        format!("let {} = pins.{}.into_output();", conn_type, pin_alias)
+                    }
+                    "I2C" => {
+                        format!(
+                            "let {} = pins.{}.into_floating_input().into_pull_up_input();",
+                            conn_type, pin_alias
+                        )
                     }
                     _ => return None,
                 },
-                Some(BoardStandards::ESP32) => match pin_interface.name.as_str() {
-                    "GPIO" => match pin_interface.direction {
-                        Some(GPIODirection::Input) => format!(
-                            "let pin_{} = Input::new(_peripherals.{}, InputConfig::default().with_pull(Pull::Up));",
-                            var_name, pin_alias
-                        ),
-                        Some(GPIODirection::Output) => format!(
-                            "let mut pin_{} = Output::new(_peripherals.{}, Level::High, OutputConfig::default());",
-                            var_name, pin_alias
-                        ),
-                        _ => return None,
-                    },
-                    "I2C" => {
-                        format!("let mut i2c = setup_i2c_instance!(dp, pins, 100_000);")
+                Some(BoardStandards::ESP32) => {
+                    // println!("ESP BOARD FOUND");
+                    match pin_interface.as_str() {
+                        "GPIO" => match pin_role.direction {
+                            Some(GPIODirection::Input) => format!(
+                                "let pin_{} = Input::new(peripherals.{}, InputConfig::default().with_pull(Pull::Up));",
+                                var_name, pin_alias
+                            ),
+                            Some(GPIODirection::Output) => format!(
+                                "let mut pin_{} = Output::new(peripherals.{}, Level::High, OutputConfig::default());",
+                                var_name, pin_alias
+                            ),
+                            _ => return None,
+                        },
+                        "I2C" | "SPI" => {
+                            format!("let {} = peripherals.{};", conn_type, pin_alias)
+                        }
+                        _ => {
+                            println!("COULDNT FIND INTERFACE {:?}", pin_interface);
+                            return None;
+                        }
                     }
-                    "SPI" => {
-                        format!("let (mut spi, mut cs) = setup_spi_instance!(dp, pins);")
-                    }
-                    _ => return None,
-                },
+                }
                 _ => return None,
             };
             return Some(fmt);

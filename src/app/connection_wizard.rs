@@ -5,9 +5,10 @@ use std::pin;
 use std::rc::Rc;
 use uuid::Uuid;
 
-use crate::app::canvas_connection::CanvasConnection;
+use crate::app::CanvasConnection;
 use crate::board::Board;
-use crate::board::pinout::Pin;
+use crate::board::Pin;
+use crate::project::Project;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum WizardType {
@@ -152,6 +153,7 @@ impl ConnectionWizard {
                 ..
             } => {
                 created_connections.push(connection);
+                println!("CONNECTION COMPLETE");
             }
             _ => {
                 // Do nothing in other states
@@ -200,7 +202,13 @@ impl ConnectionWizard {
     /// Given a selected pin, return true if the pin is valid and was accepted
     /// Returns true and the wizard advances, returns false and shows error if invalid
     /// board_id is the UUID of the CanvasBoard that this pin belongs to
-    pub fn handle_pin_selected(&mut self, pin_number: u32, board: &Board, board_id: Uuid) -> bool {
+    pub fn handle_pin_selected(
+        &mut self,
+        pin_number: u32,
+        board: &Board,
+        board_id: Uuid,
+        project: &mut Project,
+    ) -> bool {
         if let Some(current_role) = self.current_role() {
             match &mut self.state {
                 WizardState::SelectingRole {
@@ -240,6 +248,7 @@ impl ConnectionWizard {
                                     self.state = WizardState::Complete {
                                         created_connections: conns,
                                     };
+                                    project.add_connection_bus(&self.wizard_type);
                                 } else {
                                     *pins_left_to_connect = 2;
                                 }
@@ -313,12 +322,11 @@ impl ConnectionWizard {
             _ => false,
         }
     }
-    
+
     /// Handle undo - go back to previous role and remove last connection if one was completed
     pub fn handle_undo(&mut self, board: &Board) -> bool {
         self.handle_undo_one_selection()
     }
-
 
     /// Undo a full connection (both pins in the pair)
     pub fn undo_full_connection(&mut self) -> bool {

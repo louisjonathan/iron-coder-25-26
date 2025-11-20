@@ -193,7 +193,7 @@ impl Board {
         self.pinout.pins.iter().find(|p| p.physical == *physical)
     }
 
-    pub fn get_peripheral_pin_interface(&self, physical: &u32) -> Option<&RoleAssignment> {
+    pub fn get_peripheral_pin_interface(&self, physical: &u32) -> Option<(&String, &RoleAssignment)> {
         if self.is_main_board() {
             return None;
         }

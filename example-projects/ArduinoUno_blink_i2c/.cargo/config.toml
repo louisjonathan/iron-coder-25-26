@@ -1,0 +1,13 @@
+[build]
+rustflags = [
+    "-C",
+    "target-cpu=atmega328p",
+]
+target = "avr-none"
+
+[target.'cfg(target_arch = "avr")']
+linker = 'C:\Users\Admin\Desktop\github\iron-coder-25-26\Redist\Arduino\toolchain\windows-x86_64\bin\avr-gcc.exe'
+runner = "ravedude"
+
+[unstable]
+build-std = ["core"]

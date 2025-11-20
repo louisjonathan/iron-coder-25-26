@@ -506,6 +506,11 @@ impl MainWindow {
         if should_create_project {
             self.create_new_project();
             self.state.term_open_project_dir();
+
+            let source_node = self.find_file_node();
+            self.rebuild_tabs();
+            self.auto_open_main_rs(source_node);
+
             self.state.reset_canvas = true;
         }
 

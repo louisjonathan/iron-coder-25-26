@@ -1,7 +1,7 @@
 use crate::app::canvas_board::CanvasBoard;
 use crate::app::colorschemes::{self, colorscheme};
-use crate::app::connection_wizard::ConnectionWizard;
 use crate::app::command::CommandHistory;
+use crate::app::connection_wizard::ConnectionWizard;
 use crate::app::ide_settings::{self, IDE_Settings};
 use crate::app::keybinding::{Keybinding, Keybindings};
 use crate::app::syntax_highlighting::SyntaxHighlighter;
@@ -66,8 +66,12 @@ impl SharedState {
                     colorschemes.name = scheme_name.clone();
 
                     // Recalculate contrast colors for the loaded colorscheme (using canvas background)
-                    let background = scheme.get("window_fill").copied().unwrap_or(egui::Color32::GRAY);
-                    colorschemes.contrast_colors = colorschemes::calculate_contrast_colors(&background, &scheme);
+                    let background = scheme
+                        .get("window_fill")
+                        .copied()
+                        .unwrap_or(egui::Color32::GRAY);
+                    colorschemes.contrast_colors =
+                        colorschemes::calculate_contrast_colors(&background, &scheme);
                 }
                 None => {
                     println!("Failed to load colorscheme {}, using default", scheme_name);
@@ -75,7 +79,7 @@ impl SharedState {
                 }
             }
         }
-        
+
         let mut syntax_highlighter = SyntaxHighlighter::new();
         if let Some(theme_name) = last_settings.syntect_highlighting_file {
             syntax_highlighter.set_theme(&theme_name);
@@ -114,7 +118,9 @@ impl SharedState {
     pub fn term_open_project_dir(&mut self) {
         if let Some(term_ref) = &self.output_terminal_backend {
             let mut term = term_ref.borrow_mut();
-            if let (Some(def_term), Some(project_dir)) = (&self.default_terminal, &self.project.location) {
+            if let (Some(def_term), Some(project_dir)) =
+                (&self.default_terminal, &self.project.location)
+            {
                 let term_type = def_term
                     .file_name()
                     .and_then(OsStr::to_str)
@@ -122,25 +128,57 @@ impl SharedState {
                     .to_ascii_lowercase();
                 let path_str = project_dir.to_string_lossy().replace("\\", "/");
                 term.process_command(BackendCommand::Write(
-                    format!("cd {}{}", path_str, LINE_ENDING).as_bytes().to_vec(),
+                    format!("cd {}{}", path_str, LINE_ENDING)
+                        .as_bytes()
+                        .to_vec(),
                 ));
                 // Clear the terminal after changing directory
                 if term_type.contains("cmd") || term_type.contains("powershell") {
-                    term.process_command(BackendCommand::Write(format!("cls {}",LINE_ENDING).as_bytes().to_vec()));
+                    term.process_command(BackendCommand::Write(
+                        format!("cls {}", LINE_ENDING).as_bytes().to_vec(),
+                    ));
                 } else {
-                    term.process_command(BackendCommand::Write(format!("clear {}",LINE_ENDING).as_bytes().to_vec()));
+                    term.process_command(BackendCommand::Write(
+                        format!("clear {}", LINE_ENDING).as_bytes().to_vec(),
+                    ));
                 }
             }
         }
         self.sync_file_explorer = true;
     }
 
+    pub fn clear_terminal(&mut self) {
+        if let Some(term_ref) = &self.output_terminal_backend {
+            let mut term = term_ref.borrow_mut();
+            if let Some(def_term) = &self.default_terminal {
+                let term_type = def_term
+                    .file_name()
+                    .and_then(OsStr::to_str)
+                    .unwrap_or("")
+                    .to_ascii_lowercase();
+                term.process_command(BackendCommand::Write(vec![0x03]));
+                if term_type.contains("cmd") || term_type.contains("powershell") {
+                    term.process_command(BackendCommand::Write(
+                        format!("cls {}", LINE_ENDING).as_bytes().to_vec(),
+                    ));
+                } else {
+                    term.process_command(BackendCommand::Write(
+                        format!("clear {}", LINE_ENDING).as_bytes().to_vec(),
+                    ));
+                }
+            }
+        }
+    }
+
     pub fn build_project(&mut self) {
         if let Some(term_ref) = &self.output_terminal_backend {
             let mut term = term_ref.borrow_mut();
             self.project.update_toolchain_location();
+            term.process_command(BackendCommand::Write(vec![0x03]));
             term.process_command(BackendCommand::Write(
-                "cargo +nightly build\n".as_bytes().to_vec(),
+                format!("cargo +nightly build{}", LINE_ENDING)
+                    .as_bytes()
+                    .to_vec(),
             ));
         }
     }
@@ -160,16 +198,12 @@ impl SharedState {
             //         ));
             //     }
             // }
-            term.process_command(BackendCommand::Write(
-                "cargo +nightly run\n".as_bytes().to_vec(),
-            ));
-        }
-    }
-
-    pub fn stop_board(&mut self) {
-        if let Some(term_ref) = &self.output_terminal_backend {
-            let mut term = term_ref.borrow_mut();
             term.process_command(BackendCommand::Write(vec![0x03]));
+            term.process_command(BackendCommand::Write(
+                format!("cargo +nightly run{}", LINE_ENDING)
+                    .as_bytes()
+                    .to_vec(),
+            ));
         }
     }
 
@@ -203,7 +237,10 @@ impl SharedState {
 
     /// Update all wire colors to match the current colorscheme's secondary contrast color
     pub fn update_all_wire_colors_to_match_colorscheme(&mut self) {
-        let wire_color = self.colorschemes.contrast_colors.get(1)
+        let wire_color = self
+            .colorschemes
+            .contrast_colors
+            .get(1)
             .copied()
             .unwrap_or(egui::Color32::WHITE);
 

@@ -187,7 +187,7 @@ impl MainWindow {
                         ui.close_menu();
                     }
                     if ui.button("Open Project").clicked() {
-                        self.state.stop_board();
+                        self.state.clear_terminal();
                         self.prompt_save_if_needed(PendingAction::OpenProject);
                         self.state.term_open_project_dir();
                         self.state.reset_canvas = true;

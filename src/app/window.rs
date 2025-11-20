@@ -34,6 +34,7 @@ static OPENABLE_TABS: &'static [&'static str] = &[
     "Output",
     "Board Info",
     "Debug",
+    "Dependencies",
 ];
 
 struct WindowContext<'a> {
@@ -280,6 +281,10 @@ impl MainWindow {
             }
             "Debug" => {
                 self.tabs.insert(tab_name.clone(), Box::new(DebugTab {}));
+            }
+            "Dependencies" => {
+                self.tabs
+                    .insert(tab_name.clone(), Box::new(DependencyCheckerTab::new()));
             }
             _ => {}
         }

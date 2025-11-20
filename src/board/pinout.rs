@@ -218,19 +218,21 @@ impl Pinout {
 
             ui.separator();
 
-            if !pin.roles.is_empty() {
-                ui.heading("Roles");
+            if pin.roles.is_empty() {
+                ui.label("Roles: (none)");
+            } else {
+                ui.label("Roles:");
                 for role in &pin.roles {
                     let interface = self.get_interface_from_role(&role.name);
-                    let alias = pin.aliases.get(&role.name);
-                    let label = if let Some(interface) = interface
-                        && let Some(alias) = alias
-                    {
-                        format!("{}:{}", interface, alias)
-                    } else if let Some(alias) = alias {
-                        format!("{}", alias)
-                    } else {
-                        String::new()
+                    let alias: Option<&String> = pin.aliases.get(&role.name);
+                    let label = {
+                        if let (Some(interface), Some(alias)) = (interface, alias) {
+                            format!("{}:{}", interface, alias)
+                        } else if let Some(alias) = alias {
+                            format!("{}", alias)
+                        } else {
+                            String::new()
+                        }
                     };
                     ui.label(label);
                 }

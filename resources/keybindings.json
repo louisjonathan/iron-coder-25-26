@@ -7,6 +7,34 @@
         "description": "Save the current file."
     },
     {
+        "id": "undo",
+        "key": "Z",
+        "ctrl": true,
+        "alt": false,
+        "description": "Undo the last action or connection during wizard."
+    },
+    {
+        "id": "redo",
+        "key": "Y",
+        "ctrl": true,
+        "alt": false,
+        "description": "Redo the last undone action."
+    },
+    {
+        "id": "delete",
+        "key": "Delete",
+        "ctrl": false,
+        "alt": false,
+        "description": "Delete the current selection from canvas."
+    },
+    {
+        "id": "backspace",
+        "key": "Backspace",
+        "ctrl": false,
+        "alt": false,
+        "description": "Remove last waypoint when drawing a connection."
+    },
+    {
         "id": "test_a",
         "key": "A",
         "ctrl": false,

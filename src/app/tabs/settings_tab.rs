@@ -63,6 +63,9 @@ impl BaseTab for SettingsTab {
                     self.colorscheme_load_error_value = true;
                 } else {
                     self.colorscheme_load_error_value = false;
+
+                    // Update all existing wire colors to match new colorscheme
+                    state.update_all_wire_colors_to_match_colorscheme();
                 };
             };
             if self.colorscheme_load_error_value {
@@ -171,10 +174,12 @@ impl BaseTab for SettingsTab {
                 .colorschemes
                 .try_use_colorscheme(ui, &"example_colorscheme.toml".to_string());
             self.current_colorscheme_search = "example_colorscheme.toml".to_string();
+            state.update_all_wire_colors_to_match_colorscheme();
         }
         if ui.button("Set random colorscheme").clicked() {
             state.colorschemes.use_random_colorscheme(ui);
             self.current_colorscheme_search = state.colorschemes.name.clone();
+            state.update_all_wire_colors_to_match_colorscheme();
         }
         if ui.button("Save settings").clicked() {
             state.save_settings();

@@ -169,24 +169,42 @@ impl CanvasBoard {
         mouse_pos: &Pos2,
         draw_all_pins: bool,
         mut wizard: Option<&mut ConnectionWizard>,
+        colorscheme: &HashMap<String, Color32>,
+        pin_highlight_color: Color32,
     ) {
         for ((pin, pin_rect)) in self.pin_locations.iter() {
             let t_rect = self.to_canvas(to_screen, pin_rect);
 
-            // Determine pin color based on wizard state
-            let pin_color = {
+            // Check if wizard can select this pin
+            let (can_select, pin_color) = {
                 if let Some(wiz) = wizard.as_mut() {
-                    if wiz.can_select_pin(*pin, &self.board) {
-                        Color32::from_rgb(0, 255, 0)
+                    let can_select = wiz.can_select_pin(*pin, &self.board);
+
+                    let color = if can_select {
+                        // Pin supports the required role - use full brightness
+                        pin_highlight_color
                     } else {
-                        Color32::from_rgb(255, 100, 100)
-                    }
+                        // Pin doesn't support the required role - use dimmed color
+                        Color32::from_rgba_unmultiplied(
+                            pin_highlight_color.r(),
+                            pin_highlight_color.g(),
+                            pin_highlight_color.b(),
+                            150, // Dimmed for invalid
+                        )
+                    };
+
+                    (can_select, color)
                 } else {
-                    ui.style().visuals.faint_bg_color
+                    // When no wizard is active, use pin highlight color for all pins on hover
+                    (false, pin_highlight_color)
                 }
             };
 
-            if draw_all_pins || t_rect.contains(*mouse_pos) {
+            // Auto-show acceptable pins when wizard is active
+            // Draw pin if: 1) Alt held, 2) Hovering, OR 3) Wizard active AND pin is acceptable
+            let should_draw = draw_all_pins || t_rect.contains(*mouse_pos) || (wizard.is_some() && can_select);
+
+            if should_draw {
                 if let Some(name) = self.board.pinout.get_pin_name(pin) {
                     self.draw_pin(ui, name, &t_rect, pin_color);
                 }

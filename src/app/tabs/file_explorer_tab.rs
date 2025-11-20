@@ -67,9 +67,14 @@ impl BaseTab for FileExplorerTab {
                 }
 
                 let dir_name = dir.file_name().unwrap_or_default().to_string_lossy();
+                let is_expanded = expanded_dirs.contains_key(dir);
+                let caret = if is_expanded { "v" } else { ">" };
+                
                 ui.horizontal(|ui| {
                     ui.add_space(depth as f32 * 16.0);
-                    if ui.button(format!("{}", dir_name)).clicked() {
+                    
+                    let response = ui.selectable_label(false, format!("{} {}", caret, dir_name));
+                    if response.clicked() {
                         toggle_dir(dir.clone());
                     }
                 });
@@ -108,7 +113,8 @@ impl BaseTab for FileExplorerTab {
 
                                 if is_supported_file {
                                     // Make supported files clickable
-                                    if ui.button(format!("{}", file_name)).clicked() {
+                                    let response = ui.selectable_label(false, format!("{}", file_name));
+                                    if response.clicked() {
                                         file_clicked(entry.clone());
                                     }
                                 } else {
@@ -144,7 +150,8 @@ impl BaseTab for FileExplorerTab {
             let src_path = _state.project.location.as_ref().unwrap();
             for entry in &_state.project.source_files {
                 let rel_path = entry.strip_prefix(&src_path).unwrap_or(entry);
-                if ui.button(format!("{}", rel_path.display())).clicked() {
+                let response = ui.selectable_label(false, format!("{}", rel_path.display()));
+                if response.clicked() {
                     file_clicked(entry.clone());
                 }
             }

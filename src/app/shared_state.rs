@@ -176,7 +176,7 @@ impl SharedState {
             self.project.update_toolchain_location();
             term.process_command(BackendCommand::Write(vec![0x03]));
             term.process_command(BackendCommand::Write(
-                format!("cargo +nightly build{}", LINE_ENDING)
+                format!("\n{}{}", "cargo +nightly build", LINE_ENDING)
                     .as_bytes()
                     .to_vec(),
             ));

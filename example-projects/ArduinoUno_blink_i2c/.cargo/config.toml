@@ -6,7 +6,7 @@ rustflags = [
 target = "avr-none"
 
 [target.'cfg(target_arch = "avr")']
-linker = 'C:\Users\Admin\Desktop\github\iron-coder-25-26\Redist\Arduino\toolchain\windows-x86_64\bin\avr-gcc.exe'
+linker = "/home/jon/Assignments/FALL_2025/CEN3908/iron-coder-25-26/Redist/Arduino/toolchain/linux-x86_64/bin/avr-gcc"
 runner = "ravedude"
 
 [unstable]

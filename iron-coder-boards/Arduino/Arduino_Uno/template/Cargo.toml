@@ -14,7 +14,7 @@ panic-halt = "1.0.0"
 ufmt = "0.2.0"
 nb = "1.1.0"
 embedded-hal = "1.0"
-common_hal_interface = { version = "1.0.5-alpha", features= ["arduino-uno"]}
+common_hal_interface = { version = "1.0.6-alpha", features= ["arduino-uno"]}
 
 [dependencies.arduino-hal]
 git = "https://github.com/rahix/avr-hal"

@@ -362,7 +362,7 @@ impl MainWindow {
         for i in 0..tree.len() {
             let node_index = NodeIndex(i);
             if let egui_dock::Node::Leaf { tabs, .. } = &tree[node_index] {
-                if tabs.iter().any(|tab| tab.ends_with(".rs")) {
+                if tabs.iter().any(|tab| self.is_file_tab(tab)) {
                     return Some(node_index);
                 }
             }

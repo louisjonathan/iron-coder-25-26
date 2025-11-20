@@ -3,15 +3,18 @@ edition      = "2021"
 name         = "esp_test"
 version      = "0.1.0"
 
-[[bin]]
-name = "esp_test"
-path = "./src/bin/main.rs"
+# [[bin]]
+# name = "esp_test"
+# path = "./src/main.rs"
 
 [dependencies]
 esp-bootloader-esp-idf = { version = "0.2.0", features = ["esp32c6"] }
-esp-hal                = { version = "=1.0.0-rc.0", features = ["esp32c6"] }
+esp-hal                = { version = "=1.0.0-rc.0", features = ["esp32c6", "unstable"] }
 critical-section = "1.2.0"
 common_hal_interface = { version = "1.0.3-alpha", features= ["esp"]}
+esp-println = {version = "0.16.1", features = ["esp32c6", "log-04"]}
+heapless = "0.9.2"
+itoa = "1.0.15"
 
 
 [profile.dev]

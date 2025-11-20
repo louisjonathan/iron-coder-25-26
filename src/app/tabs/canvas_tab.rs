@@ -623,5 +623,6 @@ impl CanvasTab {
         self.canvas_offset = Vec2::new(0.0, 0.0);
         self.connection_in_progress = None;
         self.selection = None;
+        self.pin_tooltip = None;
     }
 }

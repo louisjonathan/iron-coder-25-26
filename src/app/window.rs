@@ -163,8 +163,9 @@ impl Default for MainWindow {
         };
 
         // open main.rs during startup project open
+        let node = window.find_file_node();
         if window.state.project.location.is_some() {
-            window.auto_open_main_rs();
+            window.auto_open_main_rs(node);
         }
 
         window
@@ -322,7 +323,8 @@ impl MainWindow {
             .add_filter("Text files", &["txt"])
             .pick_file()
         {
-            self.open_file(&file_path);
+            let node = self.find_file_node();
+            self.open_file(&file_path, node);
         }
     }
 
@@ -330,7 +332,7 @@ impl MainWindow {
         self.prompt_save_if_needed(PendingAction::OpenProject);
     }
 
-    fn open_file(&mut self, file_path: &Path) {
+    fn open_file(&mut self, file_path: &Path, node: Option<NodeIndex>) {
         let tab_name = file_path.display().to_string();
 
         if self.tabs.contains_key(&tab_name) {
@@ -343,7 +345,7 @@ impl MainWindow {
             Ok(()) => {
                 self.tabs.insert(tab_name.clone(), Box::new(file_tab));
 
-                self.add_file_tab_intelligently(tab_name.clone());
+                self.add_file_tab_intelligently(tab_name.clone(), node);
 
                 println!("File '{}' opened successfully", tab_name);
             }
@@ -353,30 +355,41 @@ impl MainWindow {
         }
     }
 
-    fn find_canvas_node(&self) -> Option<NodeIndex> {
+    fn find_file_node(&self) -> Option<NodeIndex> {
         let tree = self.tree.main_surface();
+
+        // first we try to find where the user last had source files open
+        for i in 0..tree.len() {
+            let node_index = NodeIndex(i);
+            if let egui_dock::Node::Leaf { tabs, .. } = &tree[node_index] {
+                if tabs.iter().any(|tab| tab.ends_with(".rs")) {
+                    return Some(node_index);
+                }
+            }
+        }
 
         // try all possible node indices to find Canvas
         for i in 0..tree.len() {
             let node_index = NodeIndex(i);
-
-            let node = &tree[node_index];
-            if let egui_dock::Node::Leaf { tabs, .. } = node {
+            if let egui_dock::Node::Leaf { tabs, .. } = &tree[node_index] {
                 if tabs.contains(&"Canvas".to_string()) {
                     return Some(node_index);
                 }
             }
         }
+
+        for i in 0..tree.len() {
+            if tree[NodeIndex(i)].is_leaf() {
+                return Some(NodeIndex(i));
+            }
+        }
         None
     }
 
-    fn add_file_tab_intelligently(&mut self, tab_name: String) {
-        // Find the node that contains Canvas
-        let canvas_node = self.find_canvas_node();
-
-        if let Some(node_index) = canvas_node {
+    fn add_file_tab_intelligently(&mut self, tab_name: String, node: Option<NodeIndex>) {
+        if let Some(node) = node {
             let tree = self.tree.main_surface_mut();
-            if let egui_dock::Node::Leaf { tabs, active, .. } = &mut tree[node_index] {
+            if let egui_dock::Node::Leaf { tabs, active, .. } = &mut tree[node] {
                 tabs.push(tab_name);
                 *active = egui_dock::TabIndex(tabs.len() - 1); // Make the new tab active
             }
@@ -570,7 +583,8 @@ impl MainWindow {
                                 println!("Project '{}' created and opened.", project_name);
 
                                 // open main.rs during new project open
-                                self.auto_open_main_rs();
+                                let node = self.find_file_node();
+                                self.auto_open_main_rs(node);
                             }
                             Err(e) => {
                                 println!("Project created but failed to open: {:?}", e);
@@ -669,6 +683,27 @@ impl MainWindow {
         }
     }
 
+    fn rebuild_tabs(&mut self) {
+        let tree = self.tree.main_surface_mut();
+        for node in tree.iter_mut() {
+            if let egui_dock::Node::Leaf { tabs, active, .. } = node {
+                let old_len = tabs.len();
+                tabs.retain(|tab_name| OPENABLE_TABS.contains(&tab_name.as_str()));
+
+                if old_len != tabs.len() && *active >= egui_dock::TabIndex(tabs.len()) {
+                    *active = egui_dock::TabIndex(tabs.len().saturating_sub(1));
+                }
+            }
+        }
+
+        let keys: Vec<String> = self.tabs.keys().cloned().collect();
+        for key in keys {
+            if !OPENABLE_TABS.contains(&key.as_str()) {
+                self.tabs.remove(&key);
+            }
+        }
+    }
+
     fn execute_pending_action(&mut self) {
         if let Some(action) = self.pending_action.clone() {
             match action {
@@ -693,8 +728,13 @@ impl MainWindow {
                 self.refocus_file_explorer_to_project();
                 println!("Project opened successfully.");
 
+                let source_node = self.find_file_node();
+
+                self.rebuild_tabs();
+                println!("{:?}", self.tabs.keys());
+
                 // open main.rs during project open
-                self.auto_open_main_rs();
+                self.auto_open_main_rs(source_node);
             }
             Err(e) => {
                 println!("Failed to open project.");
@@ -712,7 +752,7 @@ impl MainWindow {
         }
     }
 
-    fn auto_open_main_rs(&mut self) {
+    fn auto_open_main_rs(&mut self, node: Option<NodeIndex>) {
         let main_rs_path = self
             .state
             .project
@@ -724,7 +764,7 @@ impl MainWindow {
         if let Some(main_rs_path) = main_rs_path {
             let tab_name = main_rs_path.display().to_string();
             if !self.tabs.contains_key(&tab_name) {
-                self.open_file(&main_rs_path);
+                self.open_file(&main_rs_path, node);
             }
         }
     }
@@ -786,7 +826,8 @@ impl eframe::App for MainWindow {
 
         // wait for file picker
         if let Some(file_path) = self.state.requested_file_to_open.take() {
-            self.open_file(&file_path);
+            let node = self.find_file_node();
+            self.open_file(&file_path, node);
         }
 
         let mut context = WindowContext {

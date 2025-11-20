@@ -14,7 +14,7 @@ panic-halt = "1.0.0"
 ufmt = "0.2.0"
 nb = "1.1.0"
 embedded-hal = "1.0"
-common_hal_interface = { version = "1.0.5-alpha", features= ["arduino-uno"]}
+common_hal_interface = { version = "1.0.6-alpha", features= ["arduino-uno"]}
 embedded-graphics = "0.8.1"
 ssd1306 = "0.10.0"
 
@@ -32,6 +32,7 @@ opt-level = "s"
 
 [profile.release]
 panic = "abort"
-codegen-units = 1debug = true
+codegen-units = 1
+debug = true
 lto = true
 opt-level = "s"

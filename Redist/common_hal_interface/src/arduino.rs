@@ -134,19 +134,24 @@ macro_rules! setup_serial {
 //
 #[macro_export]
 macro_rules! setup_i2c {
-    ($dp:expr, $sda:expr, $scl:expr, $freq:expr) => {{ arduino_hal::I2c::new($dp.TWI, $sda, $scl, $freq) }};
+    ($dp:expr, $sda:expr, $scl:expr, $freq:expr) => {{
+        arduino_hal::I2c::new(
+            $dp.TWI,
+            $sda.into_pull_up_input(),
+            $scl.into_pull_up_input(),
+            $freq,
+        )
+    }};
 }
-
 #[macro_export]
 macro_rules! setup_spi {
     ($dp:expr, $sck:expr, $mosi:expr, $ss:expr) => {{
-        let (sck, mosi, miso, ss) = setup_spi!($pins);
         arduino_hal::Spi::new(
             $dp.SPI,
-            $sck,
-            $mosi,
-            $miso,
-            $ss,
+            $sck.into_output(),
+            $mosi.into_output(),
+            $miso.into_pull_up_input(),
+            $ss.into_output(),
             arduino_hal::spi::Settings::default(),
         )
     }};

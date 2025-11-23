@@ -1096,6 +1096,18 @@ impl CanvasTab {
         self.pin_tooltip = None;
     }
 
+    pub fn zoom_in(&mut self) {
+        let zoom_factor = 1.1;
+        self.canvas_zoom *= zoom_factor;
+        self.canvas_zoom = self.canvas_zoom.min(50.0);
+    }
+
+    pub fn zoom_out(&mut self) {
+        let zoom_factor = 0.9;
+        self.canvas_zoom *= zoom_factor;
+        self.canvas_zoom = self.canvas_zoom.max(0.1);
+    }
+
     /// Handle wizard completion by grouping all created connections for undo/redo
     /// This is called when the wizard state becomes Complete
     /// Connections are already created and added to the project during the wizard flow

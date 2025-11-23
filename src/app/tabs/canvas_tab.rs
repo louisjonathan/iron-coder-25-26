@@ -370,10 +370,24 @@ impl BaseTab for CanvasTab {
         offset += 12.0;
 
         if self.selection.is_some() {
+            let delete_keybinding_text = if let Some(delete_binding) = state.keybindings.get_keybinding("delete") {
+                let mut parts = Vec::new();
+                if delete_binding.ctrl {
+                    parts.push("Ctrl");
+                }
+                if delete_binding.alt {
+                    parts.push("Alt");
+                }
+                parts.push(&delete_binding.key);
+                format!("{}: Remove current selection from canvas", parts.join(" + "))
+            } else {
+                "Delete: Remove current selection from canvas".to_string()
+            };
+            
             let temp = ui.painter().text(
                 rect.min + Vec2 { x: 0.0, y: offset },
                 Align2::LEFT_TOP,
-                "Delete: Remove current selection from canvas",
+                &delete_keybinding_text,
                 FontId::monospace(12.0),
                 state.colorschemes.current["code_bg_color"],
             );
@@ -1110,6 +1124,82 @@ impl CanvasTab {
         self.connection_in_progress = None;
         self.selection = None;
         self.pin_tooltip = None;
+    }
+
+    pub fn zoom_in(&mut self, viewport_size: Vec2) {
+        let zoom_factor = 1.1;
+        let viewport_center = viewport_size / 2.0;
+        
+        let to_screen_before = emath::RectTransform::from_to(
+            Rect::from_min_size(Pos2::ZERO, viewport_size / self.canvas_zoom),
+            Rect::from_min_size(Pos2::ZERO, viewport_size).translate(self.canvas_offset),
+        );
+        let center_canvas_before = to_screen_before.inverse().transform_pos(viewport_center.to_pos2());
+        
+        self.canvas_zoom *= zoom_factor;
+        self.canvas_zoom = self.canvas_zoom.min(50.0);
+        
+        let to_screen_after = emath::RectTransform::from_to(
+            Rect::from_min_size(Pos2::ZERO, viewport_size / self.canvas_zoom),
+            Rect::from_min_size(Pos2::ZERO, viewport_size).translate(self.canvas_offset),
+        );
+        let center_screen_after = to_screen_after.transform_pos(center_canvas_before);
+        
+        self.canvas_offset += viewport_center - center_screen_after.to_vec2();
+    }
+
+    pub fn zoom_out(&mut self, viewport_size: Vec2) {
+        let zoom_factor = 0.9;
+        let viewport_center = viewport_size / 2.0;
+        
+        let to_screen_before = emath::RectTransform::from_to(
+            Rect::from_min_size(Pos2::ZERO, viewport_size / self.canvas_zoom),
+            Rect::from_min_size(Pos2::ZERO, viewport_size).translate(self.canvas_offset),
+        );
+        let center_canvas_before = to_screen_before.inverse().transform_pos(viewport_center.to_pos2());
+        
+        self.canvas_zoom *= zoom_factor;
+        self.canvas_zoom = self.canvas_zoom.max(0.1);
+        
+        let to_screen_after = emath::RectTransform::from_to(
+            Rect::from_min_size(Pos2::ZERO, viewport_size / self.canvas_zoom),
+            Rect::from_min_size(Pos2::ZERO, viewport_size).translate(self.canvas_offset),
+        );
+        let center_screen_after = to_screen_after.transform_pos(center_canvas_before);
+        
+        self.canvas_offset += viewport_center - center_screen_after.to_vec2();
+    }
+
+    pub fn handle_delete_key(&mut self, state: &mut SharedState) {
+        if let Some(s) = self.selection.take() {
+            match s {
+                CanvasSelection::Board(board) => {
+                    self.selection = None;
+                    state.project.remove_board(&board);
+                    println!("Delete: Removed board from canvas");
+                }
+                CanvasSelection::Connection(connection) => {
+                    self.selection = None;
+                    state.project.remove_connection(&connection);
+                    println!("Delete: Removed connection from canvas");
+                }
+                _ => {
+                    println!("Delete: Cannot delete this selection type");
+                }
+            }
+        }
+    }
+
+    pub fn handle_backspace_key(&mut self) {
+        if let Some(conn) = &self.connection_in_progress {
+            conn.borrow_mut().remove_last_point();
+            println!("Backspace: Removed last waypoint");
+        }
+    }
+
+    pub fn select_all_elements(&mut self, state: &mut SharedState) {
+        self.selection = None;
+        println!("Select All: Canvas operation");
     }
 
     /// Handle wizard completion by grouping all created connections for undo/redo

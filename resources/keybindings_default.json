@@ -7,18 +7,18 @@
         "description": "Save the current file."
     },
     {
-        "id": "test_a",
-        "key": "A",
+        "id": "delete",
+        "key": "Delete",
         "ctrl": false,
-        "alt": true,
-        "description": "Print test message."
+        "alt": false,
+        "description": "Delete the current selection from canvas."
     },
     {
-        "id": "test_b",
-        "key": "B",
-        "ctrl": true,
-        "alt": true,
-        "description": "Print test message."
+        "id": "backspace",
+        "key": "Backspace",
+        "ctrl": false,
+        "alt": false,
+        "description": "Remove last waypoint when drawing a connection."
     },
     {
         "id": "close_tab",
@@ -26,5 +26,96 @@
         "ctrl": true,
         "alt": false,
         "description": "Close the currently selected tab."
+    },
+    {
+        "id": "new_project",
+        "key": "N",
+        "ctrl": true,
+        "alt": true,
+        "description": "Create a new project."
+    },
+    {
+        "id": "open_project",
+        "key": "O",
+        "ctrl": true,
+        "alt": true,
+        "description": "Open an existing project."
+    },
+    {
+        "id": "save_project",
+        "key": "S",
+        "ctrl": true,
+        "alt": true,
+        "description": "Save the current project."
+    },
+    {
+        "id": "open_file",
+        "key": "O",
+        "ctrl": true,
+        "alt": false,
+        "description": "Open an existing file."
+    },
+    {
+        "id": "build_project",
+        "key": "F7",
+        "ctrl": false,
+        "alt": false,
+        "description": "Build the current project."
+    },
+    {
+        "id": "run_project",
+        "key": "F5",
+        "ctrl": false,
+        "alt": false,
+        "description": "Run/flash the current project to board."
+    },
+    {
+        "id": "next_tab",
+        "key": "Tab",
+        "ctrl": true,
+        "alt": false,
+        "description": "Switch to the next tab."
+    },
+    {
+        "id": "previous_tab",
+        "key": "Tab",
+        "ctrl": true,
+        "alt": true,
+        "description": "Switch to the previous tab."
+    },
+    {
+        "id": "clear_terminal",
+        "key": "K",
+        "ctrl": true,
+        "alt": false,
+        "description": "Clear the terminal output."
+    },
+    {
+        "id": "toggle_file_explorer",
+        "key": "E",
+        "ctrl": true,
+        "alt": false,
+        "description": "Toggle file explorer visibility."
+    },
+    {
+        "id": "zoom_in",
+        "key": "Equal",
+        "ctrl": true,
+        "alt": false,
+        "description": "Zoom in on canvas."
+    },
+    {
+        "id": "zoom_out",
+        "key": "Minus",
+        "ctrl": true,
+        "alt": false,
+        "description": "Zoom out on canvas."
+    },
+    {
+        "id": "reset_canvas_view",
+        "key": "R",
+        "ctrl": true,
+        "alt": false,
+        "description": "Reset canvas view to default."
     }
 ]

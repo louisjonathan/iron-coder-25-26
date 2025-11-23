@@ -42,10 +42,10 @@ impl Keybindings {
             if let Some(key) = binding.to_key() {
                 ctx.input(|i| {
                     let key_pressed = i.key_pressed(key);
-                    let ctrl_pressed = binding.ctrl && i.modifiers.ctrl;
-                    let alt_pressed = binding.alt && i.modifiers.alt;
+                    let ctrl_matches = binding.ctrl == i.modifiers.ctrl;
+                    let alt_matches = binding.alt == i.modifiers.alt;
 
-                    key_pressed && (!binding.ctrl || ctrl_pressed) && (!binding.alt || alt_pressed)
+                    key_pressed && ctrl_matches && alt_matches
                 })
             } else {
                 false

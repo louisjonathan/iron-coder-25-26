@@ -173,10 +173,26 @@ impl BaseTab for CanvasTab {
                         selected_connection,
                         ..
                     } => {
-                        self.selection = None;
+                        
                         let role = selected_connection.borrow().role.clone();
 
                         state.project.remove_connection(&selected_connection);
+                        // Update selection with fresh connection list
+                        let updated_connections = state.project.get_group_connections(&group_id);
+                        if !updated_connections.is_empty() {
+                            // Stay in select-one mode with updated list
+                            self.selection = Some(CanvasSelection::WithinProtocolGroup {
+                                group_id,
+                                all_connections: updated_connections.clone(),
+                                selected_connection: updated_connections[0].clone(),
+                            });
+                        } else {
+                            self.selection = None;
+                        }
+                        // Update wizard state
+                        if let Some(wizard) = state.connection_wizard.as_mut() {
+                            wizard.update_missing_roles_after_deletion(&selected_connection);
+                        }
 
                         println!(
                             "Delete: Removed individual connection ({}) from select one from group",

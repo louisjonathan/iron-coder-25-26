@@ -482,6 +482,18 @@ impl Project {
     }
 
     pub fn remove_connection(&mut self, connection: &Rc<RefCell<CanvasConnection>>) {
+        let main_file = self.source_files.iter().find(|path| {
+            path.file_name()
+                .map(|name| name == "main.rs")
+                .unwrap_or(false)
+        });
+
+        let conn = connection.borrow();
+
+        if let Some(path) = main_file {
+            self.remove_pin_from_source(path, &conn);
+        }
+
         self.connections.retain(|c| !Rc::ptr_eq(c, connection));
     }
 
@@ -525,6 +537,18 @@ impl Project {
 
     /// Remove a protocol group from the project
     pub fn remove_protocol_group(&mut self, group_id: &Uuid) {
+        let main_file = self.source_files.iter().find(|path| {
+            path.file_name()
+                .map(|name| name == "main.rs")
+                .unwrap_or(false)
+        });
+
+        if let Some(protocol) = self.protocol_groups.get(group_id) {
+            if let Some(path) = main_file {
+                self.remove_bus_from_source(path, &protocol.protocol_type);
+            }
+        }
+
         self.protocol_groups.remove(group_id);
     }
 
@@ -582,6 +606,46 @@ impl Project {
         write(path, code);
     }
 
+    fn remove_bus_from_source(&self, path: &PathBuf, bus_type: &WizardType) {
+        let Some(stmt_to_remove) = self.generate_bus_statement(bus_type) else {
+            return;
+        };
+
+        let Ok(code) = read_to_string(&path) else {
+            return;
+        };
+
+        let mut output = Vec::new();
+        let lines: Vec<&str> = code.lines().collect();
+        let mut skip_next = false;
+
+        for line in lines {
+            if skip_next {
+                skip_next = false;
+                continue;
+            }
+
+            let trimmed = line.trim();
+
+            if stmt_to_remove.contains('\n') {
+                let parts: Vec<&str> = stmt_to_remove.split('\n').collect();
+                if parts.len() == 2 && trimmed == parts[0].trim() {
+                    skip_next = true;
+                    continue;
+                }
+            }
+
+            if trimmed == stmt_to_remove.trim() {
+                continue;
+            }
+
+            output.push(line.to_string());
+        }
+
+        let code = output.join("\n");
+        write(path, code);
+    }
+
     fn insert_pin_into_source(&self, path: &PathBuf, conn: &CanvasConnection) {
         let marker = "PIN_DEFINITIONS".to_string();
 
@@ -606,6 +670,31 @@ impl Project {
                 inserted = true;
             }
         }
+        let code = output.join("\n");
+        write(path, code);
+    }
+
+    fn remove_pin_from_source(&self, path: &PathBuf, conn: &CanvasConnection) {
+        let Some(stmt_to_remove) = self.generate_pin_statement(conn) else {
+            return;
+        };
+
+        let Ok(code) = read_to_string(&path) else {
+            return;
+        };
+
+        let mut output = Vec::new();
+
+        for line in code.lines() {
+            let trimmed = line.trim();
+
+            if trimmed == stmt_to_remove.trim() {
+                continue;
+            }
+
+            output.push(line.to_string());
+        }
+
         let code = output.join("\n");
         write(path, code);
     }

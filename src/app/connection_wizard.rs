@@ -347,7 +347,29 @@ impl ConnectionWizard {
             _ => false,
         }
     }
+    /// Update the Review state after a connection is deleted
+    pub fn update_missing_roles_after_deletion(&mut self, deleted_connection: &Rc<RefCell<CanvasConnection>>) {
+        if let WizardState::Review {
+            missing_roles,
+            existing_connections,
+            ..
+        } = &mut self.state
+        {
+            // Get the role of the deleted connection
+            if let Some(role) = &deleted_connection.borrow().role {
+                // Remove from existing_connections
+                existing_connections.remove(role);
 
+                // Find the corresponding (main_role, peripheral_role) pair in required_roles
+                if let Some(role_pair) = self.required_roles.iter().find(|(main, _)| main == role) {
+                    // Add back to missing_roles if not already there
+                    if !missing_roles.contains(role_pair) {
+                        missing_roles.push(role_pair.clone());
+                    }
+                }
+            }
+        }
+    }
     /// Cancel the wizard
     pub fn cancel(&mut self) {
         self.state = WizardState::Uninitialized;

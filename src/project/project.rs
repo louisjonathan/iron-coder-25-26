@@ -494,6 +494,14 @@ impl Project {
             self.remove_pin_from_source(path, &conn);
         }
 
+        if let Some(group_id) = conn.protocol_group_id {
+            if let Some(group) = self.protocol_groups.get_mut(&group_id) {
+                group.connections.retain(|c| !Rc::ptr_eq(c, connection));
+            }
+        }
+
+        drop(conn);
+
         self.connections.retain(|c| !Rc::ptr_eq(c, connection));
     }
 

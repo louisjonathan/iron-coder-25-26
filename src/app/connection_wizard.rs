@@ -245,10 +245,15 @@ impl ConnectionWizard {
                                 if *current_role_index >= self.required_roles.len() {
                                     // Move created_connections into the Complete state
                                     let conns = created_connections.clone();
+                                    let is_completing_existing = conns
+                                        .iter()
+                                        .any(|c| c.borrow().protocol_group_id.is_some());
                                     self.state = WizardState::Complete {
                                         created_connections: conns,
                                     };
-                                    project.add_connection_bus(&self.wizard_type);
+                                    if !is_completing_existing {
+                                        project.add_connection_bus(&self.wizard_type);
+                                    }
                                 } else {
                                     *pins_left_to_connect = 2;
                                 }
@@ -348,7 +353,10 @@ impl ConnectionWizard {
         }
     }
     /// Update the Review state after a connection is deleted
-    pub fn update_missing_roles_after_deletion(&mut self, deleted_connection: &Rc<RefCell<CanvasConnection>>) {
+    pub fn update_missing_roles_after_deletion(
+        &mut self,
+        deleted_connection: &Rc<RefCell<CanvasConnection>>,
+    ) {
         if let WizardState::Review {
             missing_roles,
             existing_connections,

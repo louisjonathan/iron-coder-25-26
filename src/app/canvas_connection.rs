@@ -44,6 +44,8 @@ pub struct CanvasConnection {
     temp_name: String,
     #[serde(skip)]
     pub show_popup: bool,
+
+    pub interacted_waypoint: Option<usize>,
 }
 
 impl CanvasConnection {
@@ -54,6 +56,7 @@ impl CanvasConnection {
 
         let start_board_id = start_board.borrow().id;
 
+        let interacted_waypoint  = Option::<usize>::None;
         Self {
             name: String::new(),
             id: Uuid::new_v4(),
@@ -69,6 +72,7 @@ impl CanvasConnection {
             end_pin: None,
             temp_name: String::new(),
             show_popup: false,
+            interacted_waypoint,
         }
     }
 
@@ -293,51 +297,60 @@ impl CanvasConnection {
         // TODO: let you drag first or last points to other pins on the same board
         let tolerance = 15.0;
 
-        if response.dragged() {
+        if response.drag_started() {
             // rust borrow checker will not allow multiple neighboring mutations, index loop instead
             let len = self.points.len();
             for i in 1..len - 1 {
                 let dist = mouse_pos.distance(to_screen.transform_pos(self.points[i]));
                 if dist < tolerance {
-                    let mut movement = response.drag_delta() / *zoom;
-
-                    if i == 1 {
-                        if self.points[i - 1].x == self.points[i].x {
-                            movement.x = 0.0;
-                        } else {
-                            movement.y = 0.0;
-                        }
-                    }
-                    if i == len - 2 {
-                        if self.points[i + 1].x == self.points[i].x {
-                            movement.x = 0.0;
-                        } else {
-                            movement.y = 0.0;
-                        }
-                    }
-
-                    if i != 1 {
-                        if self.points[i - 1].x == self.points[i].x {
-                            self.points[i - 1].x += movement.x;
-                        } else {
-                            self.points[i - 1].y += movement.y;
-                        }
-                    }
-
-                    if i != len - 2 {
-                        if self.points[i + 1].x == self.points[i].x {
-                            self.points[i + 1].x += movement.x;
-                        } else {
-                            self.points[i + 1].y += movement.y;
-                        }
-                    }
-
-                    self.points[i] += movement;
+                    self.interacted_waypoint = Some(i);
                     return true;
                 }
             }
         }
+        if response.dragged() && self.interacted_waypoint.is_some() {
+            let len = self.points.len();
+            let i = self.interacted_waypoint.unwrap();            
+            let mut movement = response.drag_delta() / *zoom;
 
+            if i == 1 {
+                if self.points[i - 1].x == self.points[i].x {
+                    movement.x = 0.0;
+                } else {
+                    movement.y = 0.0;
+                }
+            }
+            if i == len - 2 {
+                if self.points[i + 1].x == self.points[i].x {
+                    movement.x = 0.0;
+                } else {
+                    movement.y = 0.0;
+                }
+            }
+
+            if i != 1 {
+                if self.points[i - 1].x == self.points[i].x {
+                    self.points[i - 1].x += movement.x;
+                } else {
+                    self.points[i - 1].y += movement.y;
+                }
+            }
+
+            if i != len - 2 {
+                if self.points[i + 1].x == self.points[i].x {
+                    self.points[i + 1].x += movement.x;
+                } else {
+                    self.points[i + 1].y += movement.y;
+                }
+            }
+
+            self.points[i] += movement;
+            return true;
+        }
+        if response.drag_released() {
+            self.interacted_waypoint = None;
+            return true;
+        }
         return false;
     }
 

@@ -41,6 +41,8 @@ pub struct CanvasBoard {
     connection_ids: Vec<Uuid>,
     #[serde(skip)]
     canvas_rect: Rect,
+    #[serde(skip)]
+    is_being_dragged: bool,
 }
 
 impl Default for CanvasBoard {
@@ -57,6 +59,7 @@ impl Default for CanvasBoard {
             connection_ids: Vec::new(),
             connections: Vec::new(),
             canvas_rect: Rect::ZERO,
+            is_being_dragged: false,
         }
     }
 }
@@ -94,6 +97,7 @@ impl CanvasBoard {
                 connections: Vec::new(),
                 connection_ids: Vec::new(),
                 canvas_rect,
+                is_being_dragged: false,
             })
         } else {
             None
@@ -274,21 +278,47 @@ impl CanvasBoard {
         response: &Response,
         mouse_pos: &Pos2,
     ) -> bool {
-        if response.dragged_by(egui::PointerButton::Primary) {
+        if response.clicked_elsewhere() {
+            self.is_being_dragged = false;
+            return false;
+        }
+        if self.contains(to_screen, mouse_pos) {
+            if response.clicked() {
+                return true;
+            }
+        }
+        if response.drag_started() {
+            if self.contains(to_screen, mouse_pos) {
+                if !self.connections.is_empty() {
+                    return false;
+                }
+                self.is_being_dragged = true;
+                self.canvas_pos += response.drag_delta() / *zoom;
+                let canvas_rect = self.image_rect.translate(self.canvas_pos);
+
+                self.canvas_rect = to_screen.transform_rect(canvas_rect);
+                
+                return true;
+            }
+        }
+        if self.is_being_dragged {
+            if response.drag_released() {
+                self.is_being_dragged = false;
+            }
             if !self.connections.is_empty() {
                 return false;
             }
+
             self.canvas_pos += response.drag_delta() / *zoom;
             let canvas_rect = self.image_rect.translate(self.canvas_pos);
 
             self.canvas_rect = to_screen.transform_rect(canvas_rect);
             return true;
         }
-        if self.contains(to_screen, mouse_pos) {
-            if response.clicked_by(egui::PointerButton::Primary) {
-                return true;
-            }
+        if response.drag_released() {
+            self.is_being_dragged = false;
         }
+        
         return false;
     }
 

@@ -904,7 +904,7 @@ impl BaseTab for CanvasTab {
                     }
                 }
 
-                if response.dragged_by(egui::PointerButton::Secondary) {
+                if response.dragged() {
                     self.canvas_offset += response.drag_delta();
                     for b_ref in state.project.boards_iter() {
                         let mut b = b_ref.borrow_mut();

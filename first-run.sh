@@ -1,0 +1,17 @@
+#!/bin/bash
+set -e
+if command -v rustc >/dev/null 2>&1; then
+    echo "Rust is already installed. Skipping install of Rust, installing dependencies only"
+else
+    echo "Rust is not installed. Installing Rust and dependencies"
+    wget https://sh.rustup.rs -O rustup-init.sh
+    sh rustup-init.sh -y --no-modify-path --default-toolchain stable
+    export PATH="$HOME/.cargo/bin:$PATH"
+    rm rustup-init.sh
+fi
+cd "$(dirname "$0")"
+rustup component add clippy rustfmt
+rustup update stable
+rustup update nightly
+cargo install cargo-generate espflash ravedude
+cargo build --release

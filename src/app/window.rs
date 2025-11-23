@@ -779,6 +779,42 @@ impl MainWindow {
         }
     }
 
+    fn switch_to_next_tab(&mut self) {
+        let tree = self.tree.main_surface_mut();
+        
+        if let Some(focused_leaf) = tree.focused_leaf() {
+            if let egui_dock::Node::Leaf { tabs, active, .. } = &mut tree[focused_leaf] {
+                if !tabs.is_empty() {
+                    let next_index = (active.0 + 1) % tabs.len();
+                    *active = egui_dock::TabIndex(next_index);
+                    if let Some(tab_name) = tabs.get(next_index) {
+                        self.active_tab = Some(tab_name.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    fn switch_to_previous_tab(&mut self) {
+        let tree = self.tree.main_surface_mut();
+        
+        if let Some(focused_leaf) = tree.focused_leaf() {
+            if let egui_dock::Node::Leaf { tabs, active, .. } = &mut tree[focused_leaf] {
+                if !tabs.is_empty() {
+                    let prev_index = if active.0 == 0 {
+                        tabs.len() - 1
+                    } else {
+                        active.0 - 1
+                    };
+                    *active = egui_dock::TabIndex(prev_index);
+                    if let Some(tab_name) = tabs.get(prev_index) {
+                        self.active_tab = Some(tab_name.clone());
+                    }
+                }
+            }
+        }
+    }
+
     fn is_terminal_tab_active(&self) -> bool {
         if let Some(active_tab_name) = &self.active_tab {
             active_tab_name == "Output"
@@ -829,8 +865,199 @@ impl eframe::App for MainWindow {
             }
 
             if self.state.keybindings.is_pressed(ctx, "close_tab") {
-                // close tab keybind for Jon... (once I figure out how to reliably find the current tab)
-                println!("Close tab bind pressed...");
+                if let Some(active_tab_name) = self.active_tab.clone() {
+                    if active_tab_name != "Canvas" && active_tab_name != "File Explorer" && active_tab_name != "Output" {
+                        self.tabs.remove(&active_tab_name);
+                        
+                        let tree = self.tree.main_surface_mut();
+                        if let Some(focused_leaf) = tree.focused_leaf() {
+                            if let egui_dock::Node::Leaf { tabs, active, .. } = &mut tree[focused_leaf] {
+                                if let Some(pos) = tabs.iter().position(|x| *x == active_tab_name) {
+                                    tabs.remove(pos);
+                                    
+                                    if !tabs.is_empty() {
+                                        if active.0 >= tabs.len() {
+                                            *active = egui_dock::TabIndex(tabs.len() - 1);
+                                        }
+                                        if let Some(new_active_tab) = tabs.get(active.0) {
+                                            self.active_tab = Some(new_active_tab.clone());
+                                        } else {
+                                            self.active_tab = None;
+                                        }
+                                    } else {
+                                        self.active_tab = None;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        println!("Closed tab: {}", active_tab_name);
+                    } else {
+                        println!("Cannot close essential tab: {}", active_tab_name);
+                    }
+                } else {
+                    println!("No active tab to close");
+                }
+            }
+
+            // Project operations ================
+            if self.state.keybindings.is_pressed(ctx, "new_project") {
+                self.prompt_save_if_needed(PendingAction::NewProject);
+            }
+
+            if self.state.keybindings.is_pressed(ctx, "open_project") {
+                self.open_project();
+            }
+
+            if self.state.keybindings.is_pressed(ctx, "save_project") {
+                self.save_project_and_files();
+            }
+
+            // File operations ================
+            if self.state.keybindings.is_pressed(ctx, "open_file") {
+                self.open_file_dialog();
+            }
+
+            // Build operations ================
+            if self.state.keybindings.is_pressed(ctx, "build_project") {
+                self.state.build_project();
+            }
+
+            if self.state.keybindings.is_pressed(ctx, "run_project") {
+                self.state.run_project();
+            }
+
+            // Tab navigation ================
+            if self.state.keybindings.is_pressed(ctx, "next_tab") {
+                self.switch_to_next_tab();
+            }
+
+            if self.state.keybindings.is_pressed(ctx, "previous_tab") {
+                self.switch_to_previous_tab();
+            }
+
+            // Terminal operations ============
+            if self.state.keybindings.is_pressed(ctx, "clear_terminal") {
+                self.state.clear_terminal();
+            }
+
+            // UI operations ==============
+            if self.state.keybindings.is_pressed(ctx, "toggle_file_explorer") {
+                if self.tabs.contains_key("File Explorer") {
+                    self.tabs.remove("File Explorer");
+                    
+                    let tree = self.tree.main_surface_mut();
+                    for i in 0..tree.len() {
+                        let node_index = egui_dock::NodeIndex(i);
+                        if let egui_dock::Node::Leaf { tabs, active, .. } = &mut tree[node_index] {
+                            if let Some(pos) = tabs.iter().position(|x| *x == "File Explorer") {
+                                tabs.remove(pos);
+                                
+                                if !tabs.is_empty() {
+                                    if active.0 >= tabs.len() {
+                                        *active = egui_dock::TabIndex(tabs.len() - 1);
+                                    }
+                                    if let Some(new_active_tab) = tabs.get(active.0) {
+                                        self.active_tab = Some(new_active_tab.clone());
+                                    } else {
+                                        self.active_tab = None;
+                                    }
+                                } else {
+                                    self.active_tab = None;
+                                }
+                                break; // Found and removed, no need to continue
+                            }
+                        }
+                    }
+                } else {
+                    self.tabs.insert(
+                        "File Explorer".to_string(),
+                        Box::new(FileExplorerTab::new()),
+                    );
+                    
+                    // find left panel node thing
+                    let tree = self.tree.main_surface_mut();
+                    let mut found_board_info_node = None;
+                    
+                    for i in 0..tree.len() {
+                        let node_index = egui_dock::NodeIndex(i);
+                        if let egui_dock::Node::Leaf { tabs, .. } = &tree[node_index] {
+                            if tabs.contains(&"Board Info".to_string()) {
+                                found_board_info_node = Some(node_index);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if let Some(node_index) = found_board_info_node {
+                        if let egui_dock::Node::Leaf { tabs, active, .. } = &mut tree[node_index] {
+                            tabs.push("File Explorer".to_string());
+                            *active = egui_dock::TabIndex(tabs.len() - 1); // Make it active
+                            self.active_tab = Some("File Explorer".to_string());
+                        }
+                    } else {
+                        self.tree.push_to_focused_leaf("File Explorer".to_string());
+                    }
+                }
+            }
+
+
+
+            // Canvas operations (global) =======
+            if self.state.keybindings.is_pressed(ctx, "delete") {
+                if let Some(active_tab) = &self.active_tab {
+                    if active_tab == "Canvas" {
+                        if let Some(canvas_tab) = self.tabs.get_mut("Canvas") {
+                            if let Some(canvas) = canvas_tab.as_any_mut().downcast_mut::<CanvasTab>() {
+                                canvas.handle_delete_key(&mut self.state);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if self.state.keybindings.is_pressed(ctx, "backspace") {
+                if let Some(active_tab) = &self.active_tab {
+                    if active_tab == "Canvas" {
+                        if let Some(canvas_tab) = self.tabs.get_mut("Canvas") {
+                            if let Some(canvas) = canvas_tab.as_any_mut().downcast_mut::<CanvasTab>() {
+                                canvas.handle_backspace_key();
+                            }
+                        }
+                    }
+                }
+            }
+
+            // canvas ================
+            // these things only happen in canvas
+            if let Some(active_tab) = &self.active_tab {
+                if active_tab == "Canvas" {
+                    if self.state.keybindings.is_pressed(ctx, "zoom_in") {
+                        if let Some(canvas_tab) = self.tabs.get_mut("Canvas") {
+                            if let Some(canvas) = canvas_tab.as_any_mut().downcast_mut::<CanvasTab>() {
+                                let viewport_size = ctx.screen_rect().size();
+                                canvas.zoom_in(viewport_size);
+                            }
+                        }
+                    }
+
+                    if self.state.keybindings.is_pressed(ctx, "zoom_out") {
+                        if let Some(canvas_tab) = self.tabs.get_mut("Canvas") {
+                            if let Some(canvas) = canvas_tab.as_any_mut().downcast_mut::<CanvasTab>() {
+                                let viewport_size = ctx.screen_rect().size();
+                                canvas.zoom_out(viewport_size);
+                            }
+                        }
+                    }
+
+                    if self.state.keybindings.is_pressed(ctx, "reset_canvas_view") {
+                        if let Some(canvas_tab) = self.tabs.get_mut("Canvas") {
+                            if let Some(canvas) = canvas_tab.as_any_mut().downcast_mut::<CanvasTab>() {
+                                canvas.reset_canvas();
+                            }
+                        }
+                    }
+                }
             }
         }
 

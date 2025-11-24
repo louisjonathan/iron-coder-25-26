@@ -42,6 +42,11 @@ impl BaseTab for DependencyCheckerTab {
                 ui.label(self.checker.ravedude.status_text());
             });
             
+            ui.horizontal(|ui| {
+                ui.label("probe-rs:");
+                ui.label(self.checker.ravedude.status_text());
+            });
+            
             ui.separator();
             
             if ui.button("Refresh").clicked() {

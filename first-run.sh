@@ -13,5 +13,6 @@ cd "$(dirname "$0")"
 rustup component add clippy rustfmt
 rustup update stable
 rustup update nightly
+rustup target add thumbv6m-none-eabi
 cargo install cargo-generate espflash ravedude
 cargo build --release

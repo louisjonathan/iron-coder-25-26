@@ -102,6 +102,7 @@ set "PATH=%CARGO_HOME%\bin;%PATH%"
 
 echo.
 echo [3/4] Installing useful Cargo tools
+rustup target add thumbv6m-none-eabi
 cargo install cargo-generate espflash ravedude || echo Some tools failed to install
 
 echo.

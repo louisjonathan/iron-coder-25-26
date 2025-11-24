@@ -14,5 +14,6 @@ rustup component add clippy rustfmt
 rustup update stable
 rustup update nightly
 rustup target add thumbv6m-none-eabi
-cargo install cargo-generate espflash ravedude
+rustup target add riscv32imac-unknown-none-elf
+cargo install cargo-generate espflash ravedude probe-rs
 cargo build --release

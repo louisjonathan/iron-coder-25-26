@@ -104,7 +104,7 @@ echo.
 echo [3/4] Installing useful Cargo tools
 rustup target add thumbv6m-none-eabi
 rustup target add riscv32imac-unknown-none-elf
-cargo install cargo-generate espflash ravedude probe-rs || echo Some tools failed to install
+cargo install cargo-generate espflash ravedude probe-rs-tools || echo Some tools failed to install
 
 echo.
 echo [4/4] Building your project

@@ -25,19 +25,23 @@ pub const LINE_ENDING: &str = "\r\n";
 pub const LINE_ENDING: &str = "\n";
 
 pub struct SharedState {
-    pub did_activate_colorscheme: bool,
+    pub default_terminal: Option<PathBuf>,
+    
+    // application structures
+    pub project: Project,
+    pub syntax_highlighter: SyntaxHighlighter,
     pub keybindings: Keybindings,
     pub colorschemes: colorscheme,
-    pub syntax_highlighter: SyntaxHighlighter,
-    pub project: Project,
-    pub requested_file_to_open: Option<PathBuf>,
     pub known_boards: Vec<Rc<Board>>,
-    pub default_terminal: Option<PathBuf>,
     pub output_terminal_backend: Option<Rc<RefCell<TerminalBackend>>>,
+    pub connection_wizard: Option<ConnectionWizard>,
+    
+    // tab flags & buffers
+    pub requested_file_to_open: Option<PathBuf>,
+    pub command_history: CommandHistory,
     pub reset_canvas: bool,
     pub sync_file_explorer: bool,
-    pub connection_wizard: Option<ConnectionWizard>,
-    pub command_history: CommandHistory,
+    pub did_activate_colorscheme: bool,
 }
 
 impl SharedState {

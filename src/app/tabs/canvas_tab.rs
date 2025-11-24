@@ -173,7 +173,6 @@ impl BaseTab for CanvasTab {
                         selected_connection,
                         ..
                     } => {
-                        
                         let role = selected_connection.borrow().role.clone();
 
                         state.project.remove_connection(&selected_connection);
@@ -370,20 +369,24 @@ impl BaseTab for CanvasTab {
         offset += 12.0;
 
         if self.selection.is_some() {
-            let delete_keybinding_text = if let Some(delete_binding) = state.keybindings.get_keybinding("delete") {
-                let mut parts = Vec::new();
-                if delete_binding.ctrl {
-                    parts.push("Ctrl");
-                }
-                if delete_binding.alt {
-                    parts.push("Alt");
-                }
-                parts.push(&delete_binding.key);
-                format!("{}: Remove current selection from canvas", parts.join(" + "))
-            } else {
-                "Delete: Remove current selection from canvas".to_string()
-            };
-            
+            let delete_keybinding_text =
+                if let Some(delete_binding) = state.keybindings.get_keybinding("delete") {
+                    let mut parts = Vec::new();
+                    if delete_binding.ctrl {
+                        parts.push("Ctrl");
+                    }
+                    if delete_binding.alt {
+                        parts.push("Alt");
+                    }
+                    parts.push(&delete_binding.key);
+                    format!(
+                        "{}: Remove current selection from canvas",
+                        parts.join(" + ")
+                    )
+                } else {
+                    "Delete: Remove current selection from canvas".to_string()
+                };
+
             let temp = ui.painter().text(
                 rect.min + Vec2 { x: 0.0, y: offset },
                 Align2::LEFT_TOP,
@@ -687,7 +690,12 @@ impl BaseTab for CanvasTab {
 
                     // If wizard is active, validate the pin selection first
                     if let Some(mut cw) = state.connection_wizard.take() {
-                        if !cw.handle_pin_selected(pin, &canvas_board_rc.borrow().board, board_id, &mut state.project) {
+                        if !cw.handle_pin_selected(
+                            pin,
+                            &canvas_board_rc.borrow().board,
+                            board_id,
+                            &mut state.project,
+                        ) {
                             // Pin was invalid, wizard shows error, don't create connection
                             // Reset clicked_pin so connection_in_progress gets restored below
                             clicked_pin = None;
@@ -789,7 +797,7 @@ impl BaseTab for CanvasTab {
                                     pin,
                                     &canvas_board_rc.borrow().board,
                                     board_id,
-                                    &mut state.project
+                                    &mut state.project,
                                 ) {
                                     // Pin was invalid, wizard shows error, don't start connection
 
@@ -1004,7 +1012,7 @@ impl BaseTab for CanvasTab {
         if let Some((board, pin)) = &self.pin_tooltip {
             let canvas_board = board.borrow();
             canvas_board.draw_pin_from_number(pin, ui, &to_screen);
-            let pos = canvas_board.get_pin_location(pin).unwrap();
+            let pos = canvas_board.get_pin_location(pin).unwrap() + canvas_board.canvas_pos;
             let screen_pos = to_screen.transform_pos(pos);
             egui::show_tooltip_at(
                 ui.ctx(),
@@ -1129,44 +1137,48 @@ impl CanvasTab {
     pub fn zoom_in(&mut self, viewport_size: Vec2) {
         let zoom_factor = 1.1;
         let viewport_center = viewport_size / 2.0;
-        
+
         let to_screen_before = emath::RectTransform::from_to(
             Rect::from_min_size(Pos2::ZERO, viewport_size / self.canvas_zoom),
             Rect::from_min_size(Pos2::ZERO, viewport_size).translate(self.canvas_offset),
         );
-        let center_canvas_before = to_screen_before.inverse().transform_pos(viewport_center.to_pos2());
-        
+        let center_canvas_before = to_screen_before
+            .inverse()
+            .transform_pos(viewport_center.to_pos2());
+
         self.canvas_zoom *= zoom_factor;
         self.canvas_zoom = self.canvas_zoom.min(50.0);
-        
+
         let to_screen_after = emath::RectTransform::from_to(
             Rect::from_min_size(Pos2::ZERO, viewport_size / self.canvas_zoom),
             Rect::from_min_size(Pos2::ZERO, viewport_size).translate(self.canvas_offset),
         );
         let center_screen_after = to_screen_after.transform_pos(center_canvas_before);
-        
+
         self.canvas_offset += viewport_center - center_screen_after.to_vec2();
     }
 
     pub fn zoom_out(&mut self, viewport_size: Vec2) {
         let zoom_factor = 0.9;
         let viewport_center = viewport_size / 2.0;
-        
+
         let to_screen_before = emath::RectTransform::from_to(
             Rect::from_min_size(Pos2::ZERO, viewport_size / self.canvas_zoom),
             Rect::from_min_size(Pos2::ZERO, viewport_size).translate(self.canvas_offset),
         );
-        let center_canvas_before = to_screen_before.inverse().transform_pos(viewport_center.to_pos2());
-        
+        let center_canvas_before = to_screen_before
+            .inverse()
+            .transform_pos(viewport_center.to_pos2());
+
         self.canvas_zoom *= zoom_factor;
         self.canvas_zoom = self.canvas_zoom.max(0.1);
-        
+
         let to_screen_after = emath::RectTransform::from_to(
             Rect::from_min_size(Pos2::ZERO, viewport_size / self.canvas_zoom),
             Rect::from_min_size(Pos2::ZERO, viewport_size).translate(self.canvas_offset),
         );
         let center_screen_after = to_screen_after.transform_pos(center_canvas_before);
-        
+
         self.canvas_offset += viewport_center - center_screen_after.to_vec2();
     }
 

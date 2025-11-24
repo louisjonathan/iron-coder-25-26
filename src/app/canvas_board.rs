@@ -35,7 +35,7 @@ pub struct CanvasBoard {
     image_rect: Rect,
     #[serde(skip)]
     pub pin_locations: HashMap<u32, Rect>,
-    canvas_pos: Vec2,
+    pub canvas_pos: Vec2,
     #[serde(skip)]
     pub connections: Vec<Rc<RefCell<CanvasConnection>>>,
     connection_ids: Vec<Uuid>,
@@ -297,7 +297,7 @@ impl CanvasBoard {
                 let canvas_rect = self.image_rect.translate(self.canvas_pos);
 
                 self.canvas_rect = to_screen.transform_rect(canvas_rect);
-                
+
                 return true;
             }
         }
@@ -318,7 +318,7 @@ impl CanvasBoard {
         if response.drag_released() {
             self.is_being_dragged = false;
         }
-        
+
         return false;
     }
 

@@ -1,6 +1,6 @@
 [package]
 name = "common_hal_interface"
-version = "1.0.6-alpha"
+version = "1.0.15-alpha"
 description = "A common interface between Rust HALs, for use in the Iron Coder IDE"
 license = "MIT"
 readme = "README.md"

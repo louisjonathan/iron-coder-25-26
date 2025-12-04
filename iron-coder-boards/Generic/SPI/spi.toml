@@ -1,0 +1,23 @@
+name = "SPI"
+board_type = "Peripheral"
+
+related_crates = ["embedded-hal"]
+
+[pinout]
+interfaces = [
+	{ name = "SPI", bus = true, roles = [{name = "SCK"}, {name = "MOSI"}, {name = "MISO"}, {name = "CS"}] },
+]
+pins = [
+	{ physical = 0, silkscreen = "SCK", roles = [
+		{ name = "SCK" },
+	]},
+	{ physical = 1, silkscreen = "MOSI", roles = [
+		{ name = "MOSI" },
+	]},
+	{ physical = 2, silkscreen = "MISO", roles = [
+		{ name = "MISO" },
+	]},
+	{ physical = 3, silkscreen = "CS", roles = [
+		{ name = "CS" },
+	]},
+]

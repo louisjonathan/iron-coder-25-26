@@ -37,9 +37,9 @@ impl WizardType {
                 ("SCL".to_string(), "SCL".to_string()),
             ],
             WizardType::SPI => vec![
-                ("MOSI".to_string(), "MISO".to_string()),
-                ("MISO".to_string(), "MOSI".to_string()),
                 ("SCK".to_string(), "SCK".to_string()),
+                ("MOSI".to_string(), "MOSI".to_string()),
+                ("MISO".to_string(), "MISO".to_string()),
                 ("CS".to_string(), "CS".to_string()),
             ],
             WizardType::UART => vec![

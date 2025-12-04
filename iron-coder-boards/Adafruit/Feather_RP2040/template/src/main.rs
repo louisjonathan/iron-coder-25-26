@@ -15,7 +15,7 @@ use adafruit_feather_rp2040::{
     },
 };
 use common_hal_interface::*;
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::spi::{Mode, Phase, Polarity};
 use panic_halt as _;
 
 #[entry]

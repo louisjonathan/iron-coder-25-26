@@ -93,7 +93,7 @@ macro_rules! setup_spi {
         .init(
             &mut $pac.RESETS,
             $clocks.peripheral_clock.freq(),
-            $baudrate,
+            $baudrate.Hz(),
             $spi_mode,
         )
     };
@@ -101,12 +101,12 @@ macro_rules! setup_spi {
 
 #[macro_export]
 macro_rules! setup_i2c {
-    ($pac:expr, $clocks:expr, $baudrate:expr, $i2c_module:expr, $sda:expr, $scl:expr) => {
+    ($pac:expr, $clocks:expr, $baudrate:expr, $i2c_module:ident, $sda:expr, $scl:expr) => {
         hal::i2c::I2C::new_controller(
             $i2c_module,
             $sda.into_function(),
             $scl.into_function(),
-            $baudrate,
+            $baudrate.Hz(),
             &mut $pac.RESETS,
             $clocks.system_clock.freq(),
         )

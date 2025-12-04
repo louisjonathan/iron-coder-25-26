@@ -1,0 +1,17 @@
+name = "I2C"
+board_type = "Peripheral"
+
+related_crates = ["embedded-hal"]
+
+[pinout]
+interfaces = [
+	{ name = "I2C", bus = true, roles = [{name = "SDA"}, {name = "SCL"}] },
+]
+pins = [
+	{ physical = 0, silkscreen = "SDA", roles = [
+		{ name = "SDA" },
+	]},
+	{ physical = 1, silkscreen = "SCL", roles = [
+		{ name = "SCL" },
+	]},
+]

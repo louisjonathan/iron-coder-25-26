@@ -732,7 +732,7 @@ impl Project {
                     "let i2c_peripheral = pac.I2C1;\n    let mut i2c = setup_i2c!(pac, clocks, 100_000, i2c_peripheral, sda, scl);"
                 ),
                 WizardType::SPI => format!(
-                    "let spi_peripheral = peripherals.SPI2;\n    let mut spi = setup_spi!(spi_peripheral, sck, mosi, miso, 10);"
+                    "let spi_peripheral = pac.SPI0;\n   let spi_mode = Mode {{polarity: Polarity::IdleLow, phase: Phase::CaptureOnFirstTransition}};\n    let mut spi = setup_spi!(pac, miso, mosi, sck, clocks, 100_000, spi_peripheral, spi_mode);"
                 ),
                 _ => return None,
             },

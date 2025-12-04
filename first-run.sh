@@ -15,5 +15,5 @@ rustup update stable
 rustup update nightly
 rustup target add thumbv6m-none-eabi
 rustup target add riscv32imac-unknown-none-elf
-cargo install cargo-generate espflash ravedude probe-rs-tools
+cargo install cargo-generate espflash ravedude probe-rs-tools elf2uf2-rs
 cargo build --release

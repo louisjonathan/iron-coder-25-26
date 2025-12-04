@@ -727,6 +727,15 @@ impl Project {
                 ),
                 _ => return None,
             },
+            Some(BoardStandards::Feather) => match bus_type {
+                WizardType::I2C => format!(
+                    "let i2c_peripheral = pac.I2C1;\n    let mut i2c = setup_i2c!(pac, clocks, 100_000, i2c_peripheral, sda, scl);"
+                ),
+                WizardType::SPI => format!(
+                    "let spi_peripheral = peripherals.SPI2;\n    let mut spi = setup_spi!(spi_peripheral, sck, mosi, miso, 10);"
+                ),
+                _ => return None,
+            },
             _ => return None,
         };
         return Some(fmt);
@@ -787,29 +796,46 @@ impl Project {
                     }
                     _ => return None,
                 },
-                Some(BoardStandards::ESP32) => {
-                    // println!("ESP BOARD FOUND");
-                    match pin_interface.as_str() {
-                        "GPIO" => match pin_role.direction {
-                            Some(GPIODirection::Input) => format!(
-                                "let pin_{} = Input::new(peripherals.{}, InputConfig::default().with_pull(Pull::Up));",
-                                var_name, pin_alias
-                            ),
-                            Some(GPIODirection::Output) => format!(
-                                "let mut pin_{} = Output::new(peripherals.{}, Level::High, OutputConfig::default());",
-                                var_name, pin_alias
-                            ),
-                            _ => return None,
-                        },
-                        "I2C" | "SPI" => {
-                            format!("let {} = peripherals.{};", conn_type, pin_alias)
-                        }
-                        _ => {
-                            println!("COULDNT FIND INTERFACE {:?}", pin_interface);
-                            return None;
-                        }
+                Some(BoardStandards::ESP32) => match pin_interface.as_str() {
+                    "GPIO" => match pin_role.direction {
+                        Some(GPIODirection::Input) => format!(
+                            "let pin_{} = Input::new(peripherals.{}, InputConfig::default().with_pull(Pull::Up));",
+                            var_name, pin_alias
+                        ),
+                        Some(GPIODirection::Output) => format!(
+                            "let mut pin_{} = Output::new(peripherals.{}, Level::High, OutputConfig::default());",
+                            var_name, pin_alias
+                        ),
+                        _ => return None,
+                    },
+                    "I2C" | "SPI" => {
+                        format!("let {} = peripherals.{};", conn_type, pin_alias)
                     }
-                }
+                    _ => {
+                        println!("COULDNT FIND INTERFACE {:?}", pin_interface);
+                        return None;
+                    }
+                },
+                Some(BoardStandards::Feather) => match pin_interface.as_str() {
+                    "GPIO" => match pin_role.direction {
+                        Some(GPIODirection::Input) => format!(
+                            "let pin_{} = pins.{}.into_pull_up_input();",
+                            var_name, pin_alias
+                        ),
+                        Some(GPIODirection::Output) => format!(
+                            "let mut pin_{} = pins.{}.into_push_pull_output();",
+                            var_name, pin_alias
+                        ),
+                        _ => return None,
+                    },
+                    "I2C" | "SPI" => {
+                        format!("let {} = pins.{};", conn_type, pin_alias)
+                    }
+                    _ => {
+                        println!("COULDNT FIND INTERFACE {:?}", pin_interface);
+                        return None;
+                    }
+                },
                 _ => return None,
             };
             return Some(fmt);

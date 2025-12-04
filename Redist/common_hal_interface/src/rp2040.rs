@@ -3,9 +3,9 @@ macro_rules! rp2040_setup {
     ($pac:ident, $core:ident, $clocks:ident, $sio:ident, $pins:ident) => {
         let mut $pac = pac::Peripherals::take().unwrap();
         let $core = pac::CorePeripherals::take().unwrap();
-        
+
         let mut watchdog = hal::Watchdog::new($pac.WATCHDOG);
-        
+
         let $clocks = hal::clocks::init_clocks_and_plls(
             XOSC_CRYSTAL_FREQ,
             $pac.XOSC,
@@ -17,33 +17,28 @@ macro_rules! rp2040_setup {
         )
         .ok()
         .unwrap();
-        
+
         let $sio = hal::Sio::new($pac.SIO);
-        
+
         let $pins = hal::gpio::Pins::new(
             $pac.IO_BANK0,
             $pac.PADS_BANK0,
             $sio.gpio_bank0,
             &mut $pac.RESETS,
         );
-        
-        
     };
 }
 #[macro_export]
 macro_rules! new_delay {
     ($core:expr, $clocks:expr) => {
-		cortex_m::delay::Delay::new(
-            $core.SYST,
-            $clocks.system_clock.freq().to_Hz()
-        )
+        cortex_m::delay::Delay::new($core.SYST, $clocks.system_clock.freq().to_Hz())
     };
 }
 #[macro_export]
 macro_rules! new_timer {
-	($pac:expr,$clocks:expr)=>{
-		hal::timer::Timer::new($pac.TIMER, &mut $pac.RESETS, &$clocks)
-	}
+    ($pac:expr,$clocks:expr) => {
+        hal::timer::Timer::new($pac.TIMER, &mut $pac.RESETS, &$clocks)
+    };
 }
 #[cfg(feature = "adafruit-feather-rp2040")]
 #[macro_export]
@@ -71,8 +66,8 @@ macro_rules! setup_neopixel {
             $timer.count_down(),
         )
     };
-    
-    // use defaults 
+
+    // use defaults
     ($pac:expr, $pin:expr, $clocks:expr, $timer:expr) => {
         let (mut pio, sm0, _, _, _) = $pac.PIO0.split(&mut $pac.RESETS);
         Ws2812::new(
@@ -86,11 +81,16 @@ macro_rules! setup_neopixel {
 }
 #[macro_export]
 macro_rules! setup_spi {
-    ($pac:expr, $miso:expr, $mosi:expr, $sck:expr, $clocks:expr, $baudrate:expr, $spi_mode:expr) => {
+    ($pac:expr, $miso:expr, $mosi:expr, $sck:expr, $clocks:expr, $baudrate:expr, $spi_module:expr, $spi_mode:expr) => {
         hal::spi::Spi::<_, _, _, 8>::new(
-            $pac.SPI0,  // or allow user to specify SPI0/SPI1?
-            ($mosi.into_function(), $miso.into_function(), $sck.into_function())
-        ).init(
+            $spi_module,
+            (
+                $mosi.into_function(),
+                $miso.into_function(),
+                $sck.into_function(),
+            ),
+        )
+        .init(
             &mut $pac.RESETS,
             $clocks.peripheral_clock.freq(),
             $baudrate,
@@ -103,10 +103,10 @@ macro_rules! setup_spi {
 macro_rules! setup_i2c {
     ($pac:expr, $clocks:expr, $baudrate:expr, $i2c_module:expr, $sda:expr, $scl:expr) => {
         hal::i2c::I2C::new_controller(
-            $pac.$i2c_module,
+            $i2c_module,
             $sda.into_function(),
             $scl.into_function(),
-            $baudrate.Hz(),
+            $baudrate,
             &mut $pac.RESETS,
             $clocks.system_clock.freq(),
         )

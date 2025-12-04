@@ -1195,6 +1195,17 @@ impl CanvasTab {
                     state.project.remove_connection(&connection);
                     println!("Delete: Removed connection from canvas");
                 }
+                CanvasSelection::ProtocolGroup {
+                    group_id,
+                    connections,
+                } => {
+                    self.selection = None;
+                    for connection in &connections {
+                        state.project.remove_connection(&connection);
+                    }
+                    state.project.remove_protocol_group(&group_id);
+                    println!("Delete: Removed protocol group from canvas");
+                }
                 _ => {
                     println!("Delete: Cannot delete this selection type");
                 }

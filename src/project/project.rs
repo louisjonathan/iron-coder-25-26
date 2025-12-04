@@ -471,11 +471,16 @@ impl Project {
     }
 
     pub fn remove_board(&mut self, board: &Rc<RefCell<CanvasBoard>>) {
-        let b = board.borrow_mut();
+        let mut b = board.borrow_mut();
         if b.board.is_main_board() {
             return;
         }
-        for c in &b.connections {
+
+        let connections: Vec<Rc<RefCell<CanvasConnection>>> =
+            b.connections.iter().cloned().collect();
+        drop(b);
+
+        for c in &connections {
             self.remove_connection(c);
         }
         self.peripheral_boards.retain(|c| !Rc::ptr_eq(c, board));

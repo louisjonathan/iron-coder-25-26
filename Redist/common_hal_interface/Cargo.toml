@@ -1,29 +1,45 @@
 [package]
 name = "common_hal_interface"
-version = "1.0.15-alpha"
+version = "1.0.16-alpha"
+edition = "2021"
+authors = [
+    "jonathanlouis@ufl.edu",
+    "jbryan2@ufl.edu",
+    "evanpurutcuoglu@ufl.edu",
+]
 description = "A common interface between Rust HALs, for use in the Iron Coder IDE"
-license = "MIT"
 readme = "README.md"
-authors = ["jonathanlouis@ufl.edu","jbryan2@ufl.edu","evanpurutcuoglu@ufl.edu"]
-categories = ["embedded", "development-tools", "hardware-support", "rust-patterns", "no-std"]
+license = "MIT"
 keywords = ["embedded", "hal", "macro", "compatibility"]
-edition = "2024"
-
+categories = ["embedded", "development-tools", "hardware-support", "rust-patterns", "no-std"]
 
 [features]
 default = []
-# Arduino features. They cannot specify features of arduino-hal directly but they can still be used as if the user specified the feature for arduino-hal, as long as both feature selections match. This may need to be left to the user, or it may be possible to configure it in the template for each board.
+
+# Base HAL features
+rp2040 = []
 arduino = []
+stm32f4 = []
+esp = []
+
+# RP2040 BSP features (imply rp2040)
+adafruit-feather-rp2040 = ["rp2040"]
+adafruit-kb2040 = ["rp2040"]
+adafruit-qt-py-rp2040 = ["rp2040"]
+sparkfun-pro-micro-rp2040 = ["rp2040"]
+rp-pico = ["rp2040"]
+
+# Arduino board features (imply arduino)
 arduino-uno = ["arduino"]
+arduino-nano = ["arduino"]
 arduino-mega2560 = ["arduino"]
 arduino-leonardo = ["arduino"]
-arduino-nano = ["arduino"]
 sparkfun-promicro = ["arduino"]
 sparkfun-promini-3v3 = ["arduino"]
 sparkfun-promini-5v = ["arduino"]
 trinket = ["arduino"]
 trinket-pro = ["arduino"]
 
-rp2040 = []
-stm32f4 = []
-esp = []
+[lib]
+name = "common_hal_interface"
+path = "src/lib.rs"

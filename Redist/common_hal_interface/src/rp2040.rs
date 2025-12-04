@@ -1,3 +1,11 @@
+//! Macros for raw rp2040-hal (no BSP)
+//!
+//! Use these macros when working directly with rp2040-hal without a board support package.
+//! For BSP-specific macros, enable the appropriate feature (e.g., `adafruit-feather-rp2040`).
+
+/// Set up the RP2040 peripherals using raw rp2040-hal.
+///
+/// Expects `hal` and `pac` to be in scope (typically via `use rp2040_hal as hal`).
 #[macro_export]
 macro_rules! rp2040_setup {
     ($pac:ident, $core:ident, $clocks:ident, $sio:ident, $pins:ident) => {
@@ -28,34 +36,27 @@ macro_rules! rp2040_setup {
         );
     };
 }
+
+/// Create a new delay instance.
 #[macro_export]
 macro_rules! new_delay {
     ($core:expr, $clocks:expr) => {
         cortex_m::delay::Delay::new($core.SYST, $clocks.system_clock.freq().to_Hz())
     };
 }
+
+/// Create a new timer instance.
 #[macro_export]
 macro_rules! new_timer {
-    ($pac:expr,$clocks:expr) => {
+    ($pac:expr, $clocks:expr) => {
         hal::timer::Timer::new($pac.TIMER, &mut $pac.RESETS, &$clocks)
     };
 }
-#[cfg(feature = "adafruit-feather-rp2040")]
-#[macro_export]
-macro_rules! setup_onboard_neopixel {
-    ($pac:expr, $pins:expr, $clocks:expr, $timer:expr) => {
-        setup_neopixel!($pac, $pins.gpio16, $clocks, $timer)
-    };
-}
-#[cfg(feature = "micromod-rp2040")]
-macro_rules! setup_onboard_neopixel {
-    ($pac:expr, $pins:expr, $clocks:expr, $timer:expr) => {
-        setup_neopixel!($pac, $pins.gpio10, $clocks, $timer)
-    };
-}
+
+/// Set up a WS2812 NeoPixel.
 #[macro_export]
 macro_rules! setup_neopixel {
-    // specify everything
+    // Full form with PIO block specification
     ($pac:expr, $pin:expr, $pio_block:ident, $sm:ident, $clocks:expr, $timer:expr) => {
         let (mut pio, $sm, _, _, _) = $pac.$pio_block.split(&mut $pac.RESETS);
         Ws2812::new(
@@ -67,7 +68,7 @@ macro_rules! setup_neopixel {
         )
     };
 
-    // use defaults
+    // Simple form using PIO0 and sm0
     ($pac:expr, $pin:expr, $clocks:expr, $timer:expr) => {
         let (mut pio, sm0, _, _, _) = $pac.PIO0.split(&mut $pac.RESETS);
         Ws2812::new(
@@ -79,6 +80,8 @@ macro_rules! setup_neopixel {
         )
     };
 }
+
+/// Set up SPI.
 #[macro_export]
 macro_rules! setup_spi {
     ($pac:expr, $miso:expr, $mosi:expr, $sck:expr, $clocks:expr, $baudrate:expr, $spi_module:expr, $spi_mode:expr) => {
@@ -99,6 +102,7 @@ macro_rules! setup_spi {
     };
 }
 
+/// Set up I2C.
 #[macro_export]
 macro_rules! setup_i2c {
     ($pac:expr, $clocks:expr, $baudrate:expr, $i2c_module:ident, $sda:expr, $scl:expr) => {

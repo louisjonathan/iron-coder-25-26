@@ -1,6 +1,10 @@
+//! Macros for ESP boards using esp-hal
+
 #[macro_export]
 macro_rules! esp_setup {
-    () => {{ esp_hal::init(esp_hal::Config::default()) }};
+    () => {{
+        esp_hal::init(esp_hal::Config::default())
+    }};
 }
 
 #[macro_export]

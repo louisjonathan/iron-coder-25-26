@@ -1,0 +1,21 @@
+
+name = "NeoPixel 8x8"
+manufacturer = "Adafruit"
+board_type = "Peripheral"
+
+related_crates = ["smart-leds", "ws2812-pio", "embedded-graphics"]
+
+[pinout]
+interfaces = [
+	{ name = "GPIO" },
+]
+pins = [
+	{ physical = 0, silkscreen = "DIN", roles = [
+		{ name = "GPIO", direction = "Input" },
+	]},
+	{ physical = 1, silkscreen = "5V" },
+	{ physical = 2, silkscreen = "GND" },
+	{ physical = 3, silkscreen = "DOUT", roles = [
+		{ name = "GPIO", direction = "Output" },
+	]},
+]

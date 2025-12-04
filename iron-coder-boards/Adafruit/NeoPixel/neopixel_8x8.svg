@@ -48,37 +48,37 @@
        y="0" />
     <circle
        style="fill:#ff00ff;fill-opacity:0.561475"
-       id="DIN"
+       id="0"
        cx="17.426199"
        cy="12.145533"
        r="0.81610298" />
     <circle
        style="fill:#ff00ff;fill-opacity:0.561475"
-       id="5V"
+       id="1"
        cx="19.224169"
        cy="12.132185"
        r="0.81610298" />
     <circle
        style="fill:#ff00ff;fill-opacity:0.561475"
-       id="GND"
+       id="2"
        cx="20.982786"
        cy="12.178177"
        r="0.81610298" />
     <circle
        style="fill:#ff00ff;fill-opacity:0.561475"
-       id="GND"
+       id="unused_gnd"
        cx="58.060081"
        cy="47.466843"
        r="0.73493773" />
     <circle
        style="fill:#ff00ff;fill-opacity:0.561475"
-       id="5V"
+       id="unused_5v"
        cx="59.86372"
        cy="47.518486"
        r="0.73493773" />
     <circle
        style="fill:#ff00ff;fill-opacity:0.561475"
-       id="DOUT"
+       id="3"
        cx="61.559608"
        cy="47.48151"
        r="0.73493773" />

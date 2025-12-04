@@ -1,6 +1,0 @@
-
-name = "NeoPixel 8x8"
-manufacturer = "Adafruit"
-board_type = "Peripheral"
-
-related_crates = ["ili9341", "embedded-graphics"]

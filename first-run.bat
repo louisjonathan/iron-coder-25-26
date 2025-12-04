@@ -78,7 +78,7 @@ timeout /t 3 >nul
 echo Visual C++ build tools are available.
 echo.
 
-REM === Install/Update Rust ===
+REM Install/Update Rust
 echo [2/4] Installing or updating Rust (stable-msvc)
 if not exist "%CARGO_HOME%\bin\rustup.exe" (
     echo Downloading rustup-init.exe

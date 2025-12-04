@@ -25,7 +25,7 @@ impl Default for SyntaxHighlighter {
         Self {
             syntax_set: SyntaxSet::load_defaults_newlines(),
             theme_set,
-            current_theme: "base16-ocean.dark".to_string(),
+            current_theme: "base16-ocean".to_string(),
         }
     }
 }

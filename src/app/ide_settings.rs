@@ -29,7 +29,7 @@ pub fn load_ide_settings() -> IDE_Settings {
 impl Default for IDE_Settings {
     fn default() -> Self {
         IDE_Settings {
-            syntect_highlighting_file: Some("base16-ocean.dark".to_string()),
+            syntect_highlighting_file: Some("base16-ocean".to_string()),
             colorscheme_file: None,
             last_opened_project: None,
             opened_files: Vec::new(),

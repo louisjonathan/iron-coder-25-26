@@ -735,7 +735,7 @@ impl Project {
     fn generate_pin_statement(&self, conn: &CanvasConnection) -> Option<String> {
         let sb_rc = conn.get_start_board();
         let sb = &sb_rc.borrow().board;
-        let eb_rc = conn.get_end_board().unwrap_or(return None);
+        let eb_rc = conn.get_end_board()?;
         let eb = &eb_rc.borrow().board;
 
         let start_pin = conn.get_start_pin();
